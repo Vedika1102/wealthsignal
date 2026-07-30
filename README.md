@@ -66,15 +66,18 @@ Implemented:
 - coarse sector enrichment for holdings and alerts
 - synthetic client portfolio impact scoring
 - persisted alert and client impact records
+- persisted feature rows with weak labels
+- numpy logistic-regression baseline with stored probabilities and metrics
 - decision API endpoints for filings, alerts, and governance
 - live SEC artifact resolution verified against a real 13F filing
 - unit tests for parser, SEC utilities, persistence, and decisioning
 
 Next:
 
-- train the first baseline materiality classifier
 - add richer sector and reference-data enrichment
 - persist client portfolios as first-class entities
+- add out-of-sample evaluation and model calibration
+- expose feature rows and model explanations through the API
 
 ## Local Ingest Example
 
@@ -91,7 +94,9 @@ This prints:
 - latest ingested 13F filings,
 - stored quarter-over-quarter delta size,
 - top explainable alert candidates,
-- top impacted synthetic client for each alert.
+- top impacted synthetic client for each alert,
+- baseline model metrics,
+- model probabilities next to rule-engine alerts.
 
 ## API Example
 
@@ -107,4 +112,5 @@ Current endpoints:
 - `GET /filings/{accession_number}/changes`
 - `GET /alerts`
 - `GET /alerts/{alert_id}`
+- `GET /models/latest`
 - `GET /governance/materiality-policy`

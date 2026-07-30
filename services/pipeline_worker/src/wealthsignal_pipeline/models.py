@@ -208,3 +208,66 @@ class PersistedAlert:
     current_rank: int | None
     previous_rank: int | None
     turnover_ratio: float
+
+
+@dataclass(slots=True)
+class PersistedFeatureRow:
+    """Stored feature row used for weak labeling and baseline model training."""
+
+    current_accession_number: str
+    previous_accession_number: str
+    holding_key: str
+    issuer_name: str
+    cusip: str
+    sector: str
+    current_value_thousands: int
+    previous_value_thousands: int
+    current_weight: float
+    previous_weight: float
+    weight_delta: float
+    abs_weight_delta: float
+    value_delta_thousands: int
+    abs_value_delta_thousands: int
+    value_pct_change: float | None
+    shares_pct_change: float | None
+    is_new_position: bool
+    is_exited_position: bool
+    current_rank: int | None
+    previous_rank: int | None
+    entered_top10: bool
+    exited_top10: bool
+    entered_top20: bool
+    exited_top20: bool
+    turnover_ratio: float
+    change_share_of_turnover: float
+    rule_score: int
+    weak_label: int
+
+
+@dataclass(slots=True)
+class ModelRunSummary:
+    """Metadata for a baseline model training run."""
+
+    run_id: int
+    model_name: str
+    training_samples: int
+    positive_count: int
+    feature_names: list[str]
+    coefficients: list[float]
+    intercept: float
+    metrics: dict[str, float]
+
+
+@dataclass(slots=True)
+class ModelPrediction:
+    """Per-event baseline model output."""
+
+    run_id: int
+    current_accession_number: str
+    holding_key: str
+    issuer_name: str
+    cusip: str
+    probability: float
+    predicted_label: int
+    weak_label: int
+    rule_score: int

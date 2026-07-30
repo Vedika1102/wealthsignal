@@ -2,8 +2,9 @@ import unittest
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+from wealthsignal_pipeline.baseline_model import assign_weak_label, train_logistic_baseline
 from wealthsignal_pipeline.delta_engine import compute_filing_delta
-from wealthsignal_pipeline.feature_engineering import build_position_features
+from wealthsignal_pipeline.feature_engineering import build_persisted_feature_rows, build_position_features
 from wealthsignal_pipeline.edgar_client import (
     discover_filing_artifacts,
     filing_index_url,
@@ -17,11 +18,15 @@ from wealthsignal_pipeline.portfolios import generate_synthetic_client_portfolio
 from wealthsignal_pipeline.persistence import (
     connect,
     get_alert,
+    get_latest_model_run,
     initialize_database,
     list_alert_impacts,
     list_alerts,
+    load_feature_rows,
     load_latest_filing_accessions,
     load_parsed_filing,
+    store_feature_rows,
+    store_model_run,
     store_alerts,
     store_filing_delta,
     store_parsed_filing,
@@ -318,6 +323,27 @@ class DeltaEngineTests(unittest.TestCase):
         self.assertGreaterEqual(top.score, 40)
         self.assertGreater(len(top.reasons), 0)
 
+    def test_assign_weak_label_separates_stronger_events(self) -> None:
+        current = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000002",
+        )
+        previous = parse_information_table(
+            PREVIOUS_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-23-000999",
+        )
+        delta = compute_filing_delta(current, previous)
+        assessments = score_materiality_batch(build_position_features(delta))
+        assessment_map = {item.cusip: item for item in assessments}
+        feature_map = {item.cusip: item for item in build_position_features(delta)}
+
+        nvidia_label = assign_weak_label(feature_map["67066G104"], rule_score=assessment_map["67066G104"].score)
+        chevron_label = assign_weak_label(feature_map["166764100"], rule_score=assessment_map["166764100"].score)
+        self.assertEqual(nvidia_label, 1)
+        self.assertIn(chevron_label, {0, 1})
+
     def test_client_impact_scores_overlap_on_alert_candidate(self) -> None:
         current = parse_information_table(
             SAMPLE_INFORMATION_TABLE,
@@ -434,6 +460,52 @@ class PersistenceTests(unittest.TestCase):
             self.assertGreaterEqual(alert.score, 40)
             impacts = list_alert_impacts(connection, alerts[0].alert_id)
             self.assertIsInstance(impacts, list)
+            connection.close()
+        finally:
+            db_path.unlink(missing_ok=True)
+
+    def test_store_feature_rows_and_train_baseline(self) -> None:
+        current = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000002",
+        )
+        previous = parse_information_table(
+            PREVIOUS_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-23-000999",
+        )
+        delta = compute_filing_delta(current, previous)
+        features = build_position_features(delta)
+        assessments = score_materiality_batch(features)
+        rows = build_persisted_feature_rows(delta, features, assessments)
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            store_feature_rows(connection, rows)
+            loaded_rows = load_feature_rows(connection)
+            self.assertEqual(len(loaded_rows), len(rows))
+
+            fit = train_logistic_baseline(loaded_rows)
+            run_id = store_model_run(
+                connection,
+                model_name="numpy-logistic-baseline",
+                training_samples=len(loaded_rows),
+                positive_count=sum(row.weak_label for row in loaded_rows),
+                feature_names=fit.feature_names,
+                coefficients=fit.coefficients,
+                intercept=fit.intercept,
+                metrics=fit.metrics,
+                predictions=fit.predictions,
+            )
+            model_run = get_latest_model_run(connection)
+            self.assertEqual(model_run.run_id, run_id)
+            self.assertGreaterEqual(model_run.training_samples, 1)
+            self.assertIn("accuracy", model_run.metrics)
             connection.close()
         finally:
             db_path.unlink(missing_ok=True)

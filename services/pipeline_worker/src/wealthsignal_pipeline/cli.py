@@ -4,13 +4,18 @@ import argparse
 from pathlib import Path
 
 from .alerting import generate_alert_candidates, generate_demo_portfolios_for_delta
+from .baseline_model import train_logistic_baseline
 from .delta_engine import compute_filing_delta
+from .feature_engineering import build_persisted_feature_rows, build_position_features
 from .ingest import ingest_recent_filings_for_cik
 from .persistence import (
     connect,
+    load_feature_rows,
     initialize_database,
     load_latest_filing_accessions,
     load_parsed_filing,
+    store_feature_rows,
+    store_model_run,
     store_alerts,
     store_filing_delta,
 )
@@ -62,8 +67,11 @@ def main() -> int:
             if current is not None and previous is not None:
                 delta = compute_filing_delta(current, previous)
                 store_filing_delta(connection, delta)
+                features = build_position_features(delta)
                 portfolios = generate_demo_portfolios_for_delta(delta)
-                assessments, impacts_by_holding_key = generate_alert_candidates(delta, portfolios)
+                all_assessments, assessments, impacts_by_holding_key = generate_alert_candidates(delta, portfolios)
+                feature_rows = build_persisted_feature_rows(delta, features, all_assessments)
+                store_feature_rows(connection, feature_rows)
                 store_alerts(
                     connection,
                     current.filing.accession_number,
@@ -71,15 +79,52 @@ def main() -> int:
                     assessments,
                     impacts_by_holding_key,
                 )
+
+                model_probabilities: dict[str, float] = {}
+                training_rows = load_feature_rows(connection)
+                try:
+                    fit = train_logistic_baseline(training_rows)
+                    store_model_run(
+                        connection,
+                        model_name="numpy-logistic-baseline",
+                        training_samples=len(training_rows),
+                        positive_count=sum(row.weak_label for row in training_rows),
+                        feature_names=fit.feature_names,
+                        coefficients=fit.coefficients,
+                        intercept=fit.intercept,
+                        metrics=fit.metrics,
+                        predictions=fit.predictions,
+                    )
+                    model_probabilities = {
+                        prediction.holding_key: prediction.probability
+                        for prediction in fit.predictions
+                        if prediction.current_accession_number == current.filing.accession_number
+                    }
+                    print(
+                        "Baseline model metrics: "
+                        f"accuracy={fit.metrics['accuracy']:.2f} "
+                        f"precision={fit.metrics['precision']:.2f} "
+                        f"recall={fit.metrics['recall']:.2f} "
+                        f"f1={fit.metrics['f1']:.2f}"
+                    )
+                except ValueError as exc:
+                    print(f"Baseline model skipped: {exc}")
+
                 print(
                     f"Stored delta for {current.filing.filer_name or current.filing.cik}: "
                     f"{len(delta.positions)} position changes"
                 )
                 for assessment in assessments[:5]:
+                    model_probability = model_probabilities.get(assessment.holding_key)
+                    model_text = (
+                        f" | model_prob={model_probability:.2f}"
+                        if model_probability is not None
+                        else ""
+                    )
                     print(
                         f"Alert: {assessment.issuer_name} | score={assessment.score} | "
                         f"severity={assessment.severity} | sector={assessment.sector} | "
-                        f"reasons={'; '.join(assessment.reasons[:3])}"
+                        f"reasons={'; '.join(assessment.reasons[:3])}{model_text}"
                     )
                     impacts = impacts_by_holding_key.get(assessment.holding_key, [])
                     if impacts:

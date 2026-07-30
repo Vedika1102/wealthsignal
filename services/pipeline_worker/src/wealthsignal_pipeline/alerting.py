@@ -9,16 +9,17 @@ from .portfolios import generate_synthetic_client_portfolios, score_client_impac
 def generate_alert_candidates(
     delta: FilingDelta,
     portfolios: list[ClientPortfolio],
-) -> tuple[list[MaterialityAssessment], dict[str, list[ClientImpact]]]:
+) -> tuple[list[MaterialityAssessment], list[MaterialityAssessment], dict[str, list[ClientImpact]]]:
     """Generate explainable alert candidates and client impact mappings."""
 
     features = build_position_features(delta)
-    assessments = [item for item in score_materiality_batch(features) if item.should_alert]
+    all_assessments = score_materiality_batch(features)
+    assessments = [item for item in all_assessments if item.should_alert]
     impacts_by_holding_key = {
         assessment.holding_key: score_client_impacts(assessment, portfolios)
         for assessment in assessments
     }
-    return assessments, impacts_by_holding_key
+    return all_assessments, assessments, impacts_by_holding_key
 
 
 def generate_demo_portfolios_for_delta(delta: FilingDelta) -> list[ClientPortfolio]:

@@ -13,7 +13,10 @@ from .models import (
     FilingReference,
     Holding,
     MaterialityAssessment,
+    ModelPrediction,
+    ModelRunSummary,
     ParsedInformationTable,
+    PersistedFeatureRow,
     PersistedAlert,
 )
 
@@ -127,6 +130,67 @@ def initialize_database(connection: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_alerts_current_accession
             ON alerts(current_accession_number, score DESC);
+
+        CREATE TABLE IF NOT EXISTS position_features (
+            current_accession_number TEXT NOT NULL,
+            previous_accession_number TEXT NOT NULL,
+            holding_key TEXT NOT NULL,
+            issuer_name TEXT NOT NULL,
+            cusip TEXT NOT NULL,
+            sector TEXT NOT NULL,
+            current_value_thousands INTEGER NOT NULL,
+            previous_value_thousands INTEGER NOT NULL,
+            current_weight REAL NOT NULL,
+            previous_weight REAL NOT NULL,
+            weight_delta REAL NOT NULL,
+            abs_weight_delta REAL NOT NULL,
+            value_delta_thousands INTEGER NOT NULL,
+            abs_value_delta_thousands INTEGER NOT NULL,
+            value_pct_change REAL,
+            shares_pct_change REAL,
+            is_new_position INTEGER NOT NULL,
+            is_exited_position INTEGER NOT NULL,
+            current_rank INTEGER,
+            previous_rank INTEGER,
+            entered_top10 INTEGER NOT NULL,
+            exited_top10 INTEGER NOT NULL,
+            entered_top20 INTEGER NOT NULL,
+            exited_top20 INTEGER NOT NULL,
+            turnover_ratio REAL NOT NULL,
+            change_share_of_turnover REAL NOT NULL,
+            rule_score INTEGER NOT NULL,
+            weak_label INTEGER NOT NULL,
+            PRIMARY KEY (current_accession_number, previous_accession_number, holding_key)
+        );
+
+        CREATE TABLE IF NOT EXISTS model_runs (
+            run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            model_name TEXT NOT NULL,
+            training_samples INTEGER NOT NULL,
+            positive_count INTEGER NOT NULL,
+            feature_names_json TEXT NOT NULL,
+            coefficients_json TEXT NOT NULL,
+            intercept REAL NOT NULL,
+            metrics_json TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS model_predictions (
+            run_id INTEGER NOT NULL,
+            current_accession_number TEXT NOT NULL,
+            holding_key TEXT NOT NULL,
+            issuer_name TEXT NOT NULL,
+            cusip TEXT NOT NULL,
+            probability REAL NOT NULL,
+            predicted_label INTEGER NOT NULL,
+            weak_label INTEGER NOT NULL,
+            rule_score INTEGER NOT NULL,
+            PRIMARY KEY (run_id, current_accession_number, holding_key),
+            FOREIGN KEY (run_id) REFERENCES model_runs(run_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_model_predictions_current
+            ON model_predictions(current_accession_number, probability DESC);
         """
     )
     connection.commit()
@@ -314,6 +378,205 @@ def load_latest_filing_accessions(
     return [row["accession_number"] for row in rows]
 
 
+def store_feature_rows(
+    connection: sqlite3.Connection,
+    feature_rows: list[PersistedFeatureRow],
+) -> None:
+    """Persist feature rows used for weak labeling and model training."""
+
+    if not feature_rows:
+        return
+
+    current_accession_number = feature_rows[0].current_accession_number
+    previous_accession_number = feature_rows[0].previous_accession_number
+    connection.execute(
+        """
+        DELETE FROM position_features
+        WHERE current_accession_number = ? AND previous_accession_number = ?
+        """,
+        (current_accession_number, previous_accession_number),
+    )
+    connection.executemany(
+        """
+        INSERT INTO position_features (
+            current_accession_number, previous_accession_number, holding_key, issuer_name, cusip, sector,
+            current_value_thousands, previous_value_thousands, current_weight, previous_weight, weight_delta,
+            abs_weight_delta, value_delta_thousands, abs_value_delta_thousands, value_pct_change,
+            shares_pct_change, is_new_position, is_exited_position, current_rank, previous_rank,
+            entered_top10, exited_top10, entered_top20, exited_top20, turnover_ratio,
+            change_share_of_turnover, rule_score, weak_label
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                row.current_accession_number,
+                row.previous_accession_number,
+                row.holding_key,
+                row.issuer_name,
+                row.cusip,
+                row.sector,
+                row.current_value_thousands,
+                row.previous_value_thousands,
+                row.current_weight,
+                row.previous_weight,
+                row.weight_delta,
+                row.abs_weight_delta,
+                row.value_delta_thousands,
+                row.abs_value_delta_thousands,
+                row.value_pct_change,
+                row.shares_pct_change,
+                int(row.is_new_position),
+                int(row.is_exited_position),
+                row.current_rank,
+                row.previous_rank,
+                int(row.entered_top10),
+                int(row.exited_top10),
+                int(row.entered_top20),
+                int(row.exited_top20),
+                row.turnover_ratio,
+                row.change_share_of_turnover,
+                row.rule_score,
+                row.weak_label,
+            )
+            for row in feature_rows
+        ],
+    )
+    connection.commit()
+
+
+def load_feature_rows(connection: sqlite3.Connection, *, limit: int | None = None) -> list[PersistedFeatureRow]:
+    """Load feature rows for model training."""
+
+    query = """
+        SELECT *
+        FROM position_features
+        ORDER BY current_accession_number DESC, abs_value_delta_thousands DESC
+    """
+    parameters: tuple[object, ...] = ()
+    if limit is not None:
+        query += " LIMIT ?"
+        parameters = (limit,)
+    rows = connection.execute(query, parameters).fetchall()
+    return [_row_to_feature_row(row) for row in rows]
+
+
+def store_model_run(
+    connection: sqlite3.Connection,
+    *,
+    model_name: str,
+    training_samples: int,
+    positive_count: int,
+    feature_names: list[str],
+    coefficients: list[float],
+    intercept: float,
+    metrics: dict[str, float],
+    predictions: list[ModelPrediction],
+) -> int:
+    """Persist one model run and its predictions."""
+
+    cursor = connection.execute(
+        """
+        INSERT INTO model_runs (
+            model_name, training_samples, positive_count, feature_names_json,
+            coefficients_json, intercept, metrics_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            model_name,
+            training_samples,
+            positive_count,
+            json.dumps(feature_names),
+            json.dumps(coefficients),
+            intercept,
+            json.dumps(metrics),
+        ),
+    )
+    run_id = int(cursor.lastrowid)
+    connection.executemany(
+        """
+        INSERT INTO model_predictions (
+            run_id, current_accession_number, holding_key, issuer_name, cusip,
+            probability, predicted_label, weak_label, rule_score
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                run_id,
+                prediction.current_accession_number,
+                prediction.holding_key,
+                prediction.issuer_name,
+                prediction.cusip,
+                prediction.probability,
+                prediction.predicted_label,
+                prediction.weak_label,
+                prediction.rule_score,
+            )
+            for prediction in predictions
+        ],
+    )
+    connection.commit()
+    return run_id
+
+
+def get_latest_model_run(connection: sqlite3.Connection) -> ModelRunSummary | None:
+    """Return the most recent stored model run."""
+
+    row = connection.execute(
+        """
+        SELECT run_id, model_name, training_samples, positive_count, feature_names_json,
+               coefficients_json, intercept, metrics_json
+        FROM model_runs
+        ORDER BY run_id DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    if row is None:
+        return None
+    return ModelRunSummary(
+        run_id=row["run_id"],
+        model_name=row["model_name"],
+        training_samples=row["training_samples"],
+        positive_count=row["positive_count"],
+        feature_names=json.loads(row["feature_names_json"]),
+        coefficients=json.loads(row["coefficients_json"]),
+        intercept=row["intercept"],
+        metrics=json.loads(row["metrics_json"]),
+    )
+
+
+def get_latest_prediction_lookup(connection: sqlite3.Connection) -> dict[tuple[str, str], ModelPrediction]:
+    """Return the latest model predictions keyed by accession and holding key."""
+
+    latest_run = get_latest_model_run(connection)
+    if latest_run is None:
+        return {}
+
+    rows = connection.execute(
+        """
+        SELECT run_id, current_accession_number, holding_key, issuer_name, cusip,
+               probability, predicted_label, weak_label, rule_score
+        FROM model_predictions
+        WHERE run_id = ?
+        """,
+        (latest_run.run_id,),
+    ).fetchall()
+
+    return {
+        (row["current_accession_number"], row["holding_key"]): ModelPrediction(
+            run_id=row["run_id"],
+            current_accession_number=row["current_accession_number"],
+            holding_key=row["holding_key"],
+            issuer_name=row["issuer_name"],
+            cusip=row["cusip"],
+            probability=row["probability"],
+            predicted_label=row["predicted_label"],
+            weak_label=row["weak_label"],
+            rule_score=row["rule_score"],
+        )
+        for row in rows
+    }
+
+
 def store_alerts(
     connection: sqlite3.Connection,
     current_accession_number: str,
@@ -489,6 +752,39 @@ def _row_to_alert(row: sqlite3.Row) -> PersistedAlert:
         current_rank=row["current_rank"],
         previous_rank=row["previous_rank"],
         turnover_ratio=row["turnover_ratio"],
+    )
+
+
+def _row_to_feature_row(row: sqlite3.Row) -> PersistedFeatureRow:
+    return PersistedFeatureRow(
+        current_accession_number=row["current_accession_number"],
+        previous_accession_number=row["previous_accession_number"],
+        holding_key=row["holding_key"],
+        issuer_name=row["issuer_name"],
+        cusip=row["cusip"],
+        sector=row["sector"],
+        current_value_thousands=row["current_value_thousands"],
+        previous_value_thousands=row["previous_value_thousands"],
+        current_weight=row["current_weight"],
+        previous_weight=row["previous_weight"],
+        weight_delta=row["weight_delta"],
+        abs_weight_delta=row["abs_weight_delta"],
+        value_delta_thousands=row["value_delta_thousands"],
+        abs_value_delta_thousands=row["abs_value_delta_thousands"],
+        value_pct_change=row["value_pct_change"],
+        shares_pct_change=row["shares_pct_change"],
+        is_new_position=bool(row["is_new_position"]),
+        is_exited_position=bool(row["is_exited_position"]),
+        current_rank=row["current_rank"],
+        previous_rank=row["previous_rank"],
+        entered_top10=bool(row["entered_top10"]),
+        exited_top10=bool(row["exited_top10"]),
+        entered_top20=bool(row["entered_top20"]),
+        exited_top20=bool(row["exited_top20"]),
+        turnover_ratio=row["turnover_ratio"],
+        change_share_of_turnover=row["change_share_of_turnover"],
+        rule_score=row["rule_score"],
+        weak_label=row["weak_label"],
     )
 
 

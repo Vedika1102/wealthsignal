@@ -9,6 +9,8 @@ from wealthsignal_pipeline.materiality import materiality_policy
 from wealthsignal_pipeline.persistence import (
     connect,
     get_alert,
+    get_latest_model_run,
+    get_latest_prediction_lookup,
     initialize_database,
     list_alert_impacts,
     list_alerts,
@@ -65,6 +67,7 @@ def alerts(
 ) -> list[dict]:
     connection = _connection()
     try:
+        prediction_lookup = get_latest_prediction_lookup(connection)
         return [
             {
                 "alert_id": alert.alert_id,
@@ -77,6 +80,16 @@ def alerts(
                 "should_alert": alert.should_alert,
                 "reasons": alert.reasons,
                 "weight_delta": alert.weight_delta,
+                "model_probability": (
+                    prediction_lookup[(alert.current_accession_number, alert.holding_key)].probability
+                    if (alert.current_accession_number, alert.holding_key) in prediction_lookup
+                    else None
+                ),
+                "weak_label": (
+                    prediction_lookup[(alert.current_accession_number, alert.holding_key)].weak_label
+                    if (alert.current_accession_number, alert.holding_key) in prediction_lookup
+                    else None
+                ),
             }
             for alert in list_alerts(connection, limit=limit, minimum_score=minimum_score, severity=severity)
         ]
@@ -91,6 +104,8 @@ def alert_detail(alert_id: int) -> dict:
         alert = get_alert(connection, alert_id)
         if alert is None:
             raise HTTPException(status_code=404, detail="Alert not found")
+        prediction_lookup = get_latest_prediction_lookup(connection)
+        prediction = prediction_lookup.get((alert.current_accession_number, alert.holding_key))
         return {
             "alert_id": alert.alert_id,
             "current_accession_number": alert.current_accession_number,
@@ -107,6 +122,9 @@ def alert_detail(alert_id: int) -> dict:
             "current_rank": alert.current_rank,
             "previous_rank": alert.previous_rank,
             "turnover_ratio": alert.turnover_ratio,
+            "model_probability": prediction.probability if prediction else None,
+            "model_predicted_label": prediction.predicted_label if prediction else None,
+            "weak_label": prediction.weak_label if prediction else None,
             "impacts": list_alert_impacts(connection, alert_id),
         }
     finally:
@@ -116,3 +134,24 @@ def alert_detail(alert_id: int) -> dict:
 @app.get("/governance/materiality-policy")
 def governance_materiality_policy() -> dict[str, object]:
     return materiality_policy()
+
+
+@app.get("/models/latest")
+def latest_model() -> dict:
+    connection = _connection()
+    try:
+        model_run = get_latest_model_run(connection)
+        if model_run is None:
+            raise HTTPException(status_code=404, detail="No model run found")
+        return {
+            "run_id": model_run.run_id,
+            "model_name": model_run.model_name,
+            "training_samples": model_run.training_samples,
+            "positive_count": model_run.positive_count,
+            "feature_names": model_run.feature_names,
+            "coefficients": model_run.coefficients,
+            "intercept": model_run.intercept,
+            "metrics": model_run.metrics,
+        }
+    finally:
+        connection.close()
