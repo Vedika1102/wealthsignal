@@ -1,0 +1,31 @@
+[project]
+name = "wealthsignal"
+version = "0.1.0"
+description = "Institutional holdings intelligence platform built on SEC 13F filings."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "pydantic>=2.8.0",
+    "uvicorn>=0.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "services/pipeline_worker/tests",
+]
+
+[tool.setuptools.package-dir]
+"" = "services/pipeline_worker/src"
+
+[tool.setuptools.packages.find]
+where = ["services/pipeline_worker/src"]
