@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .models import FilingDelta, PositionFeatures
+from .sector_enrichment import infer_sector
 
 
 def compute_turnover_ratio(delta: FilingDelta) -> float:
@@ -44,6 +45,7 @@ def build_position_features(delta: FilingDelta) -> list[PositionFeatures]:
                 holding_key=position.holding_key,
                 issuer_name=position.issuer_name,
                 cusip=position.cusip,
+                sector=infer_sector(position.issuer_name),
                 current_value_thousands=position.new_value_thousands,
                 previous_value_thousands=position.old_value_thousands,
                 current_weight=position.new_weight,

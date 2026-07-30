@@ -3,12 +3,17 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from .alerting import generate_alert_candidates, generate_demo_portfolios_for_delta
 from .delta_engine import compute_filing_delta
-from .feature_engineering import build_position_features
 from .ingest import ingest_recent_filings_for_cik
-from .materiality import score_materiality_batch
-from .portfolios import generate_synthetic_client_portfolios, score_client_impacts
-from .persistence import connect, initialize_database, load_latest_filing_accessions, load_parsed_filing, store_filing_delta
+from .persistence import (
+    connect,
+    initialize_database,
+    load_latest_filing_accessions,
+    load_parsed_filing,
+    store_alerts,
+    store_filing_delta,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -57,9 +62,15 @@ def main() -> int:
             if current is not None and previous is not None:
                 delta = compute_filing_delta(current, previous)
                 store_filing_delta(connection, delta)
-                features = build_position_features(delta)
-                assessments = [item for item in score_materiality_batch(features) if item.should_alert]
-                portfolios = generate_synthetic_client_portfolios(current.holdings)
+                portfolios = generate_demo_portfolios_for_delta(delta)
+                assessments, impacts_by_holding_key = generate_alert_candidates(delta, portfolios)
+                store_alerts(
+                    connection,
+                    current.filing.accession_number,
+                    previous.filing.accession_number,
+                    assessments,
+                    impacts_by_holding_key,
+                )
                 print(
                     f"Stored delta for {current.filing.filer_name or current.filing.cik}: "
                     f"{len(delta.positions)} position changes"
@@ -67,14 +78,16 @@ def main() -> int:
                 for assessment in assessments[:5]:
                     print(
                         f"Alert: {assessment.issuer_name} | score={assessment.score} | "
-                        f"severity={assessment.severity} | reasons={'; '.join(assessment.reasons[:3])}"
+                        f"severity={assessment.severity} | sector={assessment.sector} | "
+                        f"reasons={'; '.join(assessment.reasons[:3])}"
                     )
-                    impacts = score_client_impacts(assessment, portfolios)
+                    impacts = impacts_by_holding_key.get(assessment.holding_key, [])
                     if impacts:
                         top_impact = impacts[0]
                         print(
                             f"  Top client impact: {top_impact.client_name} "
-                            f"({top_impact.strategy}) score={top_impact.impact_score}"
+                            f"({top_impact.strategy}) score={top_impact.impact_score} "
+                            f"direct={top_impact.direct_weight:.2%} sector={top_impact.sector_weight:.2%}"
                         )
         for parsed in parsed_filings:
             print(

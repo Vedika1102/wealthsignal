@@ -3,6 +3,28 @@ from __future__ import annotations
 from .models import MaterialityAssessment, PositionFeatures
 
 
+def materiality_policy() -> dict[str, object]:
+    """Return the human-readable scoring policy for governance and API use."""
+
+    return {
+        "severity_bands": {
+            "urgent": "score >= 80",
+            "review": "60 <= score < 80",
+            "informational": "40 <= score < 60",
+            "ignore": "score < 40",
+        },
+        "rule_summary": [
+            "entered top 10 or top 20 holdings",
+            "exited prior top 10 or top 20 holdings",
+            "new position or full exit",
+            "large weight change",
+            "large absolute value move",
+            "large percentage move",
+            "filing-level turnover contribution",
+        ],
+    }
+
+
 def _severity_from_score(score: int) -> str:
     if score >= 80:
         return "urgent"
@@ -90,6 +112,7 @@ def score_materiality(feature: PositionFeatures) -> MaterialityAssessment:
         holding_key=feature.holding_key,
         issuer_name=feature.issuer_name,
         cusip=feature.cusip,
+        sector=feature.sector,
         score=score,
         severity=severity,
         should_alert=score >= 40,

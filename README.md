@@ -38,6 +38,7 @@ wealthsignal/
         │       ├── delta_engine.py
         │       ├── edgar_client.py
         │       ├── feature_engineering.py
+        │       ├── alerting.py
         │       ├── ingest.py
         │       ├── materiality.py
         │       ├── models.py
@@ -62,15 +63,18 @@ Implemented:
 - ingest CLI for pulling recent 13F filings end to end
 - first-pass materiality feature generation
 - explainable rule-based alert scoring
+- coarse sector enrichment for holdings and alerts
 - synthetic client portfolio impact scoring
+- persisted alert and client impact records
+- decision API endpoints for filings, alerts, and governance
 - live SEC artifact resolution verified against a real 13F filing
-- unit tests for parser, SEC utilities, and delta computation
+- unit tests for parser, SEC utilities, persistence, and decisioning
 
 Next:
 
-- persist alert candidates and client impact results
-- sector enrichment and richer portfolio context
 - train the first baseline materiality classifier
+- add richer sector and reference-data enrichment
+- persist client portfolios as first-class entities
 
 ## Local Ingest Example
 
@@ -88,3 +92,19 @@ This prints:
 - stored quarter-over-quarter delta size,
 - top explainable alert candidates,
 - top impacted synthetic client for each alert.
+
+## API Example
+
+```bash
+set PYTHONPATH=services/pipeline_worker/src
+uvicorn services.decision_api.app.main:app --reload
+```
+
+Current endpoints:
+
+- `GET /health`
+- `GET /filings`
+- `GET /filings/{accession_number}/changes`
+- `GET /alerts`
+- `GET /alerts/{alert_id}`
+- `GET /governance/materiality-policy`

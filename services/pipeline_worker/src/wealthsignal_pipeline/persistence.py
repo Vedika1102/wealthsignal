@@ -1,11 +1,21 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from datetime import date
 from pathlib import Path
 
 from .delta_engine import holding_key
-from .models import FilingArtifacts, FilingDelta, FilingReference, Holding, ParsedInformationTable
+from .models import (
+    ClientImpact,
+    FilingArtifacts,
+    FilingDelta,
+    FilingReference,
+    Holding,
+    MaterialityAssessment,
+    ParsedInformationTable,
+    PersistedAlert,
+)
 
 
 def connect(db_path: str | Path) -> sqlite3.Connection:
@@ -77,6 +87,46 @@ def initialize_database(connection: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_filings_cik_period
             ON filings(cik, report_period DESC, filing_date DESC);
+
+        CREATE TABLE IF NOT EXISTS alerts (
+            alert_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            current_accession_number TEXT NOT NULL,
+            previous_accession_number TEXT NOT NULL,
+            holding_key TEXT NOT NULL,
+            issuer_name TEXT NOT NULL,
+            cusip TEXT NOT NULL,
+            sector TEXT NOT NULL,
+            score INTEGER NOT NULL,
+            severity TEXT NOT NULL,
+            should_alert INTEGER NOT NULL,
+            reasons_json TEXT NOT NULL,
+            current_weight REAL NOT NULL,
+            previous_weight REAL NOT NULL,
+            weight_delta REAL NOT NULL,
+            current_rank INTEGER,
+            previous_rank INTEGER,
+            turnover_ratio REAL NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS alert_impacts (
+            alert_id INTEGER NOT NULL,
+            client_id TEXT NOT NULL,
+            client_name TEXT NOT NULL,
+            strategy TEXT NOT NULL,
+            cusip TEXT NOT NULL,
+            issuer_name TEXT NOT NULL,
+            sector TEXT NOT NULL,
+            direct_weight REAL NOT NULL,
+            sector_weight REAL NOT NULL,
+            impact_score INTEGER NOT NULL,
+            impact_label TEXT NOT NULL,
+            PRIMARY KEY (alert_id, client_id),
+            FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_alerts_current_accession
+            ON alerts(current_accession_number, score DESC);
         """
     )
     connection.commit()
@@ -262,6 +312,184 @@ def load_latest_filing_accessions(
         (cik, limit),
     ).fetchall()
     return [row["accession_number"] for row in rows]
+
+
+def store_alerts(
+    connection: sqlite3.Connection,
+    current_accession_number: str,
+    previous_accession_number: str,
+    assessments: list[MaterialityAssessment],
+    impacts_by_holding_key: dict[str, list[ClientImpact]],
+) -> list[int]:
+    """Persist alert candidates and related client impacts."""
+
+    connection.execute("DELETE FROM alert_impacts WHERE alert_id IN (SELECT alert_id FROM alerts WHERE current_accession_number = ?)", (current_accession_number,))
+    connection.execute("DELETE FROM alerts WHERE current_accession_number = ?", (current_accession_number,))
+
+    alert_ids: list[int] = []
+    for assessment in assessments:
+        feature = assessment.feature_snapshot
+        cursor = connection.execute(
+            """
+            INSERT INTO alerts (
+                current_accession_number, previous_accession_number, holding_key, issuer_name, cusip, sector,
+                score, severity, should_alert, reasons_json, current_weight, previous_weight, weight_delta,
+                current_rank, previous_rank, turnover_ratio
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                current_accession_number,
+                previous_accession_number,
+                assessment.holding_key,
+                assessment.issuer_name,
+                assessment.cusip,
+                assessment.sector,
+                assessment.score,
+                assessment.severity,
+                int(assessment.should_alert),
+                json.dumps(assessment.reasons),
+                feature.current_weight,
+                feature.previous_weight,
+                feature.weight_delta,
+                feature.current_rank,
+                feature.previous_rank,
+                feature.turnover_ratio,
+            ),
+        )
+        alert_id = int(cursor.lastrowid)
+        alert_ids.append(alert_id)
+
+        impacts = impacts_by_holding_key.get(assessment.holding_key, [])
+        connection.executemany(
+            """
+            INSERT INTO alert_impacts (
+                alert_id, client_id, client_name, strategy, cusip, issuer_name, sector,
+                direct_weight, sector_weight, impact_score, impact_label
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    alert_id,
+                    impact.client_id,
+                    impact.client_name,
+                    impact.strategy,
+                    impact.cusip,
+                    impact.issuer_name,
+                    impact.sector,
+                    impact.direct_weight,
+                    impact.sector_weight,
+                    impact.impact_score,
+                    impact.impact_label,
+                )
+                for impact in impacts
+            ],
+        )
+
+    connection.commit()
+    return alert_ids
+
+
+def list_filing_summaries(connection: sqlite3.Connection, *, limit: int = 20) -> list[dict]:
+    """List recently stored filing summaries for API and operator views."""
+
+    rows = connection.execute(
+        """
+        SELECT accession_number, cik, filing_date, report_period, form_type, filer_name
+        FROM filings
+        ORDER BY report_period DESC, filing_date DESC, accession_number DESC
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def list_position_deltas(connection: sqlite3.Connection, accession_number: str, *, limit: int = 50) -> list[dict]:
+    """List stored position deltas for a filing accession."""
+
+    rows = connection.execute(
+        """
+        SELECT *
+        FROM position_deltas
+        WHERE current_accession_number = ?
+        ORDER BY ABS(value_delta_thousands) DESC, issuer_name ASC
+        LIMIT ?
+        """,
+        (accession_number, limit),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def list_alerts(
+    connection: sqlite3.Connection,
+    *,
+    limit: int = 20,
+    minimum_score: int = 0,
+    severity: str | None = None,
+) -> list[PersistedAlert]:
+    """List persisted alerts ordered by score."""
+
+    query = """
+        SELECT *
+        FROM alerts
+        WHERE score >= ?
+    """
+    parameters: list[object] = [minimum_score]
+    if severity:
+        query += " AND severity = ?"
+        parameters.append(severity)
+    query += " ORDER BY score DESC, alert_id DESC LIMIT ?"
+    parameters.append(limit)
+
+    rows = connection.execute(query, tuple(parameters)).fetchall()
+    return [_row_to_alert(row) for row in rows]
+
+
+def get_alert(connection: sqlite3.Connection, alert_id: int) -> PersistedAlert | None:
+    """Fetch one persisted alert by ID."""
+
+    row = connection.execute("SELECT * FROM alerts WHERE alert_id = ?", (alert_id,)).fetchone()
+    if row is None:
+        return None
+    return _row_to_alert(row)
+
+
+def list_alert_impacts(connection: sqlite3.Connection, alert_id: int) -> list[dict]:
+    """List persisted client impacts for a single alert."""
+
+    rows = connection.execute(
+        """
+        SELECT client_id, client_name, strategy, cusip, issuer_name, sector,
+               direct_weight, sector_weight, impact_score, impact_label
+        FROM alert_impacts
+        WHERE alert_id = ?
+        ORDER BY impact_score DESC, client_name ASC
+        """,
+        (alert_id,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def _row_to_alert(row: sqlite3.Row) -> PersistedAlert:
+    return PersistedAlert(
+        alert_id=row["alert_id"],
+        current_accession_number=row["current_accession_number"],
+        previous_accession_number=row["previous_accession_number"],
+        holding_key=row["holding_key"],
+        issuer_name=row["issuer_name"],
+        cusip=row["cusip"],
+        sector=row["sector"],
+        score=row["score"],
+        severity=row["severity"],
+        should_alert=bool(row["should_alert"]),
+        reasons=json.loads(row["reasons_json"]),
+        current_weight=row["current_weight"],
+        previous_weight=row["previous_weight"],
+        weight_delta=row["weight_delta"],
+        current_rank=row["current_rank"],
+        previous_rank=row["previous_rank"],
+        turnover_ratio=row["turnover_ratio"],
+    )
 
 
 def _parse_iso_date(value: str | None):

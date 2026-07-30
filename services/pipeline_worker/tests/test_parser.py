@@ -14,9 +14,21 @@ from wealthsignal_pipeline.edgar_client import (
 )
 from wealthsignal_pipeline.materiality import score_materiality_batch
 from wealthsignal_pipeline.portfolios import generate_synthetic_client_portfolios, score_client_impacts
-from wealthsignal_pipeline.persistence import connect, initialize_database, load_latest_filing_accessions, load_parsed_filing, store_filing_delta, store_parsed_filing
+from wealthsignal_pipeline.persistence import (
+    connect,
+    get_alert,
+    initialize_database,
+    list_alert_impacts,
+    list_alerts,
+    load_latest_filing_accessions,
+    load_parsed_filing,
+    store_alerts,
+    store_filing_delta,
+    store_parsed_filing,
+)
 from wealthsignal_pipeline.parser import parse_information_table
 from wealthsignal_pipeline.parser import parse_primary_document_metadata
+from wealthsignal_pipeline.sector_enrichment import infer_sector
 
 
 SAMPLE_INFORMATION_TABLE = """<?xml version="1.0" encoding="UTF-8"?>
@@ -231,6 +243,10 @@ class EdgarClientUtilityTests(unittest.TestCase):
             "https://www.sec.gov/Archives/edgar/data/1067983/000119312526226661/53405.xml",
         )
 
+    def test_infer_sector_maps_known_issuer_names(self) -> None:
+        self.assertEqual(infer_sector("ALPHABET INC"), "Communication Services")
+        self.assertEqual(infer_sector("VISA INC"), "Financials")
+
 
 class DeltaEngineTests(unittest.TestCase):
     def test_compute_filing_delta_flags_new_and_exited_positions(self) -> None:
@@ -374,6 +390,50 @@ class PersistenceTests(unittest.TestCase):
 
             latest = load_latest_filing_accessions(connection, "0001067983", limit=2)
             self.assertEqual(latest, ["0001067983-24-000002", "0001067983-23-000999"])
+            connection.close()
+        finally:
+            db_path.unlink(missing_ok=True)
+
+    def test_store_alerts_and_impacts_round_trip(self) -> None:
+        current = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000002",
+        )
+        previous = parse_information_table(
+            PREVIOUS_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-23-000999",
+        )
+        delta = compute_filing_delta(current, previous)
+        assessments = [item for item in score_materiality_batch(build_position_features(delta)) if item.should_alert]
+        portfolios = generate_synthetic_client_portfolios(current.holdings, seed=11)
+        impacts_by_holding_key = {
+            assessment.holding_key: score_client_impacts(assessment, portfolios)
+            for assessment in assessments
+        }
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            store_alerts(
+                connection,
+                "0001067983-24-000002",
+                "0001067983-23-000999",
+                assessments,
+                impacts_by_holding_key,
+            )
+
+            alerts = list_alerts(connection, limit=10, minimum_score=40)
+            self.assertGreater(len(alerts), 0)
+            alert = get_alert(connection, alerts[0].alert_id)
+            self.assertIsNotNone(alert)
+            self.assertGreaterEqual(alert.score, 40)
+            impacts = list_alert_impacts(connection, alerts[0].alert_id)
+            self.assertIsInstance(impacts, list)
             connection.close()
         finally:
             db_path.unlink(missing_ok=True)

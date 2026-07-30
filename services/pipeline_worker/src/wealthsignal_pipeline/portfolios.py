@@ -3,6 +3,7 @@ from __future__ import annotations
 from random import Random
 
 from .models import ClientHolding, ClientImpact, ClientPortfolio, Holding, MaterialityAssessment
+from .sector_enrichment import infer_sector
 
 
 def _normalize_weights(weights: list[float]) -> list[float]:
@@ -24,6 +25,7 @@ def _client_holdings_from_selection(selected: list[Holding], *, randomizer: Rand
         ClientHolding(
             cusip=holding.cusip,
             issuer_name=holding.issuer_name,
+            sector=infer_sector(holding.issuer_name),
             weight=weight,
         )
         for holding, weight in zip(selected, normalized)
@@ -83,10 +85,18 @@ def score_client_impacts(
             for holding in portfolio.holdings
             if holding.cusip == assessment.cusip
         )
-        if direct_weight <= 0:
+        sector_weight = sum(
+            holding.weight
+            for holding in portfolio.holdings
+            if holding.sector == assessment.sector and assessment.sector != "Unknown"
+        )
+        if direct_weight <= 0 and sector_weight <= 0:
             continue
 
-        impact_score = min(100, round((direct_weight * 400) + (assessment.score * 0.6)))
+        impact_score = min(
+            100,
+            round((direct_weight * 450) + (sector_weight * 120) + (assessment.score * 0.55)),
+        )
         if impact_score >= 80:
             impact_label = "high"
         elif impact_score >= 55:
@@ -101,7 +111,9 @@ def score_client_impacts(
                 strategy=portfolio.strategy,
                 cusip=assessment.cusip,
                 issuer_name=assessment.issuer_name,
+                sector=assessment.sector,
                 direct_weight=direct_weight,
+                sector_weight=sector_weight,
                 impact_score=impact_score,
                 impact_label=impact_label,
             )

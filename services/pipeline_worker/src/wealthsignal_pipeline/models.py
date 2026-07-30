@@ -113,6 +113,7 @@ class PositionFeatures:
     holding_key: str
     issuer_name: str
     cusip: str
+    sector: str
     current_value_thousands: int
     previous_value_thousands: int
     current_weight: float
@@ -142,6 +143,7 @@ class MaterialityAssessment:
     holding_key: str
     issuer_name: str
     cusip: str
+    sector: str
     score: int
     severity: str
     should_alert: bool
@@ -155,6 +157,7 @@ class ClientHolding:
 
     cusip: str
     issuer_name: str
+    sector: str
     weight: float
 
 
@@ -177,6 +180,31 @@ class ClientImpact:
     strategy: str
     cusip: str
     issuer_name: str
+    sector: str
     direct_weight: float
+    sector_weight: float
     impact_score: int
     impact_label: str
+
+
+@dataclass(slots=True)
+class PersistedAlert:
+    """Stored alert record for API and audit retrieval."""
+
+    alert_id: int
+    current_accession_number: str
+    previous_accession_number: str
+    holding_key: str
+    issuer_name: str
+    cusip: str
+    sector: str
+    score: int
+    severity: str
+    should_alert: bool
+    reasons: list[str]
+    current_weight: float
+    previous_weight: float
+    weight_delta: float
+    current_rank: int | None
+    previous_rank: int | None
+    turnover_ratio: float
