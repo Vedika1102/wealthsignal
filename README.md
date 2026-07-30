@@ -37,8 +37,11 @@ wealthsignal/
         │       ├── __init__.py
         │       ├── delta_engine.py
         │       ├── edgar_client.py
+        │       ├── feature_engineering.py
         │       ├── ingest.py
+        │       ├── materiality.py
         │       ├── models.py
+        │       ├── portfolios.py
         │       ├── persistence.py
         │       └── parser.py
         └── tests/
@@ -57,14 +60,17 @@ Implemented:
 - primary document metadata parsing
 - SQLite persistence for filings, holdings, and deltas
 - ingest CLI for pulling recent 13F filings end to end
+- first-pass materiality feature generation
+- explainable rule-based alert scoring
+- synthetic client portfolio impact scoring
 - live SEC artifact resolution verified against a real 13F filing
 - unit tests for parser, SEC utilities, and delta computation
 
 Next:
 
-- portfolio-level feature generation
-- feature engineering for materiality classification
-- synthetic client portfolio generation
+- persist alert candidates and client impact results
+- sector enrichment and richer portfolio context
+- train the first baseline materiality classifier
 
 ## Local Ingest Example
 
@@ -75,3 +81,10 @@ python -m wealthsignal_pipeline.cli ^
   --user-agent "Vedika Shinde vedikashinde11feb@gmail.com" ^
   --db-path data/wealthsignal.db
 ```
+
+This prints:
+
+- latest ingested 13F filings,
+- stored quarter-over-quarter delta size,
+- top explainable alert candidates,
+- top impacted synthetic client for each alert.

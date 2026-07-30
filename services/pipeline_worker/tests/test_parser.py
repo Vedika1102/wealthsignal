@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from wealthsignal_pipeline.delta_engine import compute_filing_delta
+from wealthsignal_pipeline.feature_engineering import build_position_features
 from wealthsignal_pipeline.edgar_client import (
     discover_filing_artifacts,
     filing_index_url,
@@ -11,6 +12,8 @@ from wealthsignal_pipeline.edgar_client import (
     select_information_table_filename,
     submissions_url,
 )
+from wealthsignal_pipeline.materiality import score_materiality_batch
+from wealthsignal_pipeline.portfolios import generate_synthetic_client_portfolios, score_client_impacts
 from wealthsignal_pipeline.persistence import connect, initialize_database, load_latest_filing_accessions, load_parsed_filing, store_filing_delta, store_parsed_filing
 from wealthsignal_pipeline.parser import parse_information_table
 from wealthsignal_pipeline.parser import parse_primary_document_metadata
@@ -260,6 +263,64 @@ class DeltaEngineTests(unittest.TestCase):
         self.assertFalse(chevron.is_new_position)
         self.assertTrue(chevron.is_exited_position)
         self.assertEqual(chevron.new_value_thousands, 0)
+
+    def test_build_position_features_marks_top_rank_entry(self) -> None:
+        current = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000002",
+        )
+        previous = parse_information_table(
+            PREVIOUS_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-23-000999",
+        )
+        delta = compute_filing_delta(current, previous)
+        features = {item.cusip: item for item in build_position_features(delta)}
+
+        nvidia = features["67066G104"]
+        self.assertTrue(nvidia.is_new_position)
+        self.assertTrue(nvidia.entered_top10)
+        self.assertGreater(nvidia.turnover_ratio, 0)
+
+    def test_materiality_scoring_generates_alert_candidates(self) -> None:
+        current = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000002",
+        )
+        previous = parse_information_table(
+            PREVIOUS_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-23-000999",
+        )
+        delta = compute_filing_delta(current, previous)
+        assessments = score_materiality_batch(build_position_features(delta))
+
+        top = assessments[0]
+        self.assertTrue(top.should_alert)
+        self.assertGreaterEqual(top.score, 40)
+        self.assertGreater(len(top.reasons), 0)
+
+    def test_client_impact_scores_overlap_on_alert_candidate(self) -> None:
+        current = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000002",
+        )
+        previous = parse_information_table(
+            PREVIOUS_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-23-000999",
+        )
+        delta = compute_filing_delta(current, previous)
+        assessments = [item for item in score_materiality_batch(build_position_features(delta)) if item.should_alert]
+        portfolios = generate_synthetic_client_portfolios(current.holdings, seed=11)
+
+        assessment = next(item for item in assessments if item.cusip == "67066G104")
+        impacts = score_client_impacts(assessment, portfolios)
+        self.assertGreater(len(impacts), 0)
+        self.assertGreater(impacts[0].impact_score, 0)
 
 
 class PersistenceTests(unittest.TestCase):

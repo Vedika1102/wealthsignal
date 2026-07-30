@@ -93,6 +93,8 @@ class PositionDelta:
     value_pct_change: float | None = None
     shares_pct_change: float | None = None
     rank_delta: int | None = None
+    previous_rank: int | None = None
+    current_rank: int | None = None
 
 
 @dataclass(slots=True)
@@ -102,3 +104,79 @@ class FilingDelta:
     current_filing: FilingReference
     previous_filing: FilingReference
     positions: list[PositionDelta] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class PositionFeatures:
+    """Feature vector for a single position-change event."""
+
+    holding_key: str
+    issuer_name: str
+    cusip: str
+    current_value_thousands: int
+    previous_value_thousands: int
+    current_weight: float
+    previous_weight: float
+    weight_delta: float
+    abs_weight_delta: float
+    value_delta_thousands: int
+    abs_value_delta_thousands: int
+    value_pct_change: float | None
+    shares_pct_change: float | None
+    is_new_position: bool
+    is_exited_position: bool
+    current_rank: int | None
+    previous_rank: int | None
+    entered_top10: bool
+    exited_top10: bool
+    entered_top20: bool
+    exited_top20: bool
+    turnover_ratio: float
+    change_share_of_turnover: float
+
+
+@dataclass(slots=True)
+class MaterialityAssessment:
+    """Explainable first-pass materiality output."""
+
+    holding_key: str
+    issuer_name: str
+    cusip: str
+    score: int
+    severity: str
+    should_alert: bool
+    reasons: list[str]
+    feature_snapshot: PositionFeatures
+
+
+@dataclass(slots=True)
+class ClientHolding:
+    """Synthetic wealth-client holding for downstream impact scoring."""
+
+    cusip: str
+    issuer_name: str
+    weight: float
+
+
+@dataclass(slots=True)
+class ClientPortfolio:
+    """Synthetic client portfolio used for overlap-based impact scoring."""
+
+    client_id: str
+    client_name: str
+    strategy: str
+    holdings: list[ClientHolding]
+
+
+@dataclass(slots=True)
+class ClientImpact:
+    """Impact score linking one alert candidate to one client portfolio."""
+
+    client_id: str
+    client_name: str
+    strategy: str
+    cusip: str
+    issuer_name: str
+    direct_weight: float
+    impact_score: int
+    impact_label: str

@@ -4,7 +4,10 @@ import argparse
 from pathlib import Path
 
 from .delta_engine import compute_filing_delta
+from .feature_engineering import build_position_features
 from .ingest import ingest_recent_filings_for_cik
+from .materiality import score_materiality_batch
+from .portfolios import generate_synthetic_client_portfolios, score_client_impacts
 from .persistence import connect, initialize_database, load_latest_filing_accessions, load_parsed_filing, store_filing_delta
 
 
@@ -54,10 +57,25 @@ def main() -> int:
             if current is not None and previous is not None:
                 delta = compute_filing_delta(current, previous)
                 store_filing_delta(connection, delta)
+                features = build_position_features(delta)
+                assessments = [item for item in score_materiality_batch(features) if item.should_alert]
+                portfolios = generate_synthetic_client_portfolios(current.holdings)
                 print(
                     f"Stored delta for {current.filing.filer_name or current.filing.cik}: "
                     f"{len(delta.positions)} position changes"
                 )
+                for assessment in assessments[:5]:
+                    print(
+                        f"Alert: {assessment.issuer_name} | score={assessment.score} | "
+                        f"severity={assessment.severity} | reasons={'; '.join(assessment.reasons[:3])}"
+                    )
+                    impacts = score_client_impacts(assessment, portfolios)
+                    if impacts:
+                        top_impact = impacts[0]
+                        print(
+                            f"  Top client impact: {top_impact.client_name} "
+                            f"({top_impact.strategy}) score={top_impact.impact_score}"
+                        )
         for parsed in parsed_filings:
             print(
                 f"Ingested {parsed.filing.accession_number} "

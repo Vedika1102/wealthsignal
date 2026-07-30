@@ -81,6 +81,8 @@ def compute_filing_delta(current: ParsedInformationTable, previous: ParsedInform
             value_pct_change=_pct_change(old_value, new_value),
             shares_pct_change=_pct_change(old_shares, new_shares),
             rank_delta=(old_rank - new_rank) if old_rank is not None and new_rank is not None else None,
+            previous_rank=old_rank,
+            current_rank=new_rank,
         )
         deltas.append(delta)
 
