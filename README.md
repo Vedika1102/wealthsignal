@@ -35,6 +35,8 @@ wealthsignal/
         ├── src/
         │   └── wealthsignal_pipeline/
         │       ├── __init__.py
+        │       ├── delta_engine.py
+        │       ├── edgar_client.py
         │       ├── models.py
         │       └── parser.py
         └── tests/
@@ -48,12 +50,14 @@ Implemented:
 - base project scaffold
 - holdings data models
 - first-pass 13F information table parser
-- SEC client URL and header utilities
-- parser unit tests
+- SEC submissions and filing artifact discovery utilities
+- quarter-over-quarter position delta engine
+- live SEC artifact resolution verified against a real 13F filing
+- unit tests for parser, SEC utilities, and delta computation
 
 Next:
 
-- SEC client for index and filing downloads
+- real filing downloader and end-to-end parser orchestration
 - normalized persistence layer
-- prior-quarter delta engine
 - feature engineering for materiality classification
+- synthetic client portfolio generation
