@@ -33,6 +33,35 @@ def _float_text(element: ET.Element, tag: str) -> float:
     return float(value.replace(",", ""))
 
 
+def _local_name(tag: str) -> str:
+    return tag.split("}", 1)[-1]
+
+
+def _find_child_by_local_name(element: ET.Element, name: str) -> ET.Element | None:
+    for child in list(element):
+        if _local_name(child.tag) == name:
+            return child
+    return None
+
+
+def _find_path_text(root: ET.Element, path: list[str]) -> str:
+    current: ET.Element | None = root
+    for name in path:
+        if current is None:
+            return ""
+        current = _find_child_by_local_name(current, name)
+    if current is None or current.text is None:
+        return ""
+    return current.text.strip()
+
+
+def _parse_mm_dd_yyyy(value: str) -> date | None:
+    if not value:
+        return None
+    month, day, year = value.split("-")
+    return date(int(year), int(month), int(day))
+
+
 def parse_information_table(
     xml_text: str,
     *,
@@ -85,3 +114,22 @@ def parse_information_table(
     )
 
     return ParsedInformationTable(filing=filing, holdings=holdings)
+
+
+def parse_primary_document_metadata(xml_text: str) -> FilingReference:
+    """Extract filing metadata from a 13F primary document XML."""
+
+    root = ET.fromstring(xml_text)
+
+    cik = _find_path_text(root, ["headerData", "filerInfo", "filer", "credentials", "cik"])
+    form_type = _find_path_text(root, ["headerData", "submissionType"]) or "13F-HR"
+    report_period_text = _find_path_text(root, ["formData", "coverPage", "reportCalendarOrQuarter"])
+    filing_manager_name = _find_path_text(root, ["formData", "coverPage", "filingManager", "name"])
+
+    return FilingReference(
+        cik=cik,
+        accession_number="",
+        report_period=_parse_mm_dd_yyyy(report_period_text),
+        form_type=form_type,
+        filer_name=filing_manager_name or None,
+    )

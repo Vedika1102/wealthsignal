@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from wealthsignal_pipeline.delta_engine import compute_filing_delta
 from wealthsignal_pipeline.edgar_client import (
@@ -9,7 +11,9 @@ from wealthsignal_pipeline.edgar_client import (
     select_information_table_filename,
     submissions_url,
 )
+from wealthsignal_pipeline.persistence import connect, initialize_database, load_latest_filing_accessions, load_parsed_filing, store_filing_delta, store_parsed_filing
 from wealthsignal_pipeline.parser import parse_information_table
+from wealthsignal_pipeline.parser import parse_primary_document_metadata
 
 
 SAMPLE_INFORMATION_TABLE = """<?xml version="1.0" encoding="UTF-8"?>
@@ -116,6 +120,29 @@ SAMPLE_INDEX_JSON = {
     }
 }
 
+SAMPLE_PRIMARY_DOCUMENT = """<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xmlns="http://www.sec.gov/edgar/thirteenffiler" xmlns:ns1="http://www.sec.gov/edgar/common">
+  <headerData>
+    <submissionType>13F-HR</submissionType>
+    <filerInfo>
+      <filer>
+        <credentials>
+          <cik>0001067983</cik>
+        </credentials>
+      </filer>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>03-31-2026</reportCalendarOrQuarter>
+      <filingManager>
+        <name>Berkshire Hathaway Inc</name>
+      </filingManager>
+    </coverPage>
+  </formData>
+</edgarSubmission>
+"""
+
 
 class ParseInformationTableTests(unittest.TestCase):
     def test_parse_information_table_extracts_holdings(self) -> None:
@@ -150,6 +177,13 @@ class ParseInformationTableTests(unittest.TestCase):
         self.assertEqual(nvidia.put_call, "CALL")
         self.assertEqual(nvidia.investment_discretion, "SHARED")
         self.assertEqual(nvidia.voting_authority_shared, 250000)
+
+    def test_parse_primary_document_metadata_extracts_cover_page_fields(self) -> None:
+        metadata = parse_primary_document_metadata(SAMPLE_PRIMARY_DOCUMENT)
+        self.assertEqual(metadata.cik, "0001067983")
+        self.assertEqual(metadata.form_type, "13F-HR")
+        self.assertEqual(str(metadata.report_period), "2026-03-31")
+        self.assertEqual(metadata.filer_name, "Berkshire Hathaway Inc")
 
 
 class EdgarClientUtilityTests(unittest.TestCase):
@@ -226,6 +260,62 @@ class DeltaEngineTests(unittest.TestCase):
         self.assertFalse(chevron.is_new_position)
         self.assertTrue(chevron.is_exited_position)
         self.assertEqual(chevron.new_value_thousands, 0)
+
+
+class PersistenceTests(unittest.TestCase):
+    def test_store_and_load_parsed_filing_round_trip(self) -> None:
+        parsed = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000001",
+            filer_name="Example Capital Management",
+        )
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            store_parsed_filing(connection, parsed)
+
+            loaded = load_parsed_filing(connection, "0001067983-24-000001")
+            self.assertIsNotNone(loaded)
+            self.assertEqual(len(loaded.holdings), 2)
+            self.assertEqual(loaded.filing.cik, "0001067983")
+            self.assertEqual(loaded.holdings[0].issuer_name, "APPLE INC")
+            connection.close()
+        finally:
+            db_path.unlink(missing_ok=True)
+
+    def test_store_delta_and_list_latest_accessions(self) -> None:
+        current = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000002",
+        )
+        previous = parse_information_table(
+            PREVIOUS_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-23-000999",
+        )
+        delta = compute_filing_delta(current, previous)
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            store_parsed_filing(connection, previous)
+            store_parsed_filing(connection, current)
+            store_filing_delta(connection, delta)
+
+            latest = load_latest_filing_accessions(connection, "0001067983", limit=2)
+            self.assertEqual(latest, ["0001067983-24-000002", "0001067983-23-000999"])
+            connection.close()
+        finally:
+            db_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

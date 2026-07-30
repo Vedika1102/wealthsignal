@@ -6,9 +6,15 @@ from .models import FilingDelta, Holding, ParsedInformationTable, PositionDelta
 def holding_key(holding: Holding) -> str:
     """Return a stable join key for quarter-over-quarter comparisons."""
 
-    if holding.cusip:
-        return holding.cusip
-    return f"{holding.issuer_name}|{holding.title_of_class}"
+    parts = [
+        holding.cusip or holding.issuer_name,
+        holding.title_of_class,
+        holding.share_type,
+        holding.put_call,
+        holding.investment_discretion,
+        holding.other_manager or "",
+    ]
+    return "|".join(parts)
 
 
 def _weight_map(holdings: list[Holding]) -> dict[str, float]:

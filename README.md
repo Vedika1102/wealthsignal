@@ -37,7 +37,9 @@ wealthsignal/
         │       ├── __init__.py
         │       ├── delta_engine.py
         │       ├── edgar_client.py
+        │       ├── ingest.py
         │       ├── models.py
+        │       ├── persistence.py
         │       └── parser.py
         └── tests/
             └── test_parser.py
@@ -52,12 +54,24 @@ Implemented:
 - first-pass 13F information table parser
 - SEC submissions and filing artifact discovery utilities
 - quarter-over-quarter position delta engine
+- primary document metadata parsing
+- SQLite persistence for filings, holdings, and deltas
+- ingest CLI for pulling recent 13F filings end to end
 - live SEC artifact resolution verified against a real 13F filing
 - unit tests for parser, SEC utilities, and delta computation
 
 Next:
 
-- real filing downloader and end-to-end parser orchestration
-- normalized persistence layer
+- portfolio-level feature generation
 - feature engineering for materiality classification
 - synthetic client portfolio generation
+
+## Local Ingest Example
+
+```bash
+set PYTHONPATH=services/pipeline_worker/src
+python -m wealthsignal_pipeline.cli ^
+  --cik 1067983 ^
+  --user-agent "Vedika Shinde vedikashinde11feb@gmail.com" ^
+  --db-path data/wealthsignal.db
+```

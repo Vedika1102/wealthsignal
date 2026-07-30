@@ -6,3 +6,5 @@ venv/
 .env
 dist/
 build/
+data/
+*.db

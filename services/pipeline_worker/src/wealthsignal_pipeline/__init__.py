@@ -1,1 +1,1 @@
-"""Core parsing and data models for WealthSignal pipeline services."""
+"""Core parsing, ingestion, and local persistence for WealthSignal pipeline services."""
