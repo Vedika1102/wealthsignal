@@ -16,6 +16,7 @@ from .persistence import (
     load_parsed_filing,
     store_feature_rows,
     store_model_run,
+    store_client_portfolios,
     store_alerts,
     store_filing_delta,
 )
@@ -69,6 +70,7 @@ def main() -> int:
                 store_filing_delta(connection, delta)
                 features = build_position_features(delta)
                 portfolios = generate_demo_portfolios_for_delta(delta)
+                store_client_portfolios(connection, portfolios)
                 all_assessments, assessments, impacts_by_holding_key = generate_alert_candidates(delta, portfolios)
                 feature_rows = build_persisted_feature_rows(delta, features, all_assessments)
                 store_feature_rows(connection, feature_rows)

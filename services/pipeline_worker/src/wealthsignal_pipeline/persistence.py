@@ -7,7 +7,9 @@ from pathlib import Path
 
 from .delta_engine import holding_key
 from .models import (
+    ClientHolding,
     ClientImpact,
+    ClientPortfolio,
     FilingArtifacts,
     FilingDelta,
     FilingReference,
@@ -126,6 +128,23 @@ def initialize_database(connection: sqlite3.Connection) -> None:
             impact_label TEXT NOT NULL,
             PRIMARY KEY (alert_id, client_id),
             FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS client_portfolios (
+            client_id TEXT PRIMARY KEY,
+            client_name TEXT NOT NULL,
+            strategy TEXT NOT NULL,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS client_holdings (
+            client_id TEXT NOT NULL,
+            cusip TEXT NOT NULL,
+            issuer_name TEXT NOT NULL,
+            sector TEXT NOT NULL,
+            weight REAL NOT NULL CHECK (weight >= 0 AND weight <= 1),
+            PRIMARY KEY (client_id, cusip),
+            FOREIGN KEY (client_id) REFERENCES client_portfolios(client_id)
         );
 
         CREATE INDEX IF NOT EXISTS idx_alerts_current_accession
@@ -792,3 +811,54 @@ def _parse_iso_date(value: str | None):
     if not value:
         return None
     return date.fromisoformat(value)
+
+
+def store_client_portfolio(connection, portfolio):
+    if not portfolio.holdings:
+        raise ValueError('Portfolio holdings are required')
+    total = sum(item.weight for item in portfolio.holdings)
+    if abs(total - 1.0) > 0.001:
+        raise ValueError('Portfolio weights must sum to 1')
+    connection.execute(
+        '''INSERT OR REPLACE INTO client_portfolios
+           (client_id, client_name, strategy) VALUES (?, ?, ?)''',
+        (portfolio.client_id, portfolio.client_name, portfolio.strategy),
+    )
+    connection.execute('DELETE FROM client_holdings WHERE client_id = ?', (portfolio.client_id,))
+    connection.executemany(
+        '''INSERT INTO client_holdings
+           (client_id, cusip, issuer_name, sector, weight) VALUES (?, ?, ?, ?, ?)''',
+        [(portfolio.client_id, h.cusip, h.issuer_name, h.sector, h.weight) for h in portfolio.holdings],
+    )
+    connection.commit()
+
+
+def store_client_portfolios(connection, portfolios):
+    for portfolio in portfolios:
+        store_client_portfolio(connection, portfolio)
+
+
+def list_client_portfolios(connection, limit=100):
+    rows = connection.execute(
+        '''SELECT p.client_id, p.client_name, p.strategy, COUNT(h.cusip) holding_count
+           FROM client_portfolios p LEFT JOIN client_holdings h USING (client_id)
+           GROUP BY p.client_id ORDER BY p.client_name LIMIT ?''', (limit,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_client_portfolio(connection, client_id):
+    row = connection.execute(
+        'SELECT client_id, client_name, strategy FROM client_portfolios WHERE client_id = ?',
+        (client_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    holdings = connection.execute(
+        'SELECT cusip, issuer_name, sector, weight FROM client_holdings WHERE client_id = ?',
+        (client_id,),
+    ).fetchall()
+    return ClientPortfolio(
+        client_id=row['client_id'], client_name=row['client_name'], strategy=row['strategy'],
+        holdings=[ClientHolding(h['cusip'], h['issuer_name'], h['sector'], h['weight']) for h in holdings],
+    )
