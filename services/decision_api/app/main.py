@@ -9,11 +9,13 @@ from wealthsignal_pipeline.materiality import materiality_policy
 from wealthsignal_pipeline.persistence import (
     connect,
     get_alert,
+    get_client_portfolio,
     get_latest_model_run,
     get_latest_prediction_lookup,
     initialize_database,
     list_alert_impacts,
     list_alerts,
+    list_client_portfolios,
     list_filing_summaries,
     list_position_deltas,
 )
@@ -153,5 +155,26 @@ def latest_model() -> dict:
             "intercept": model_run.intercept,
             "metrics": model_run.metrics,
         }
+    finally:
+        connection.close()
+
+
+@app.get('/clients')
+def clients(limit: int = Query(default=100, ge=1, le=500)):
+    connection = _connection()
+    try:
+        return list_client_portfolios(connection, limit)
+    finally:
+        connection.close()
+
+
+@app.get('/clients/{client_id}')
+def client_detail(client_id: str):
+    connection = _connection()
+    try:
+        portfolio = get_client_portfolio(connection, client_id)
+        if portfolio is None:
+            raise HTTPException(status_code=404, detail='Client not found')
+        return portfolio
     finally:
         connection.close()

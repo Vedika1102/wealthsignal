@@ -65,6 +65,7 @@ Implemented:
 - explainable rule-based alert scoring
 - coarse sector enrichment for holdings and alerts
 - synthetic client portfolio impact scoring
+- persisted client portfolios and normalized client holdings
 - persisted alert and client impact records
 - persisted feature rows with weak labels
 - numpy logistic-regression baseline with stored probabilities and metrics
@@ -75,7 +76,6 @@ Implemented:
 Next:
 
 - add richer sector and reference-data enrichment
-- persist client portfolios as first-class entities
 - add out-of-sample evaluation and model calibration
 - expose feature rows and model explanations through the API
 
