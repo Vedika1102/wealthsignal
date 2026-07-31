@@ -71,17 +71,21 @@ def filing_file_url(cik: str | int, accession_number: str, filename: str) -> str
 def fetch_json(url: str, user_agent: str) -> dict:
     """Fetch and decode a JSON payload from the SEC."""
 
+    return json.loads(fetch_bytes(url, user_agent).decode("utf-8", errors="ignore"))
+
+
+def fetch_bytes(url: str, user_agent: str) -> bytes:
+    """Fetch a binary artifact from the SEC."""
+
     request = Request(url, headers=sec_headers(user_agent))
     with urlopen(request, timeout=30) as response:
-        return json.loads(response.read().decode("utf-8", errors="ignore"))
+        return response.read()
 
 
 def fetch_text(url: str, user_agent: str) -> str:
     """Fetch a text artifact from the SEC."""
 
-    request = Request(url, headers=sec_headers(user_agent))
-    with urlopen(request, timeout=30) as response:
-        return response.read().decode("utf-8", errors="ignore")
+    return fetch_bytes(url, user_agent).decode("utf-8", errors="ignore")
 
 
 def _parse_date(value: str) -> date | None:
@@ -141,11 +145,17 @@ def select_information_table_filename(index_payload: dict, primary_document: str
         and item.get("name", "").lower() != primary_basename
         and "primary_doc" not in item.get("name", "").lower()
     ]
-    if not xml_candidates:
-        return None
+    if xml_candidates:
+        xml_candidates.sort(key=lambda item: int(item.get("size") or 0), reverse=True)
+        return xml_candidates[0].get("name") or None
 
-    xml_candidates.sort(key=lambda item: int(item.get("size") or 0), reverse=True)
-    return xml_candidates[0].get("name") or None
+    # Some valid 13F filings place the information table directly in the
+    # primary XML artifact with no secondary XML attachment.
+    if primary_basename.endswith(".xml"):
+        for item in items:
+            if item.get("name", "").lower() == primary_basename:
+                return item.get("name") or None
+    return None
 
 
 def discover_filing_artifacts(filing: SubmissionFiling, index_payload: dict) -> FilingArtifacts:

@@ -40,13 +40,14 @@ def build_position_features(delta: FilingDelta) -> list[PositionFeatures]:
         change_share_of_turnover = 0.0
         if total_abs_weight_change > 0:
             change_share_of_turnover = abs_weight_delta / total_abs_weight_change
+        reference_name = position.official_issuer_name or position.issuer_name
 
         features.append(
             PositionFeatures(
                 holding_key=position.holding_key,
                 issuer_name=position.issuer_name,
                 cusip=position.cusip,
-                sector=infer_sector(position.issuer_name),
+                sector=infer_sector(reference_name),
                 current_value_thousands=position.new_value_thousands,
                 previous_value_thousands=position.old_value_thousands,
                 current_weight=position.new_weight,

@@ -25,6 +25,7 @@ def _default_db_path() -> str:
 
 
 DB_PATH = os.getenv("WEALTHSIGNAL_DB_PATH", _default_db_path())
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = FastAPI(title="WealthSignal Decision API", version="0.1.0")
 
@@ -37,8 +38,20 @@ def _connection():
 
 @app.get("/health")
 def healthcheck() -> dict[str, str]:
-    db_exists = Path(DB_PATH).exists()
-    return {"status": "ok", "db_path": DB_PATH, "db_exists": str(db_exists).lower()}
+    backend = "sqlite"
+    db_identifier = DB_PATH
+    db_exists = str(Path(DB_PATH).exists()).lower()
+    if DATABASE_URL:
+        if DATABASE_URL.lower().startswith(("postgres://", "postgresql://")):
+            backend = "postgres"
+            db_identifier = "DATABASE_URL"
+            db_exists = "n/a"
+        elif DATABASE_URL.lower().startswith("sqlite:///"):
+            backend = "sqlite"
+            sqlite_path = DATABASE_URL[len("sqlite:///") :]
+            db_identifier = sqlite_path
+            db_exists = str(Path(sqlite_path).exists()).lower()
+    return {"status": "ok", "backend": backend, "db_path": db_identifier, "db_exists": db_exists}
 
 
 @app.get("/filings")

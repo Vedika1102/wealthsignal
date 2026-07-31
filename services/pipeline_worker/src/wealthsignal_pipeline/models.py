@@ -33,6 +33,11 @@ class Holding:
     voting_authority_sole: int = 0
     voting_authority_shared: int = 0
     voting_authority_none: int = 0
+    official_issuer_name: str | None = None
+    official_class_title: str | None = None
+    ticker: str | None = None
+    official_list_match: bool = False
+    official_list_source: str | None = None
 
     @property
     def market_value_usd(self) -> int:
@@ -73,6 +78,24 @@ class FilingArtifacts:
 
 
 @dataclass(slots=True)
+class IngestFailure:
+    """One filing-level ingest failure captured during a batch run."""
+
+    stage: str
+    message: str
+    accession_number: str | None = None
+
+
+@dataclass(slots=True)
+class IngestBatchResult:
+    """Structured result for a multi-filing ingest attempt."""
+
+    cik: str
+    parsed_filings: list[ParsedInformationTable] = field(default_factory=list)
+    failures: list[IngestFailure] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class PositionDelta:
     """Quarter-over-quarter change for a single holding key."""
 
@@ -95,6 +118,7 @@ class PositionDelta:
     rank_delta: int | None = None
     previous_rank: int | None = None
     current_rank: int | None = None
+    official_issuer_name: str | None = None
 
 
 @dataclass(slots=True)

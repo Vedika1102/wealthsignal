@@ -7,7 +7,7 @@ from .alerting import generate_alert_candidates, generate_demo_portfolios_for_de
 from .baseline_model import train_logistic_baseline
 from .delta_engine import compute_filing_delta
 from .feature_engineering import build_persisted_feature_rows, build_position_features
-from .ingest import ingest_recent_filings_for_cik
+from .ingest import ingest_recent_filings_batch_for_cik
 from .persistence import (
     connect,
     load_feature_rows,
@@ -18,6 +18,11 @@ from .persistence import (
     store_model_run,
     store_alerts,
     store_filing_delta,
+)
+from .reference_data import (
+    build_security_lookup,
+    load_official_list_snapshot,
+    refresh_official_list_snapshot,
 )
 
 
@@ -40,6 +45,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=2,
         help="Number of recent 13F filings to ingest.",
     )
+    parser.add_argument(
+        "--reference-data-path",
+        default="data/reference/sec_official_13f_list.json",
+        help="Local cache path for the official SEC 13F securities list snapshot.",
+    )
+    parser.add_argument(
+        "--refresh-official-13f-list",
+        action="store_true",
+        help="Fetch and cache the latest official SEC 13F securities list before ingest.",
+    )
     return parser
 
 
@@ -49,13 +64,53 @@ def main() -> int:
 
     db_path = Path(args.db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
+    reference_data_path = Path(args.reference_data_path)
 
-    parsed_filings = ingest_recent_filings_for_cik(
+    official_list_lookup = None
+    if args.refresh_official_13f_list:
+        try:
+            snapshot = refresh_official_list_snapshot(args.user_agent, reference_data_path)
+            official_list_lookup = build_security_lookup(snapshot)
+            print(
+                f"Refreshed official 13F list: {len(snapshot.securities)} securities "
+                f"from {snapshot.source_url}"
+            )
+        except Exception as exc:
+            print(f"Official 13F list refresh skipped: {exc}")
+    elif reference_data_path.exists():
+        snapshot = load_official_list_snapshot(reference_data_path)
+        official_list_lookup = build_security_lookup(snapshot)
+        print(
+            f"Loaded official 13F list cache: {len(snapshot.securities)} securities "
+            f"from {snapshot.source_url}"
+        )
+
+    batch_result = ingest_recent_filings_batch_for_cik(
         args.cik,
         args.user_agent,
         db_path=db_path,
         limit=args.limit,
+        official_list_lookup=official_list_lookup,
     )
+    parsed_filings = batch_result.parsed_filings
+    if batch_result.failures:
+        print(f"Skipped {len(batch_result.failures)} filing(s) during ingest:")
+        for failure in batch_result.failures[:5]:
+            accession_label = failure.accession_number or batch_result.cik
+            print(f"  {accession_label} | stage={failure.stage} | error={failure.message}")
+    if not parsed_filings:
+        print(f"No recent 13F filings were ingested successfully for CIK {args.cik}.")
+        return 0
+
+    if official_list_lookup is not None:
+        total_holdings = sum(len(parsed.holdings) for parsed in parsed_filings)
+        matched_holdings = sum(
+            1
+            for parsed in parsed_filings
+            for holding in parsed.holdings
+            if holding.official_list_match
+        )
+        print(f"Official 13F reference coverage: {matched_holdings}/{total_holdings} holdings matched")
 
     connection = connect(db_path)
     try:
@@ -134,6 +189,11 @@ def main() -> int:
                             f"({top_impact.strategy}) score={top_impact.impact_score} "
                             f"direct={top_impact.direct_weight:.2%} sector={top_impact.sector_weight:.2%}"
                         )
+        elif len(accessions) == 1:
+            print(
+                f"Only one filing is available for {parsed_filings[0].filing.cik}; "
+                "skipping delta, alert, and model generation."
+            )
         for parsed in parsed_filings:
             print(
                 f"Ingested {parsed.filing.accession_number} "

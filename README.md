@@ -25,13 +25,17 @@ The initial build targets:
 
 ```text
 wealthsignal/
+├── .env.example
+├── docker-compose.yml
 ├── README.md
 ├── pyproject.toml
 └── services/
     ├── decision_api/
+    │   ├── Dockerfile
     │   └── app/
     │       └── main.py
     └── pipeline_worker/
+        ├── Dockerfile
         ├── src/
         │   └── wealthsignal_pipeline/
         │       ├── __init__.py
@@ -44,7 +48,10 @@ wealthsignal/
         │       ├── models.py
         │       ├── portfolios.py
         │       ├── persistence.py
-        │       └── parser.py
+        │       ├── parser.py
+        │       ├── reference_data.py
+        │       ├── storage.py
+        │       └── worker_health.py
         └── tests/
             └── test_parser.py
 ```
@@ -59,16 +66,20 @@ Implemented:
 - SEC submissions and filing artifact discovery utilities
 - quarter-over-quarter position delta engine
 - primary document metadata parsing
-- SQLite persistence for filings, holdings, and deltas
+- SQLite and PostgreSQL persistence support via `DATABASE_URL`
 - ingest CLI for pulling recent 13F filings end to end
 - first-pass materiality feature generation
 - explainable rule-based alert scoring
 - coarse sector enrichment for holdings and alerts
+- optional official SEC 13F securities-list enrichment and local cache support
+- MinIO-compatible raw filing artifact storage
 - synthetic client portfolio impact scoring
 - persisted alert and client impact records
 - persisted feature rows with weak labels
 - numpy logistic-regression baseline with stored probabilities and metrics
 - decision API endpoints for filings, alerts, and governance
+- Dockerfiles for `pipeline-worker` and `decision-api`
+- `docker-compose.yml` with PostgreSQL, MinIO, Redis, pipeline-worker, and decision-api
 - live SEC artifact resolution verified against a real 13F filing
 - unit tests for parser, SEC utilities, persistence, and decisioning
 
@@ -82,15 +93,30 @@ Next:
 ## Local Ingest Example
 
 ```bash
-set PYTHONPATH=services/pipeline_worker/src
-python -m wealthsignal_pipeline.cli ^
-  --cik 1067983 ^
-  --user-agent "Vedika Shinde vedikashinde11feb@gmail.com" ^
-  --db-path data/wealthsignal.db
+$env:PYTHONPATH="services/pipeline_worker/src"
+python -m wealthsignal_pipeline.cli `
+  --cik 1067983 `
+  --user-agent "Vedika Shinde Research wealthsignal@example.com" `
+  --db-path data/wealthsignal.db `
+  --reference-data-path data/reference/sec_official_13f_list.json
+```
+
+To refresh the official SEC 13F securities list before ingest:
+
+```bash
+$env:PYTHONPATH="services/pipeline_worker/src"
+python -m wealthsignal_pipeline.cli `
+  --cik 1067983 `
+  --user-agent "Vedika Shinde Research wealthsignal@example.com" `
+  --db-path data/wealthsignal.db `
+  --reference-data-path data/reference/sec_official_13f_list.json `
+  --refresh-official-13f-list
 ```
 
 This prints:
 
+- whether the official 13F securities list was loaded or refreshed,
+- official-list match coverage across ingested holdings,
 - latest ingested 13F filings,
 - stored quarter-over-quarter delta size,
 - top explainable alert candidates,
@@ -101,7 +127,7 @@ This prints:
 ## API Example
 
 ```bash
-set PYTHONPATH=services/pipeline_worker/src
+$env:PYTHONPATH="services/pipeline_worker/src"
 uvicorn services.decision_api.app.main:app --reload
 ```
 
@@ -114,3 +140,30 @@ Current endpoints:
 - `GET /alerts/{alert_id}`
 - `GET /models/latest`
 - `GET /governance/materiality-policy`
+
+## Docker Compose
+
+Copy `.env.example` to `.env` if you want to override defaults, then start the stack:
+
+```bash
+docker compose up --build
+```
+
+This brings up:
+
+- `postgres` on `localhost:5432`
+- `minio` on `localhost:9000`
+- `minio console` on `localhost:9001`
+- `redis` on `localhost:6379`
+- `pipeline-worker health` on `localhost:8090/health`
+- `decision-api` on `localhost:8000`
+
+To run a real ingest inside the compose environment:
+
+```bash
+docker compose run --rm pipeline-worker python -m wealthsignal_pipeline.cli `
+  --cik 1067983 `
+  --user-agent "Vedika Shinde Research wealthsignal@example.com" `
+  --db-path data/wealthsignal.db `
+  --reference-data-path data/reference/sec_official_13f_list.json
+```

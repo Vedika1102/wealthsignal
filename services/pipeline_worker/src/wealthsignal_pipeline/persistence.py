@@ -1,9 +1,20 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import sqlite3
+from collections.abc import Mapping
 from datetime import date
 from pathlib import Path
+from typing import Any
+
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+except ImportError:  # pragma: no cover - exercised only when PostgreSQL deps are installed
+    psycopg2 = None
+    RealDictCursor = None
 
 from .delta_engine import holding_key
 from .models import (
@@ -16,188 +27,440 @@ from .models import (
     ModelPrediction,
     ModelRunSummary,
     ParsedInformationTable,
-    PersistedFeatureRow,
     PersistedAlert,
+    PersistedFeatureRow,
 )
 
 
-def connect(db_path: str | Path) -> sqlite3.Connection:
-    """Open a SQLite connection for WealthSignal local development."""
+SQLITE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS filings (
+    accession_number TEXT PRIMARY KEY,
+    cik TEXT NOT NULL,
+    filing_date TEXT,
+    report_period TEXT,
+    form_type TEXT NOT NULL,
+    filer_name TEXT,
+    primary_document_url TEXT,
+    information_table_url TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 
-    connection = sqlite3.connect(str(db_path))
-    connection.row_factory = sqlite3.Row
-    return connection
+CREATE TABLE IF NOT EXISTS holdings (
+    accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    title_of_class TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    value_thousands INTEGER NOT NULL,
+    shares_or_principal REAL NOT NULL,
+    share_type TEXT NOT NULL,
+    put_call TEXT NOT NULL,
+    investment_discretion TEXT NOT NULL,
+    other_manager TEXT,
+    voting_authority_sole INTEGER NOT NULL,
+    voting_authority_shared INTEGER NOT NULL,
+    voting_authority_none INTEGER NOT NULL,
+    official_issuer_name TEXT,
+    official_class_title TEXT,
+    ticker TEXT,
+    official_list_match INTEGER NOT NULL DEFAULT 0,
+    official_list_source TEXT,
+    PRIMARY KEY (accession_number, holding_key),
+    FOREIGN KEY (accession_number) REFERENCES filings(accession_number)
+);
+
+CREATE TABLE IF NOT EXISTS position_deltas (
+    current_accession_number TEXT NOT NULL,
+    previous_accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    old_value_thousands INTEGER NOT NULL,
+    new_value_thousands INTEGER NOT NULL,
+    old_shares REAL NOT NULL,
+    new_shares REAL NOT NULL,
+    old_weight REAL NOT NULL,
+    new_weight REAL NOT NULL,
+    is_new_position INTEGER NOT NULL,
+    is_exited_position INTEGER NOT NULL,
+    share_type TEXT NOT NULL,
+    value_delta_thousands INTEGER NOT NULL,
+    shares_delta REAL NOT NULL,
+    value_pct_change REAL,
+    shares_pct_change REAL,
+    rank_delta INTEGER,
+    PRIMARY KEY (current_accession_number, previous_accession_number, holding_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_filings_cik_period
+    ON filings(cik, report_period DESC, filing_date DESC);
+
+CREATE TABLE IF NOT EXISTS alerts (
+    alert_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    current_accession_number TEXT NOT NULL,
+    previous_accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    severity TEXT NOT NULL,
+    should_alert INTEGER NOT NULL,
+    reasons_json TEXT NOT NULL,
+    current_weight REAL NOT NULL,
+    previous_weight REAL NOT NULL,
+    weight_delta REAL NOT NULL,
+    current_rank INTEGER,
+    previous_rank INTEGER,
+    turnover_ratio REAL NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS alert_impacts (
+    alert_id INTEGER NOT NULL,
+    client_id TEXT NOT NULL,
+    client_name TEXT NOT NULL,
+    strategy TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    direct_weight REAL NOT NULL,
+    sector_weight REAL NOT NULL,
+    impact_score INTEGER NOT NULL,
+    impact_label TEXT NOT NULL,
+    PRIMARY KEY (alert_id, client_id),
+    FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_alerts_current_accession
+    ON alerts(current_accession_number, score DESC);
+
+CREATE TABLE IF NOT EXISTS position_features (
+    current_accession_number TEXT NOT NULL,
+    previous_accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    current_value_thousands INTEGER NOT NULL,
+    previous_value_thousands INTEGER NOT NULL,
+    current_weight REAL NOT NULL,
+    previous_weight REAL NOT NULL,
+    weight_delta REAL NOT NULL,
+    abs_weight_delta REAL NOT NULL,
+    value_delta_thousands INTEGER NOT NULL,
+    abs_value_delta_thousands INTEGER NOT NULL,
+    value_pct_change REAL,
+    shares_pct_change REAL,
+    is_new_position INTEGER NOT NULL,
+    is_exited_position INTEGER NOT NULL,
+    current_rank INTEGER,
+    previous_rank INTEGER,
+    entered_top10 INTEGER NOT NULL,
+    exited_top10 INTEGER NOT NULL,
+    entered_top20 INTEGER NOT NULL,
+    exited_top20 INTEGER NOT NULL,
+    turnover_ratio REAL NOT NULL,
+    change_share_of_turnover REAL NOT NULL,
+    rule_score INTEGER NOT NULL,
+    weak_label INTEGER NOT NULL,
+    PRIMARY KEY (current_accession_number, previous_accession_number, holding_key)
+);
+
+CREATE TABLE IF NOT EXISTS model_runs (
+    run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model_name TEXT NOT NULL,
+    training_samples INTEGER NOT NULL,
+    positive_count INTEGER NOT NULL,
+    feature_names_json TEXT NOT NULL,
+    coefficients_json TEXT NOT NULL,
+    intercept REAL NOT NULL,
+    metrics_json TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS model_predictions (
+    run_id INTEGER NOT NULL,
+    current_accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    probability REAL NOT NULL,
+    predicted_label INTEGER NOT NULL,
+    weak_label INTEGER NOT NULL,
+    rule_score INTEGER NOT NULL,
+    PRIMARY KEY (run_id, current_accession_number, holding_key),
+    FOREIGN KEY (run_id) REFERENCES model_runs(run_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_model_predictions_current
+    ON model_predictions(current_accession_number, probability DESC);
+"""
 
 
-def initialize_database(connection: sqlite3.Connection) -> None:
-    """Create the local SQLite schema used by the pipeline."""
+POSTGRES_SCHEMA = """
+CREATE TABLE IF NOT EXISTS filings (
+    accession_number TEXT PRIMARY KEY,
+    cik TEXT NOT NULL,
+    filing_date TEXT,
+    report_period TEXT,
+    form_type TEXT NOT NULL,
+    filer_name TEXT,
+    primary_document_url TEXT,
+    information_table_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-    connection.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS filings (
-            accession_number TEXT PRIMARY KEY,
-            cik TEXT NOT NULL,
-            filing_date TEXT,
-            report_period TEXT,
-            form_type TEXT NOT NULL,
-            filer_name TEXT,
-            primary_document_url TEXT,
-            information_table_url TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
+CREATE TABLE IF NOT EXISTS holdings (
+    accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    title_of_class TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    value_thousands INTEGER NOT NULL,
+    shares_or_principal REAL NOT NULL,
+    share_type TEXT NOT NULL,
+    put_call TEXT NOT NULL,
+    investment_discretion TEXT NOT NULL,
+    other_manager TEXT,
+    voting_authority_sole INTEGER NOT NULL,
+    voting_authority_shared INTEGER NOT NULL,
+    voting_authority_none INTEGER NOT NULL,
+    official_issuer_name TEXT,
+    official_class_title TEXT,
+    ticker TEXT,
+    official_list_match INTEGER NOT NULL DEFAULT 0,
+    official_list_source TEXT,
+    PRIMARY KEY (accession_number, holding_key),
+    FOREIGN KEY (accession_number) REFERENCES filings(accession_number)
+);
 
-        CREATE TABLE IF NOT EXISTS holdings (
-            accession_number TEXT NOT NULL,
-            holding_key TEXT NOT NULL,
-            issuer_name TEXT NOT NULL,
-            title_of_class TEXT NOT NULL,
-            cusip TEXT NOT NULL,
-            value_thousands INTEGER NOT NULL,
-            shares_or_principal REAL NOT NULL,
-            share_type TEXT NOT NULL,
-            put_call TEXT NOT NULL,
-            investment_discretion TEXT NOT NULL,
-            other_manager TEXT,
-            voting_authority_sole INTEGER NOT NULL,
-            voting_authority_shared INTEGER NOT NULL,
-            voting_authority_none INTEGER NOT NULL,
-            PRIMARY KEY (accession_number, holding_key),
-            FOREIGN KEY (accession_number) REFERENCES filings(accession_number)
-        );
+CREATE TABLE IF NOT EXISTS position_deltas (
+    current_accession_number TEXT NOT NULL,
+    previous_accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    old_value_thousands INTEGER NOT NULL,
+    new_value_thousands INTEGER NOT NULL,
+    old_shares REAL NOT NULL,
+    new_shares REAL NOT NULL,
+    old_weight REAL NOT NULL,
+    new_weight REAL NOT NULL,
+    is_new_position INTEGER NOT NULL,
+    is_exited_position INTEGER NOT NULL,
+    share_type TEXT NOT NULL,
+    value_delta_thousands INTEGER NOT NULL,
+    shares_delta REAL NOT NULL,
+    value_pct_change REAL,
+    shares_pct_change REAL,
+    rank_delta INTEGER,
+    PRIMARY KEY (current_accession_number, previous_accession_number, holding_key)
+);
 
-        CREATE TABLE IF NOT EXISTS position_deltas (
-            current_accession_number TEXT NOT NULL,
-            previous_accession_number TEXT NOT NULL,
-            holding_key TEXT NOT NULL,
-            issuer_name TEXT NOT NULL,
-            cusip TEXT NOT NULL,
-            old_value_thousands INTEGER NOT NULL,
-            new_value_thousands INTEGER NOT NULL,
-            old_shares REAL NOT NULL,
-            new_shares REAL NOT NULL,
-            old_weight REAL NOT NULL,
-            new_weight REAL NOT NULL,
-            is_new_position INTEGER NOT NULL,
-            is_exited_position INTEGER NOT NULL,
-            share_type TEXT NOT NULL,
-            value_delta_thousands INTEGER NOT NULL,
-            shares_delta REAL NOT NULL,
-            value_pct_change REAL,
-            shares_pct_change REAL,
-            rank_delta INTEGER,
-            PRIMARY KEY (current_accession_number, previous_accession_number, holding_key)
-        );
+CREATE INDEX IF NOT EXISTS idx_filings_cik_period
+    ON filings(cik, report_period DESC, filing_date DESC);
 
-        CREATE INDEX IF NOT EXISTS idx_filings_cik_period
-            ON filings(cik, report_period DESC, filing_date DESC);
+CREATE TABLE IF NOT EXISTS alerts (
+    alert_id BIGSERIAL PRIMARY KEY,
+    current_accession_number TEXT NOT NULL,
+    previous_accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    severity TEXT NOT NULL,
+    should_alert INTEGER NOT NULL,
+    reasons_json TEXT NOT NULL,
+    current_weight REAL NOT NULL,
+    previous_weight REAL NOT NULL,
+    weight_delta REAL NOT NULL,
+    current_rank INTEGER,
+    previous_rank INTEGER,
+    turnover_ratio REAL NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-        CREATE TABLE IF NOT EXISTS alerts (
-            alert_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            current_accession_number TEXT NOT NULL,
-            previous_accession_number TEXT NOT NULL,
-            holding_key TEXT NOT NULL,
-            issuer_name TEXT NOT NULL,
-            cusip TEXT NOT NULL,
-            sector TEXT NOT NULL,
-            score INTEGER NOT NULL,
-            severity TEXT NOT NULL,
-            should_alert INTEGER NOT NULL,
-            reasons_json TEXT NOT NULL,
-            current_weight REAL NOT NULL,
-            previous_weight REAL NOT NULL,
-            weight_delta REAL NOT NULL,
-            current_rank INTEGER,
-            previous_rank INTEGER,
-            turnover_ratio REAL NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
+CREATE TABLE IF NOT EXISTS alert_impacts (
+    alert_id BIGINT NOT NULL,
+    client_id TEXT NOT NULL,
+    client_name TEXT NOT NULL,
+    strategy TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    direct_weight REAL NOT NULL,
+    sector_weight REAL NOT NULL,
+    impact_score INTEGER NOT NULL,
+    impact_label TEXT NOT NULL,
+    PRIMARY KEY (alert_id, client_id),
+    FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
+);
 
-        CREATE TABLE IF NOT EXISTS alert_impacts (
-            alert_id INTEGER NOT NULL,
-            client_id TEXT NOT NULL,
-            client_name TEXT NOT NULL,
-            strategy TEXT NOT NULL,
-            cusip TEXT NOT NULL,
-            issuer_name TEXT NOT NULL,
-            sector TEXT NOT NULL,
-            direct_weight REAL NOT NULL,
-            sector_weight REAL NOT NULL,
-            impact_score INTEGER NOT NULL,
-            impact_label TEXT NOT NULL,
-            PRIMARY KEY (alert_id, client_id),
-            FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
-        );
+CREATE INDEX IF NOT EXISTS idx_alerts_current_accession
+    ON alerts(current_accession_number, score DESC);
 
-        CREATE INDEX IF NOT EXISTS idx_alerts_current_accession
-            ON alerts(current_accession_number, score DESC);
+CREATE TABLE IF NOT EXISTS position_features (
+    current_accession_number TEXT NOT NULL,
+    previous_accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    current_value_thousands INTEGER NOT NULL,
+    previous_value_thousands INTEGER NOT NULL,
+    current_weight REAL NOT NULL,
+    previous_weight REAL NOT NULL,
+    weight_delta REAL NOT NULL,
+    abs_weight_delta REAL NOT NULL,
+    value_delta_thousands INTEGER NOT NULL,
+    abs_value_delta_thousands INTEGER NOT NULL,
+    value_pct_change REAL,
+    shares_pct_change REAL,
+    is_new_position INTEGER NOT NULL,
+    is_exited_position INTEGER NOT NULL,
+    current_rank INTEGER,
+    previous_rank INTEGER,
+    entered_top10 INTEGER NOT NULL,
+    exited_top10 INTEGER NOT NULL,
+    entered_top20 INTEGER NOT NULL,
+    exited_top20 INTEGER NOT NULL,
+    turnover_ratio REAL NOT NULL,
+    change_share_of_turnover REAL NOT NULL,
+    rule_score INTEGER NOT NULL,
+    weak_label INTEGER NOT NULL,
+    PRIMARY KEY (current_accession_number, previous_accession_number, holding_key)
+);
 
-        CREATE TABLE IF NOT EXISTS position_features (
-            current_accession_number TEXT NOT NULL,
-            previous_accession_number TEXT NOT NULL,
-            holding_key TEXT NOT NULL,
-            issuer_name TEXT NOT NULL,
-            cusip TEXT NOT NULL,
-            sector TEXT NOT NULL,
-            current_value_thousands INTEGER NOT NULL,
-            previous_value_thousands INTEGER NOT NULL,
-            current_weight REAL NOT NULL,
-            previous_weight REAL NOT NULL,
-            weight_delta REAL NOT NULL,
-            abs_weight_delta REAL NOT NULL,
-            value_delta_thousands INTEGER NOT NULL,
-            abs_value_delta_thousands INTEGER NOT NULL,
-            value_pct_change REAL,
-            shares_pct_change REAL,
-            is_new_position INTEGER NOT NULL,
-            is_exited_position INTEGER NOT NULL,
-            current_rank INTEGER,
-            previous_rank INTEGER,
-            entered_top10 INTEGER NOT NULL,
-            exited_top10 INTEGER NOT NULL,
-            entered_top20 INTEGER NOT NULL,
-            exited_top20 INTEGER NOT NULL,
-            turnover_ratio REAL NOT NULL,
-            change_share_of_turnover REAL NOT NULL,
-            rule_score INTEGER NOT NULL,
-            weak_label INTEGER NOT NULL,
-            PRIMARY KEY (current_accession_number, previous_accession_number, holding_key)
-        );
+CREATE TABLE IF NOT EXISTS model_runs (
+    run_id BIGSERIAL PRIMARY KEY,
+    model_name TEXT NOT NULL,
+    training_samples INTEGER NOT NULL,
+    positive_count INTEGER NOT NULL,
+    feature_names_json TEXT NOT NULL,
+    coefficients_json TEXT NOT NULL,
+    intercept REAL NOT NULL,
+    metrics_json TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-        CREATE TABLE IF NOT EXISTS model_runs (
-            run_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            model_name TEXT NOT NULL,
-            training_samples INTEGER NOT NULL,
-            positive_count INTEGER NOT NULL,
-            feature_names_json TEXT NOT NULL,
-            coefficients_json TEXT NOT NULL,
-            intercept REAL NOT NULL,
-            metrics_json TEXT NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
+CREATE TABLE IF NOT EXISTS model_predictions (
+    run_id BIGINT NOT NULL,
+    current_accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    probability REAL NOT NULL,
+    predicted_label INTEGER NOT NULL,
+    weak_label INTEGER NOT NULL,
+    rule_score INTEGER NOT NULL,
+    PRIMARY KEY (run_id, current_accession_number, holding_key),
+    FOREIGN KEY (run_id) REFERENCES model_runs(run_id)
+);
 
-        CREATE TABLE IF NOT EXISTS model_predictions (
-            run_id INTEGER NOT NULL,
-            current_accession_number TEXT NOT NULL,
-            holding_key TEXT NOT NULL,
-            issuer_name TEXT NOT NULL,
-            cusip TEXT NOT NULL,
-            probability REAL NOT NULL,
-            predicted_label INTEGER NOT NULL,
-            weak_label INTEGER NOT NULL,
-            rule_score INTEGER NOT NULL,
-            PRIMARY KEY (run_id, current_accession_number, holding_key),
-            FOREIGN KEY (run_id) REFERENCES model_runs(run_id)
-        );
+CREATE INDEX IF NOT EXISTS idx_model_predictions_current
+    ON model_predictions(current_accession_number, probability DESC);
+"""
 
-        CREATE INDEX IF NOT EXISTS idx_model_predictions_current
-            ON model_predictions(current_accession_number, probability DESC);
-        """
-    )
+
+class DatabaseCursor:
+    """Small compatibility wrapper over sqlite3 and psycopg2 cursors."""
+
+    def __init__(self, cursor: Any) -> None:
+        self._cursor = cursor
+
+    @property
+    def lastrowid(self) -> int | None:
+        value = getattr(self._cursor, "lastrowid", None)
+        return int(value) if value is not None else None
+
+    def fetchone(self) -> Mapping[str, Any] | None:
+        row = self._cursor.fetchone()
+        if row is None:
+            return None
+        return row
+
+    def fetchall(self) -> list[Mapping[str, Any]]:
+        return list(self._cursor.fetchall())
+
+
+class DatabaseConnection:
+    """Backend-neutral connection wrapper for SQLite and PostgreSQL."""
+
+    def __init__(self, raw_connection: Any, *, backend: str) -> None:
+        self._raw_connection = raw_connection
+        self.backend = backend
+
+    def execute(self, sql: str, parameters: tuple[object, ...] | list[object] = ()) -> DatabaseCursor:
+        if self.backend == "sqlite":
+            return DatabaseCursor(self._raw_connection.execute(sql, parameters))
+
+        cursor = self._raw_connection.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(_prepare_sql_for_backend(sql, backend=self.backend), parameters)
+        return DatabaseCursor(cursor)
+
+    def executemany(self, sql: str, parameter_sets: list[tuple[object, ...]]) -> DatabaseCursor:
+        if self.backend == "sqlite":
+            return DatabaseCursor(self._raw_connection.executemany(sql, parameter_sets))
+
+        cursor = self._raw_connection.cursor(cursor_factory=RealDictCursor)
+        cursor.executemany(_prepare_sql_for_backend(sql, backend=self.backend), parameter_sets)
+        return DatabaseCursor(cursor)
+
+    def executescript(self, sql_script: str) -> None:
+        if self.backend == "sqlite":
+            self._raw_connection.executescript(sql_script)
+            return
+
+        for statement in _split_sql_script(sql_script):
+            self.execute(statement)
+
+    def commit(self) -> None:
+        self._raw_connection.commit()
+
+    def close(self) -> None:
+        self._raw_connection.close()
+
+
+def connect(db_path: str | Path | None = None) -> DatabaseConnection:
+    """Open a database connection driven by DATABASE_URL when available."""
+
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        sqlite_path = str(db_path) if db_path is not None else "data/wealthsignal.db"
+        sqlite_connection = sqlite3.connect(sqlite_path)
+        sqlite_connection.row_factory = sqlite3.Row
+        return DatabaseConnection(sqlite_connection, backend="sqlite")
+
+    backend, target = _resolve_database_target(database_url)
+    if backend == "sqlite":
+        sqlite_connection = sqlite3.connect(target)
+        sqlite_connection.row_factory = sqlite3.Row
+        return DatabaseConnection(sqlite_connection, backend="sqlite")
+
+    if psycopg2 is None or RealDictCursor is None:
+        raise RuntimeError("psycopg2-binary is required when DATABASE_URL points to PostgreSQL")
+
+    postgres_connection = psycopg2.connect(target)
+    return DatabaseConnection(postgres_connection, backend="postgres")
+
+
+def initialize_database(connection: DatabaseConnection) -> None:
+    """Create the local database schema used by the pipeline."""
+
+    schema = POSTGRES_SCHEMA if connection.backend == "postgres" else SQLITE_SCHEMA
+    connection.executescript(schema)
+    _ensure_column(connection, "holdings", "official_issuer_name", "TEXT")
+    _ensure_column(connection, "holdings", "official_class_title", "TEXT")
+    _ensure_column(connection, "holdings", "ticker", "TEXT")
+    _ensure_column(connection, "holdings", "official_list_match", "INTEGER NOT NULL DEFAULT 0")
+    _ensure_column(connection, "holdings", "official_list_source", "TEXT")
     connection.commit()
 
 
 def store_parsed_filing(
-    connection: sqlite3.Connection,
+    connection: DatabaseConnection,
     parsed: ParsedInformationTable,
     *,
     artifacts: FilingArtifacts | None = None,
@@ -205,24 +468,45 @@ def store_parsed_filing(
     """Persist a parsed filing and its normalized holdings."""
 
     filing = parsed.filing
-    connection.execute(
-        """
-        INSERT OR REPLACE INTO filings (
-            accession_number, cik, filing_date, report_period, form_type, filer_name,
-            primary_document_url, information_table_url
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            filing.accession_number,
-            filing.cik,
-            filing.filing_date.isoformat() if filing.filing_date else None,
-            filing.report_period.isoformat() if filing.report_period else None,
-            filing.form_type,
-            filing.filer_name,
-            artifacts.primary_document_url if artifacts else None,
-            artifacts.information_table_url if artifacts else None,
-        ),
+    filing_values = (
+        filing.accession_number,
+        filing.cik,
+        filing.filing_date.isoformat() if filing.filing_date else None,
+        filing.report_period.isoformat() if filing.report_period else None,
+        filing.form_type,
+        filing.filer_name,
+        artifacts.primary_document_url if artifacts else None,
+        artifacts.information_table_url if artifacts else None,
     )
+
+    if connection.backend == "postgres":
+        connection.execute(
+            """
+            INSERT INTO filings (
+                accession_number, cik, filing_date, report_period, form_type, filer_name,
+                primary_document_url, information_table_url
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (accession_number) DO UPDATE SET
+                cik = EXCLUDED.cik,
+                filing_date = EXCLUDED.filing_date,
+                report_period = EXCLUDED.report_period,
+                form_type = EXCLUDED.form_type,
+                filer_name = EXCLUDED.filer_name,
+                primary_document_url = EXCLUDED.primary_document_url,
+                information_table_url = EXCLUDED.information_table_url
+            """,
+            filing_values,
+        )
+    else:
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO filings (
+                accession_number, cik, filing_date, report_period, form_type, filer_name,
+                primary_document_url, information_table_url
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            filing_values,
+        )
 
     connection.execute("DELETE FROM holdings WHERE accession_number = ?", (filing.accession_number,))
     connection.executemany(
@@ -230,8 +514,9 @@ def store_parsed_filing(
         INSERT INTO holdings (
             accession_number, holding_key, issuer_name, title_of_class, cusip, value_thousands,
             shares_or_principal, share_type, put_call, investment_discretion, other_manager,
-            voting_authority_sole, voting_authority_shared, voting_authority_none
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            voting_authority_sole, voting_authority_shared, voting_authority_none,
+            official_issuer_name, official_class_title, ticker, official_list_match, official_list_source
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         [
             (
@@ -249,6 +534,11 @@ def store_parsed_filing(
                 holding.voting_authority_sole,
                 holding.voting_authority_shared,
                 holding.voting_authority_none,
+                holding.official_issuer_name,
+                holding.official_class_title,
+                holding.ticker,
+                int(holding.official_list_match),
+                holding.official_list_source,
             )
             for holding in parsed.holdings
         ],
@@ -256,7 +546,7 @@ def store_parsed_filing(
     connection.commit()
 
 
-def store_filing_delta(connection: sqlite3.Connection, delta: FilingDelta) -> None:
+def store_filing_delta(connection: DatabaseConnection, delta: FilingDelta) -> None:
     """Persist the quarter-over-quarter delta output."""
 
     connection.execute(
@@ -303,8 +593,8 @@ def store_filing_delta(connection: sqlite3.Connection, delta: FilingDelta) -> No
     connection.commit()
 
 
-def load_parsed_filing(connection: sqlite3.Connection, accession_number: str) -> ParsedInformationTable | None:
-    """Reconstruct a parsed filing from local SQLite storage."""
+def load_parsed_filing(connection: DatabaseConnection, accession_number: str) -> ParsedInformationTable | None:
+    """Reconstruct a parsed filing from local storage."""
 
     filing_row = connection.execute(
         """
@@ -321,7 +611,8 @@ def load_parsed_filing(connection: sqlite3.Connection, accession_number: str) ->
         """
         SELECT issuer_name, title_of_class, cusip, value_thousands, shares_or_principal,
                share_type, put_call, investment_discretion, other_manager,
-               voting_authority_sole, voting_authority_shared, voting_authority_none
+               voting_authority_sole, voting_authority_shared, voting_authority_none,
+               official_issuer_name, official_class_title, ticker, official_list_match, official_list_source
         FROM holdings
         WHERE accession_number = ?
         ORDER BY value_thousands DESC, issuer_name ASC
@@ -330,27 +621,32 @@ def load_parsed_filing(connection: sqlite3.Connection, accession_number: str) ->
     ).fetchall()
 
     filing = FilingReference(
-        cik=filing_row["cik"],
-        accession_number=filing_row["accession_number"],
+        cik=str(filing_row["cik"]),
+        accession_number=str(filing_row["accession_number"]),
         filing_date=_parse_iso_date(filing_row["filing_date"]),
         report_period=_parse_iso_date(filing_row["report_period"]),
-        form_type=filing_row["form_type"],
+        form_type=str(filing_row["form_type"]),
         filer_name=filing_row["filer_name"],
     )
     holdings = [
         Holding(
-            issuer_name=row["issuer_name"],
-            title_of_class=row["title_of_class"],
-            cusip=row["cusip"],
-            value_thousands=row["value_thousands"],
-            shares_or_principal=row["shares_or_principal"],
-            share_type=row["share_type"],
-            put_call=row["put_call"],
-            investment_discretion=row["investment_discretion"],
+            issuer_name=str(row["issuer_name"]),
+            title_of_class=str(row["title_of_class"]),
+            cusip=str(row["cusip"]),
+            value_thousands=int(row["value_thousands"]),
+            shares_or_principal=float(row["shares_or_principal"]),
+            share_type=str(row["share_type"]),
+            put_call=str(row["put_call"]),
+            investment_discretion=str(row["investment_discretion"]),
             other_manager=row["other_manager"],
-            voting_authority_sole=row["voting_authority_sole"],
-            voting_authority_shared=row["voting_authority_shared"],
-            voting_authority_none=row["voting_authority_none"],
+            voting_authority_sole=int(row["voting_authority_sole"]),
+            voting_authority_shared=int(row["voting_authority_shared"]),
+            voting_authority_none=int(row["voting_authority_none"]),
+            official_issuer_name=row["official_issuer_name"],
+            official_class_title=row["official_class_title"],
+            ticker=row["ticker"],
+            official_list_match=bool(row["official_list_match"]),
+            official_list_source=row["official_list_source"],
         )
         for row in holding_rows
     ]
@@ -358,7 +654,7 @@ def load_parsed_filing(connection: sqlite3.Connection, accession_number: str) ->
 
 
 def load_latest_filing_accessions(
-    connection: sqlite3.Connection,
+    connection: DatabaseConnection,
     cik: str,
     *,
     limit: int = 2,
@@ -375,11 +671,11 @@ def load_latest_filing_accessions(
         """,
         (cik, limit),
     ).fetchall()
-    return [row["accession_number"] for row in rows]
+    return [str(row["accession_number"]) for row in rows]
 
 
 def store_feature_rows(
-    connection: sqlite3.Connection,
+    connection: DatabaseConnection,
     feature_rows: list[PersistedFeatureRow],
 ) -> None:
     """Persist feature rows used for weak labeling and model training."""
@@ -444,7 +740,7 @@ def store_feature_rows(
     connection.commit()
 
 
-def load_feature_rows(connection: sqlite3.Connection, *, limit: int | None = None) -> list[PersistedFeatureRow]:
+def load_feature_rows(connection: DatabaseConnection, *, limit: int | None = None) -> list[PersistedFeatureRow]:
     """Load feature rows for model training."""
 
     query = """
@@ -461,7 +757,7 @@ def load_feature_rows(connection: sqlite3.Connection, *, limit: int | None = Non
 
 
 def store_model_run(
-    connection: sqlite3.Connection,
+    connection: DatabaseConnection,
     *,
     model_name: str,
     training_samples: int,
@@ -474,13 +770,17 @@ def store_model_run(
 ) -> int:
     """Persist one model run and its predictions."""
 
-    cursor = connection.execute(
-        """
+    insert_sql = """
         INSERT INTO model_runs (
             model_name, training_samples, positive_count, feature_names_json,
             coefficients_json, intercept, metrics_json
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
+    """
+    if connection.backend == "postgres":
+        insert_sql += " RETURNING run_id"
+
+    cursor = connection.execute(
+        insert_sql,
         (
             model_name,
             training_samples,
@@ -491,7 +791,14 @@ def store_model_run(
             json.dumps(metrics),
         ),
     )
-    run_id = int(cursor.lastrowid)
+    if connection.backend == "postgres":
+        inserted_row = cursor.fetchone()
+        if inserted_row is None:
+            raise RuntimeError("PostgreSQL did not return a model run id")
+        run_id = int(inserted_row["run_id"])
+    else:
+        run_id = int(cursor.lastrowid or 0)
+
     connection.executemany(
         """
         INSERT INTO model_predictions (
@@ -518,7 +825,7 @@ def store_model_run(
     return run_id
 
 
-def get_latest_model_run(connection: sqlite3.Connection) -> ModelRunSummary | None:
+def get_latest_model_run(connection: DatabaseConnection) -> ModelRunSummary | None:
     """Return the most recent stored model run."""
 
     row = connection.execute(
@@ -533,18 +840,18 @@ def get_latest_model_run(connection: sqlite3.Connection) -> ModelRunSummary | No
     if row is None:
         return None
     return ModelRunSummary(
-        run_id=row["run_id"],
-        model_name=row["model_name"],
-        training_samples=row["training_samples"],
-        positive_count=row["positive_count"],
-        feature_names=json.loads(row["feature_names_json"]),
-        coefficients=json.loads(row["coefficients_json"]),
-        intercept=row["intercept"],
-        metrics=json.loads(row["metrics_json"]),
+        run_id=int(row["run_id"]),
+        model_name=str(row["model_name"]),
+        training_samples=int(row["training_samples"]),
+        positive_count=int(row["positive_count"]),
+        feature_names=json.loads(str(row["feature_names_json"])),
+        coefficients=json.loads(str(row["coefficients_json"])),
+        intercept=float(row["intercept"]),
+        metrics=json.loads(str(row["metrics_json"])),
     )
 
 
-def get_latest_prediction_lookup(connection: sqlite3.Connection) -> dict[tuple[str, str], ModelPrediction]:
+def get_latest_prediction_lookup(connection: DatabaseConnection) -> dict[tuple[str, str], ModelPrediction]:
     """Return the latest model predictions keyed by accession and holding key."""
 
     latest_run = get_latest_model_run(connection)
@@ -562,23 +869,23 @@ def get_latest_prediction_lookup(connection: sqlite3.Connection) -> dict[tuple[s
     ).fetchall()
 
     return {
-        (row["current_accession_number"], row["holding_key"]): ModelPrediction(
-            run_id=row["run_id"],
-            current_accession_number=row["current_accession_number"],
-            holding_key=row["holding_key"],
-            issuer_name=row["issuer_name"],
-            cusip=row["cusip"],
-            probability=row["probability"],
-            predicted_label=row["predicted_label"],
-            weak_label=row["weak_label"],
-            rule_score=row["rule_score"],
+        (str(row["current_accession_number"]), str(row["holding_key"])): ModelPrediction(
+            run_id=int(row["run_id"]),
+            current_accession_number=str(row["current_accession_number"]),
+            holding_key=str(row["holding_key"]),
+            issuer_name=str(row["issuer_name"]),
+            cusip=str(row["cusip"]),
+            probability=float(row["probability"]),
+            predicted_label=int(row["predicted_label"]),
+            weak_label=int(row["weak_label"]),
+            rule_score=int(row["rule_score"]),
         )
         for row in rows
     }
 
 
 def store_alerts(
-    connection: sqlite3.Connection,
+    connection: DatabaseConnection,
     current_accession_number: str,
     previous_accession_number: str,
     assessments: list[MaterialityAssessment],
@@ -586,20 +893,27 @@ def store_alerts(
 ) -> list[int]:
     """Persist alert candidates and related client impacts."""
 
-    connection.execute("DELETE FROM alert_impacts WHERE alert_id IN (SELECT alert_id FROM alerts WHERE current_accession_number = ?)", (current_accession_number,))
+    connection.execute(
+        "DELETE FROM alert_impacts WHERE alert_id IN (SELECT alert_id FROM alerts WHERE current_accession_number = ?)",
+        (current_accession_number,),
+    )
     connection.execute("DELETE FROM alerts WHERE current_accession_number = ?", (current_accession_number,))
 
     alert_ids: list[int] = []
     for assessment in assessments:
         feature = assessment.feature_snapshot
-        cursor = connection.execute(
-            """
+        insert_sql = """
             INSERT INTO alerts (
                 current_accession_number, previous_accession_number, holding_key, issuer_name, cusip, sector,
                 score, severity, should_alert, reasons_json, current_weight, previous_weight, weight_delta,
                 current_rank, previous_rank, turnover_ratio
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
+        """
+        if connection.backend == "postgres":
+            insert_sql += " RETURNING alert_id"
+
+        cursor = connection.execute(
+            insert_sql,
             (
                 current_accession_number,
                 previous_accession_number,
@@ -619,7 +933,13 @@ def store_alerts(
                 feature.turnover_ratio,
             ),
         )
-        alert_id = int(cursor.lastrowid)
+        if connection.backend == "postgres":
+            inserted_row = cursor.fetchone()
+            if inserted_row is None:
+                raise RuntimeError("PostgreSQL did not return an alert id")
+            alert_id = int(inserted_row["alert_id"])
+        else:
+            alert_id = int(cursor.lastrowid or 0)
         alert_ids.append(alert_id)
 
         impacts = impacts_by_holding_key.get(assessment.holding_key, [])
@@ -652,7 +972,7 @@ def store_alerts(
     return alert_ids
 
 
-def list_filing_summaries(connection: sqlite3.Connection, *, limit: int = 20) -> list[dict]:
+def list_filing_summaries(connection: DatabaseConnection, *, limit: int = 20) -> list[dict]:
     """List recently stored filing summaries for API and operator views."""
 
     rows = connection.execute(
@@ -667,7 +987,7 @@ def list_filing_summaries(connection: sqlite3.Connection, *, limit: int = 20) ->
     return [dict(row) for row in rows]
 
 
-def list_position_deltas(connection: sqlite3.Connection, accession_number: str, *, limit: int = 50) -> list[dict]:
+def list_position_deltas(connection: DatabaseConnection, accession_number: str, *, limit: int = 50) -> list[dict]:
     """List stored position deltas for a filing accession."""
 
     rows = connection.execute(
@@ -684,7 +1004,7 @@ def list_position_deltas(connection: sqlite3.Connection, accession_number: str, 
 
 
 def list_alerts(
-    connection: sqlite3.Connection,
+    connection: DatabaseConnection,
     *,
     limit: int = 20,
     minimum_score: int = 0,
@@ -708,7 +1028,7 @@ def list_alerts(
     return [_row_to_alert(row) for row in rows]
 
 
-def get_alert(connection: sqlite3.Connection, alert_id: int) -> PersistedAlert | None:
+def get_alert(connection: DatabaseConnection, alert_id: int) -> PersistedAlert | None:
     """Fetch one persisted alert by ID."""
 
     row = connection.execute("SELECT * FROM alerts WHERE alert_id = ?", (alert_id,)).fetchone()
@@ -717,7 +1037,7 @@ def get_alert(connection: sqlite3.Connection, alert_id: int) -> PersistedAlert |
     return _row_to_alert(row)
 
 
-def list_alert_impacts(connection: sqlite3.Connection, alert_id: int) -> list[dict]:
+def list_alert_impacts(connection: DatabaseConnection, alert_id: int) -> list[dict]:
     """List persisted client impacts for a single alert."""
 
     rows = connection.execute(
@@ -733,62 +1053,102 @@ def list_alert_impacts(connection: sqlite3.Connection, alert_id: int) -> list[di
     return [dict(row) for row in rows]
 
 
-def _row_to_alert(row: sqlite3.Row) -> PersistedAlert:
+def _row_to_alert(row: Mapping[str, Any]) -> PersistedAlert:
     return PersistedAlert(
-        alert_id=row["alert_id"],
-        current_accession_number=row["current_accession_number"],
-        previous_accession_number=row["previous_accession_number"],
-        holding_key=row["holding_key"],
-        issuer_name=row["issuer_name"],
-        cusip=row["cusip"],
-        sector=row["sector"],
-        score=row["score"],
-        severity=row["severity"],
+        alert_id=int(row["alert_id"]),
+        current_accession_number=str(row["current_accession_number"]),
+        previous_accession_number=str(row["previous_accession_number"]),
+        holding_key=str(row["holding_key"]),
+        issuer_name=str(row["issuer_name"]),
+        cusip=str(row["cusip"]),
+        sector=str(row["sector"]),
+        score=int(row["score"]),
+        severity=str(row["severity"]),
         should_alert=bool(row["should_alert"]),
-        reasons=json.loads(row["reasons_json"]),
-        current_weight=row["current_weight"],
-        previous_weight=row["previous_weight"],
-        weight_delta=row["weight_delta"],
-        current_rank=row["current_rank"],
-        previous_rank=row["previous_rank"],
-        turnover_ratio=row["turnover_ratio"],
+        reasons=json.loads(str(row["reasons_json"])),
+        current_weight=float(row["current_weight"]),
+        previous_weight=float(row["previous_weight"]),
+        weight_delta=float(row["weight_delta"]),
+        current_rank=int(row["current_rank"]) if row["current_rank"] is not None else None,
+        previous_rank=int(row["previous_rank"]) if row["previous_rank"] is not None else None,
+        turnover_ratio=float(row["turnover_ratio"]),
     )
 
 
-def _row_to_feature_row(row: sqlite3.Row) -> PersistedFeatureRow:
+def _row_to_feature_row(row: Mapping[str, Any]) -> PersistedFeatureRow:
     return PersistedFeatureRow(
-        current_accession_number=row["current_accession_number"],
-        previous_accession_number=row["previous_accession_number"],
-        holding_key=row["holding_key"],
-        issuer_name=row["issuer_name"],
-        cusip=row["cusip"],
-        sector=row["sector"],
-        current_value_thousands=row["current_value_thousands"],
-        previous_value_thousands=row["previous_value_thousands"],
-        current_weight=row["current_weight"],
-        previous_weight=row["previous_weight"],
-        weight_delta=row["weight_delta"],
-        abs_weight_delta=row["abs_weight_delta"],
-        value_delta_thousands=row["value_delta_thousands"],
-        abs_value_delta_thousands=row["abs_value_delta_thousands"],
-        value_pct_change=row["value_pct_change"],
-        shares_pct_change=row["shares_pct_change"],
+        current_accession_number=str(row["current_accession_number"]),
+        previous_accession_number=str(row["previous_accession_number"]),
+        holding_key=str(row["holding_key"]),
+        issuer_name=str(row["issuer_name"]),
+        cusip=str(row["cusip"]),
+        sector=str(row["sector"]),
+        current_value_thousands=int(row["current_value_thousands"]),
+        previous_value_thousands=int(row["previous_value_thousands"]),
+        current_weight=float(row["current_weight"]),
+        previous_weight=float(row["previous_weight"]),
+        weight_delta=float(row["weight_delta"]),
+        abs_weight_delta=float(row["abs_weight_delta"]),
+        value_delta_thousands=int(row["value_delta_thousands"]),
+        abs_value_delta_thousands=int(row["abs_value_delta_thousands"]),
+        value_pct_change=float(row["value_pct_change"]) if row["value_pct_change"] is not None else None,
+        shares_pct_change=float(row["shares_pct_change"]) if row["shares_pct_change"] is not None else None,
         is_new_position=bool(row["is_new_position"]),
         is_exited_position=bool(row["is_exited_position"]),
-        current_rank=row["current_rank"],
-        previous_rank=row["previous_rank"],
+        current_rank=int(row["current_rank"]) if row["current_rank"] is not None else None,
+        previous_rank=int(row["previous_rank"]) if row["previous_rank"] is not None else None,
         entered_top10=bool(row["entered_top10"]),
         exited_top10=bool(row["exited_top10"]),
         entered_top20=bool(row["entered_top20"]),
         exited_top20=bool(row["exited_top20"]),
-        turnover_ratio=row["turnover_ratio"],
-        change_share_of_turnover=row["change_share_of_turnover"],
-        rule_score=row["rule_score"],
-        weak_label=row["weak_label"],
+        turnover_ratio=float(row["turnover_ratio"]),
+        change_share_of_turnover=float(row["change_share_of_turnover"]),
+        rule_score=int(row["rule_score"]),
+        weak_label=int(row["weak_label"]),
     )
 
 
-def _parse_iso_date(value: str | None):
+def _parse_iso_date(value: str | date | None) -> date | None:
     if not value:
         return None
-    return date.fromisoformat(value)
+    if isinstance(value, date):
+        return value
+    return date.fromisoformat(str(value))
+
+
+def _ensure_column(connection: DatabaseConnection, table_name: str, column_name: str, column_definition: str) -> None:
+    if connection.backend == "sqlite":
+        rows = connection.execute(f"PRAGMA table_info({table_name})").fetchall()
+        existing_columns = {str(row["name"]) for row in rows}
+    else:
+        rows = connection.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = ? AND table_schema = current_schema()
+            """,
+            (table_name,),
+        ).fetchall()
+        existing_columns = {str(row["column_name"]) for row in rows}
+
+    if column_name not in existing_columns:
+        connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")
+
+
+def _resolve_database_target(database_url: str) -> tuple[str, str]:
+    lowered = database_url.lower()
+    if lowered.startswith("sqlite:///"):
+        return "sqlite", database_url[len("sqlite:///") :]
+    if lowered.startswith("postgres://") or lowered.startswith("postgresql://"):
+        return "postgres", database_url
+    raise ValueError("DATABASE_URL must start with sqlite:/// or postgresql://")
+
+
+def _prepare_sql_for_backend(sql: str, *, backend: str) -> str:
+    if backend != "postgres":
+        return sql
+    return re.sub(r"\?", "%s", sql)
+
+
+def _split_sql_script(sql_script: str) -> list[str]:
+    return [statement.strip() for statement in sql_script.split(";") if statement.strip()]
