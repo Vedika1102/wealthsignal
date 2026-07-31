@@ -33,20 +33,26 @@ from wealthsignal_pipeline.persistence import (
     connect,
     get_alert,
     get_latest_model_run,
+    get_latest_prediction_lookup,
     initialize_database,
     list_alert_impacts,
     list_alerts,
     load_feature_rows,
     load_latest_filing_accessions,
     load_parsed_filing,
+    list_latest_model_runs,
+    list_recommendations,
     store_feature_rows,
+    store_model_comparison_bundle,
     store_model_run,
+    store_recommendations,
     store_alerts,
     store_filing_delta,
     store_parsed_filing,
 )
 from wealthsignal_pipeline.parser import parse_information_table
 from wealthsignal_pipeline.parser import parse_primary_document_metadata
+from wealthsignal_pipeline.recommendation import build_client_recommendations
 from wealthsignal_pipeline.reference_data import (
     OFFICIAL_13F_LIST_SOURCE_LABEL,
     Section13FListSnapshot,
@@ -257,6 +263,62 @@ def build_sample_13f_list_xlsx() -> bytes:
         archive.writestr("xl/_rels/workbook.xml.rels", relationships_xml)
         archive.writestr("xl/worksheets/sheet1.xml", sheet_xml)
     return buffer.getvalue()
+
+
+def build_sample_feature_rows() -> list[PersistedFeatureRow]:
+    current = parse_information_table(
+        SAMPLE_INFORMATION_TABLE,
+        cik="0001067983",
+        accession_number="0001067983-24-000002",
+    )
+    previous = parse_information_table(
+        PREVIOUS_INFORMATION_TABLE,
+        cik="0001067983",
+        accession_number="0001067983-23-000999",
+    )
+    delta = compute_filing_delta(current, previous)
+    features = build_position_features(delta)
+    assessments = score_materiality_batch(features)
+    return build_persisted_feature_rows(delta, features, assessments)
+
+
+def build_historical_feature_rows() -> list[PersistedFeatureRow]:
+    rows = build_sample_feature_rows()
+    historical_rows: list[PersistedFeatureRow] = []
+    for index, row in enumerate(rows):
+        historical_rows.append(
+            PersistedFeatureRow(
+                current_accession_number="0001067983-24-000001",
+                previous_accession_number="0001067983-23-000998",
+                holding_key=f"{row.holding_key}-hist-{index}",
+                issuer_name=row.issuer_name,
+                cusip=row.cusip,
+                sector=row.sector,
+                current_value_thousands=row.current_value_thousands,
+                previous_value_thousands=row.previous_value_thousands,
+                current_weight=row.current_weight,
+                previous_weight=row.previous_weight,
+                weight_delta=row.weight_delta,
+                abs_weight_delta=row.abs_weight_delta,
+                value_delta_thousands=row.value_delta_thousands,
+                abs_value_delta_thousands=row.abs_value_delta_thousands,
+                value_pct_change=row.value_pct_change,
+                shares_pct_change=row.shares_pct_change,
+                is_new_position=row.is_new_position,
+                is_exited_position=row.is_exited_position,
+                current_rank=row.current_rank,
+                previous_rank=row.previous_rank,
+                entered_top10=row.entered_top10,
+                exited_top10=row.exited_top10,
+                entered_top20=row.entered_top20,
+                exited_top20=row.exited_top20,
+                turnover_ratio=row.turnover_ratio,
+                change_share_of_turnover=row.change_share_of_turnover,
+                rule_score=row.rule_score,
+                weak_label=row.weak_label,
+            )
+        )
+    return historical_rows
 
 
 class ParseInformationTableTests(unittest.TestCase):
@@ -1040,6 +1102,293 @@ class IngestHardeningTests(unittest.TestCase):
             self.assertIn("accuracy", model_run.metrics)
             connection.close()
         finally:
+            db_path.unlink(missing_ok=True)
+
+
+class AdvancedModelPersistenceTests(unittest.TestCase):
+    def test_store_model_comparison_bundle_persists_latest_comparison_group(self) -> None:
+        feature_rows = build_sample_feature_rows()
+        bundle = ml_models.ModelTrainingBundle(
+            results=[
+                ml_models.ModelComparisonResult(
+                    model_name="logistic_regression",
+                    metrics={"accuracy": 0.8, "precision": 0.75, "recall": 0.7, "f1": 0.72, "pr_auc": 0.78},
+                    best_params={"model__C": 1.0},
+                    feature_names=ml_models.FEATURE_COLUMNS.copy(),
+                    calibration_curve=[
+                        ml_models.CalibrationPoint(predicted_probability=0.3, observed_frequency=0.25),
+                    ],
+                    predicted_probabilities=[0.42, 0.81, 0.36],
+                    predicted_labels=[0, 1, 0],
+                ),
+                ml_models.ModelComparisonResult(
+                    model_name="random_forest",
+                    metrics={"accuracy": 0.86, "precision": 0.8, "recall": 0.8, "f1": 0.8, "pr_auc": 0.88},
+                    best_params={"model__n_estimators": 100},
+                    feature_names=ml_models.FEATURE_COLUMNS.copy(),
+                    calibration_curve=[
+                        ml_models.CalibrationPoint(predicted_probability=0.6, observed_frequency=0.66),
+                    ],
+                    predicted_probabilities=[0.21, 0.92, 0.12],
+                    predicted_labels=[0, 1, 0],
+                    shap_feature_importance=[{"feature": "weight_delta", "importance": 0.37}],
+                ),
+            ],
+            best_model_name="random_forest",
+            best_result=ml_models.ModelComparisonResult(
+                model_name="random_forest",
+                metrics={"accuracy": 0.86, "precision": 0.8, "recall": 0.8, "f1": 0.8, "pr_auc": 0.88},
+                best_params={"model__n_estimators": 100},
+                feature_names=ml_models.FEATURE_COLUMNS.copy(),
+                calibration_curve=[
+                    ml_models.CalibrationPoint(predicted_probability=0.6, observed_frequency=0.66),
+                ],
+                predicted_probabilities=[0.21, 0.92, 0.12],
+                predicted_labels=[0, 1, 0],
+                shap_feature_importance=[{"feature": "weight_delta", "importance": 0.37}],
+            ),
+            accession_sequence=["0001067983-24-000002"],
+        )
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            comparison_group_id, run_ids = store_model_comparison_bundle(
+                connection,
+                bundle=bundle,
+                feature_rows=feature_rows,
+                artifact_path="data/models/missing-best-model.joblib",
+            )
+
+            latest_runs = list_latest_model_runs(connection)
+            latest_run = get_latest_model_run(connection)
+            prediction_lookup = get_latest_prediction_lookup(connection)
+
+            self.assertEqual(len(run_ids), 2)
+            self.assertIsNotNone(comparison_group_id)
+            self.assertEqual(len(latest_runs), 2)
+            self.assertEqual(latest_runs[0].comparison_group_id, comparison_group_id)
+            self.assertEqual(latest_runs[0].model_name, "random_forest")
+            self.assertTrue(latest_runs[0].is_best_model)
+            self.assertEqual(latest_runs[0].artifact_path, "data/models/missing-best-model.joblib")
+            self.assertEqual(latest_runs[1].model_name, "logistic_regression")
+            self.assertFalse(latest_runs[1].is_best_model)
+            self.assertIsNone(latest_runs[1].artifact_path)
+            self.assertEqual(latest_run.model_name, "random_forest")
+            self.assertEqual(len(prediction_lookup), len(feature_rows))
+            connection.close()
+        finally:
+            db_path.unlink(missing_ok=True)
+
+
+class RecommendationTests(unittest.TestCase):
+    def test_build_and_store_recommendations_round_trip(self) -> None:
+        current = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000002",
+        )
+        previous = parse_information_table(
+            PREVIOUS_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-23-000999",
+        )
+        delta = compute_filing_delta(current, previous)
+        assessments = [item for item in score_materiality_batch(build_position_features(delta)) if item.should_alert]
+        portfolios = generate_synthetic_client_portfolios(current.holdings, seed=11)
+        impacts_by_holding_key = {
+            assessment.holding_key: score_client_impacts(assessment, portfolios)
+            for assessment in assessments
+        }
+        recommendations = build_client_recommendations(
+            assessments,
+            portfolios,
+            impacts_by_holding_key,
+            build_historical_feature_rows(),
+            current_accession_number=current.filing.accession_number,
+        )
+
+        self.assertGreater(len(recommendations), 0)
+        self.assertGreaterEqual(recommendations[0].relevance_score, 1)
+        self.assertGreaterEqual(len(recommendations[0].precedents), 1)
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            alert_ids = store_alerts(
+                connection,
+                current.filing.accession_number,
+                previous.filing.accession_number,
+                assessments,
+                impacts_by_holding_key,
+            )
+            stored_ids = store_recommendations(
+                connection,
+                current_accession_number=current.filing.accession_number,
+                recommendations=recommendations,
+                alert_ids_by_holding_key={
+                    assessment.holding_key: alert_id for assessment, alert_id in zip(assessments, alert_ids)
+                },
+            )
+            persisted = list_recommendations(connection, recommendations[0].client_id)
+
+            self.assertGreater(len(stored_ids), 0)
+            self.assertGreater(len(persisted), 0)
+            self.assertEqual(persisted[0].client_id, recommendations[0].client_id)
+            self.assertGreaterEqual(len(persisted[0].precedents), 1)
+            connection.close()
+        finally:
+            db_path.unlink(missing_ok=True)
+
+
+class DecisionApiTests(unittest.TestCase):
+    def test_latest_model_returns_comparison_models_when_available(self) -> None:
+        try:
+            from services.decision_api.app import main as decision_api_main
+        except ModuleNotFoundError as exc:
+            if exc.name == "fastapi":
+                self.skipTest("fastapi is not installed in the current test environment")
+            raise
+
+        feature_rows = build_sample_feature_rows()
+        bundle = ml_models.ModelTrainingBundle(
+            results=[
+                ml_models.ModelComparisonResult(
+                    model_name="decision_tree",
+                    metrics={"accuracy": 0.75, "precision": 0.7, "recall": 0.7, "f1": 0.7, "pr_auc": 0.74},
+                    best_params={"model__max_depth": 3},
+                    feature_names=ml_models.FEATURE_COLUMNS.copy(),
+                    calibration_curve=[
+                        ml_models.CalibrationPoint(predicted_probability=0.5, observed_frequency=0.5),
+                    ],
+                    predicted_probabilities=[0.18, 0.73, 0.22],
+                    predicted_labels=[0, 1, 0],
+                ),
+                ml_models.ModelComparisonResult(
+                    model_name="xgboost",
+                    metrics={"accuracy": 0.89, "precision": 0.85, "recall": 0.8, "f1": 0.82, "pr_auc": 0.91},
+                    best_params={"model__max_depth": 4},
+                    feature_names=ml_models.FEATURE_COLUMNS.copy(),
+                    calibration_curve=[
+                        ml_models.CalibrationPoint(predicted_probability=0.7, observed_frequency=0.75),
+                    ],
+                    predicted_probabilities=[0.11, 0.95, 0.09],
+                    predicted_labels=[0, 1, 0],
+                    shap_feature_importance=[{"feature": "abs_weight_delta", "importance": 0.41}],
+                ),
+            ],
+            best_model_name="xgboost",
+            best_result=ml_models.ModelComparisonResult(
+                model_name="xgboost",
+                metrics={"accuracy": 0.89, "precision": 0.85, "recall": 0.8, "f1": 0.82, "pr_auc": 0.91},
+                best_params={"model__max_depth": 4},
+                feature_names=ml_models.FEATURE_COLUMNS.copy(),
+                calibration_curve=[
+                    ml_models.CalibrationPoint(predicted_probability=0.7, observed_frequency=0.75),
+                ],
+                predicted_probabilities=[0.11, 0.95, 0.09],
+                predicted_labels=[0, 1, 0],
+                shap_feature_importance=[{"feature": "abs_weight_delta", "importance": 0.41}],
+            ),
+            accession_sequence=["0001067983-24-000002"],
+        )
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        original_db_path = decision_api_main.DB_PATH
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            store_model_comparison_bundle(
+                connection,
+                bundle=bundle,
+                feature_rows=feature_rows,
+                artifact_path="data/models/does-not-exist.joblib",
+            )
+            connection.close()
+
+            decision_api_main.DB_PATH = str(db_path)
+            response = decision_api_main.latest_model()
+
+            self.assertEqual(response["model_name"], "xgboost")
+            self.assertEqual(response["best_model_name"], "xgboost")
+            self.assertFalse(response["artifact_loaded"])
+            self.assertEqual(len(response["models"]), 2)
+            self.assertEqual(response["models"][0]["model_name"], "xgboost")
+            self.assertTrue(response["models"][0]["is_best_model"])
+            self.assertEqual(response["models"][1]["model_name"], "decision_tree")
+        finally:
+            decision_api_main.DB_PATH = original_db_path
+            db_path.unlink(missing_ok=True)
+
+    def test_recommendations_endpoint_returns_ranked_recommendations(self) -> None:
+        from services.decision_api.app import main as decision_api_main
+
+        current = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000002",
+        )
+        previous = parse_information_table(
+            PREVIOUS_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-23-000999",
+        )
+        delta = compute_filing_delta(current, previous)
+        assessments = [item for item in score_materiality_batch(build_position_features(delta)) if item.should_alert]
+        portfolios = generate_synthetic_client_portfolios(current.holdings, seed=11)
+        impacts_by_holding_key = {
+            assessment.holding_key: score_client_impacts(assessment, portfolios)
+            for assessment in assessments
+        }
+        recommendations = build_client_recommendations(
+            assessments,
+            portfolios,
+            impacts_by_holding_key,
+            build_historical_feature_rows(),
+            current_accession_number=current.filing.accession_number,
+        )
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        original_db_path = decision_api_main.DB_PATH
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            alert_ids = store_alerts(
+                connection,
+                current.filing.accession_number,
+                previous.filing.accession_number,
+                assessments,
+                impacts_by_holding_key,
+            )
+            store_recommendations(
+                connection,
+                current_accession_number=current.filing.accession_number,
+                recommendations=recommendations,
+                alert_ids_by_holding_key={
+                    assessment.holding_key: alert_id for assessment, alert_id in zip(assessments, alert_ids)
+                },
+            )
+            connection.close()
+
+            decision_api_main.DB_PATH = str(db_path)
+            payload = decision_api_main.recommendations(recommendations[0].client_id, limit=10)
+
+            self.assertGreater(len(payload), 0)
+            self.assertEqual(payload[0]["client_id"], recommendations[0].client_id)
+            self.assertIn("precedent_count", payload[0])
+            self.assertIn("rationale", payload[0])
+        finally:
+            decision_api_main.DB_PATH = original_db_path
             db_path.unlink(missing_ok=True)
 
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -8,6 +10,11 @@ import numpy as np
 
 from .baseline_model import FEATURE_COLUMNS
 from .models import PersistedFeatureRow
+
+if not os.getenv("MPLCONFIGDIR"):
+    matplotlib_cache_dir = Path(tempfile.gettempdir()) / "wealthsignal-matplotlib"
+    matplotlib_cache_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["MPLCONFIGDIR"] = str(matplotlib_cache_dir)
 
 try:
     from joblib import dump as joblib_dump

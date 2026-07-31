@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
@@ -9,14 +10,20 @@ from wealthsignal_pipeline.materiality import materiality_policy
 from wealthsignal_pipeline.persistence import (
     connect,
     get_alert,
-    get_latest_model_run,
     get_latest_prediction_lookup,
     initialize_database,
     list_alert_impacts,
     list_alerts,
     list_filing_summaries,
+    list_latest_model_runs,
     list_position_deltas,
+    list_recommendations,
 )
+
+try:
+    from joblib import load as joblib_load
+except ImportError:  # pragma: no cover - exercised only when optional ML deps are unavailable
+    joblib_load = None
 
 
 def _default_db_path() -> str:
@@ -34,6 +41,79 @@ def _connection():
     connection = connect(DB_PATH)
     initialize_database(connection)
     return connection
+
+
+def _resolve_artifact_path(artifact_path: str) -> Path:
+    path = Path(artifact_path)
+    if path.is_absolute():
+        return path
+    repo_root = Path(__file__).resolve().parents[3]
+    return repo_root / path
+
+
+@lru_cache(maxsize=8)
+def _load_model_artifact(artifact_path: str) -> object:
+    if joblib_load is None:
+        raise RuntimeError("joblib is not available")
+    return joblib_load(artifact_path)
+
+
+def _artifact_loaded(artifact_path: str | None) -> bool:
+    if artifact_path is None:
+        return False
+
+    resolved_path = _resolve_artifact_path(artifact_path)
+    if not resolved_path.exists():
+        return False
+
+    try:
+        _load_model_artifact(str(resolved_path))
+    except Exception:
+        return False
+    return True
+
+
+def _serialize_model_run(model_run) -> dict[str, object]:
+    return {
+        "run_id": model_run.run_id,
+        "model_name": model_run.model_name,
+        "training_samples": model_run.training_samples,
+        "positive_count": model_run.positive_count,
+        "feature_names": model_run.feature_names,
+        "coefficients": model_run.coefficients,
+        "intercept": model_run.intercept,
+        "metrics": model_run.metrics,
+        "comparison_group_id": model_run.comparison_group_id,
+        "best_params": model_run.best_params,
+        "calibration_curve": model_run.calibration_curve,
+        "shap_feature_importance": model_run.shap_feature_importance,
+        "artifact_path": model_run.artifact_path,
+        "artifact_loaded": _artifact_loaded(model_run.artifact_path),
+        "is_best_model": model_run.is_best_model,
+    }
+
+
+def _serialize_recommendation(recommendation) -> dict[str, object]:
+    return {
+        "recommendation_id": recommendation.recommendation_id,
+        "alert_id": recommendation.alert_id,
+        "client_id": recommendation.client_id,
+        "client_name": recommendation.client_name,
+        "strategy": recommendation.strategy,
+        "current_accession_number": recommendation.current_accession_number,
+        "issuer_name": recommendation.issuer_name,
+        "cusip": recommendation.cusip,
+        "sector": recommendation.sector,
+        "alert_score": recommendation.alert_score,
+        "alert_severity": recommendation.alert_severity,
+        "relevance_score": recommendation.relevance_score,
+        "content_similarity": recommendation.content_similarity,
+        "direct_weight": recommendation.direct_weight,
+        "sector_weight": recommendation.sector_weight,
+        "precedent_count": len(recommendation.precedents),
+        "precedents": recommendation.precedents,
+        "rationale": recommendation.rationale,
+    }
 
 
 @app.get("/health")
@@ -144,6 +224,19 @@ def alert_detail(alert_id: int) -> dict:
         connection.close()
 
 
+@app.get("/recommendations/{client_id}")
+@app.get("/api/v1/recommendations/{client_id}")
+def recommendations(client_id: str, limit: int = Query(default=20, ge=1, le=100)) -> list[dict]:
+    connection = _connection()
+    try:
+        return [
+            _serialize_recommendation(recommendation)
+            for recommendation in list_recommendations(connection, client_id, limit=limit)
+        ]
+    finally:
+        connection.close()
+
+
 @app.get("/governance/materiality-policy")
 def governance_materiality_policy() -> dict[str, object]:
     return materiality_policy()
@@ -153,18 +246,14 @@ def governance_materiality_policy() -> dict[str, object]:
 def latest_model() -> dict:
     connection = _connection()
     try:
-        model_run = get_latest_model_run(connection)
-        if model_run is None:
+        latest_runs = list_latest_model_runs(connection)
+        if not latest_runs:
             raise HTTPException(status_code=404, detail="No model run found")
-        return {
-            "run_id": model_run.run_id,
-            "model_name": model_run.model_name,
-            "training_samples": model_run.training_samples,
-            "positive_count": model_run.positive_count,
-            "feature_names": model_run.feature_names,
-            "coefficients": model_run.coefficients,
-            "intercept": model_run.intercept,
-            "metrics": model_run.metrics,
-        }
+        best_run = latest_runs[0]
+        response = _serialize_model_run(best_run)
+        if len(latest_runs) > 1 or best_run.comparison_group_id is not None:
+            response["best_model_name"] = best_run.model_name
+            response["models"] = [_serialize_model_run(model_run) for model_run in latest_runs]
+        return response
     finally:
         connection.close()

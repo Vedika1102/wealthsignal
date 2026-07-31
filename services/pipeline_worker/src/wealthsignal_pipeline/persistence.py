@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from datetime import date
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 try:
     import psycopg2
@@ -19,6 +20,7 @@ except ImportError:  # pragma: no cover - exercised only when PostgreSQL deps ar
 from .delta_engine import holding_key
 from .models import (
     ClientImpact,
+    ClientRecommendation,
     FilingArtifacts,
     FilingDelta,
     FilingReference,
@@ -29,6 +31,7 @@ from .models import (
     ParsedInformationTable,
     PersistedAlert,
     PersistedFeatureRow,
+    PersistedRecommendation,
 )
 
 
@@ -132,8 +135,34 @@ CREATE TABLE IF NOT EXISTS alert_impacts (
     FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
 );
 
+CREATE TABLE IF NOT EXISTS recommendations (
+    recommendation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_id INTEGER NOT NULL,
+    client_id TEXT NOT NULL,
+    client_name TEXT NOT NULL,
+    strategy TEXT NOT NULL,
+    current_accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    alert_score INTEGER NOT NULL,
+    alert_severity TEXT NOT NULL,
+    relevance_score INTEGER NOT NULL,
+    content_similarity REAL NOT NULL,
+    direct_weight REAL NOT NULL,
+    sector_weight REAL NOT NULL,
+    precedents_json TEXT NOT NULL,
+    rationale_json TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_alerts_current_accession
     ON alerts(current_accession_number, score DESC);
+
+CREATE INDEX IF NOT EXISTS idx_recommendations_client
+    ON recommendations(client_id, relevance_score DESC, recommendation_id DESC);
 
 CREATE TABLE IF NOT EXISTS position_features (
     current_accession_number TEXT NOT NULL,
@@ -176,6 +205,12 @@ CREATE TABLE IF NOT EXISTS model_runs (
     coefficients_json TEXT NOT NULL,
     intercept REAL NOT NULL,
     metrics_json TEXT NOT NULL,
+    comparison_group_id TEXT,
+    best_params_json TEXT,
+    calibration_curve_json TEXT,
+    shap_feature_importance_json TEXT,
+    artifact_path TEXT,
+    is_best_model INTEGER NOT NULL DEFAULT 0,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -298,8 +333,34 @@ CREATE TABLE IF NOT EXISTS alert_impacts (
     FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
 );
 
+CREATE TABLE IF NOT EXISTS recommendations (
+    recommendation_id BIGSERIAL PRIMARY KEY,
+    alert_id BIGINT NOT NULL,
+    client_id TEXT NOT NULL,
+    client_name TEXT NOT NULL,
+    strategy TEXT NOT NULL,
+    current_accession_number TEXT NOT NULL,
+    holding_key TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    alert_score INTEGER NOT NULL,
+    alert_severity TEXT NOT NULL,
+    relevance_score INTEGER NOT NULL,
+    content_similarity REAL NOT NULL,
+    direct_weight REAL NOT NULL,
+    sector_weight REAL NOT NULL,
+    precedents_json TEXT NOT NULL,
+    rationale_json TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_alerts_current_accession
     ON alerts(current_accession_number, score DESC);
+
+CREATE INDEX IF NOT EXISTS idx_recommendations_client
+    ON recommendations(client_id, relevance_score DESC, recommendation_id DESC);
 
 CREATE TABLE IF NOT EXISTS position_features (
     current_accession_number TEXT NOT NULL,
@@ -342,6 +403,12 @@ CREATE TABLE IF NOT EXISTS model_runs (
     coefficients_json TEXT NOT NULL,
     intercept REAL NOT NULL,
     metrics_json TEXT NOT NULL,
+    comparison_group_id TEXT,
+    best_params_json TEXT,
+    calibration_curve_json TEXT,
+    shap_feature_importance_json TEXT,
+    artifact_path TEXT,
+    is_best_model INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -456,6 +523,12 @@ def initialize_database(connection: DatabaseConnection) -> None:
     _ensure_column(connection, "holdings", "ticker", "TEXT")
     _ensure_column(connection, "holdings", "official_list_match", "INTEGER NOT NULL DEFAULT 0")
     _ensure_column(connection, "holdings", "official_list_source", "TEXT")
+    _ensure_column(connection, "model_runs", "comparison_group_id", "TEXT")
+    _ensure_column(connection, "model_runs", "best_params_json", "TEXT")
+    _ensure_column(connection, "model_runs", "calibration_curve_json", "TEXT")
+    _ensure_column(connection, "model_runs", "shap_feature_importance_json", "TEXT")
+    _ensure_column(connection, "model_runs", "artifact_path", "TEXT")
+    _ensure_column(connection, "model_runs", "is_best_model", "INTEGER NOT NULL DEFAULT 0")
     connection.commit()
 
 
@@ -767,14 +840,22 @@ def store_model_run(
     intercept: float,
     metrics: dict[str, float],
     predictions: list[ModelPrediction],
+    comparison_group_id: str | None = None,
+    best_params: dict[str, object] | None = None,
+    calibration_curve: list[dict[str, float]] | None = None,
+    shap_feature_importance: list[dict[str, float]] | None = None,
+    artifact_path: str | None = None,
+    is_best_model: bool = False,
 ) -> int:
     """Persist one model run and its predictions."""
 
     insert_sql = """
         INSERT INTO model_runs (
             model_name, training_samples, positive_count, feature_names_json,
-            coefficients_json, intercept, metrics_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            coefficients_json, intercept, metrics_json, comparison_group_id,
+            best_params_json, calibration_curve_json, shap_feature_importance_json,
+            artifact_path, is_best_model
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
     if connection.backend == "postgres":
         insert_sql += " RETURNING run_id"
@@ -789,6 +870,12 @@ def store_model_run(
             json.dumps(coefficients),
             intercept,
             json.dumps(metrics),
+            comparison_group_id,
+            json.dumps(best_params) if best_params is not None else None,
+            json.dumps(calibration_curve) if calibration_curve is not None else None,
+            json.dumps(shap_feature_importance) if shap_feature_importance is not None else None,
+            artifact_path,
+            int(is_best_model),
         ),
     )
     if connection.backend == "postgres":
@@ -799,56 +886,84 @@ def store_model_run(
     else:
         run_id = int(cursor.lastrowid or 0)
 
-    connection.executemany(
-        """
-        INSERT INTO model_predictions (
-            run_id, current_accession_number, holding_key, issuer_name, cusip,
-            probability, predicted_label, weak_label, rule_score
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        [
-            (
-                run_id,
-                prediction.current_accession_number,
-                prediction.holding_key,
-                prediction.issuer_name,
-                prediction.cusip,
-                prediction.probability,
-                prediction.predicted_label,
-                prediction.weak_label,
-                prediction.rule_score,
-            )
-            for prediction in predictions
-        ],
-    )
+    if predictions:
+        connection.executemany(
+            """
+            INSERT INTO model_predictions (
+                run_id, current_accession_number, holding_key, issuer_name, cusip,
+                probability, predicted_label, weak_label, rule_score
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    run_id,
+                    prediction.current_accession_number,
+                    prediction.holding_key,
+                    prediction.issuer_name,
+                    prediction.cusip,
+                    prediction.probability,
+                    prediction.predicted_label,
+                    prediction.weak_label,
+                    prediction.rule_score,
+                )
+                for prediction in predictions
+            ],
+        )
     connection.commit()
     return run_id
 
 
 def get_latest_model_run(connection: DatabaseConnection) -> ModelRunSummary | None:
-    """Return the most recent stored model run."""
+    """Return the latest effective model run, preferring the best model in the newest comparison set."""
 
-    row = connection.execute(
+    latest_runs = list_latest_model_runs(connection)
+    if not latest_runs:
+        return None
+    return latest_runs[0]
+
+
+def list_latest_model_runs(connection: DatabaseConnection) -> list[ModelRunSummary]:
+    """Return the latest model comparison set, or the latest single model run."""
+
+    latest_row = connection.execute(
         """
-        SELECT run_id, model_name, training_samples, positive_count, feature_names_json,
-               coefficients_json, intercept, metrics_json
+        SELECT comparison_group_id, run_id
         FROM model_runs
         ORDER BY run_id DESC
         LIMIT 1
         """
     ).fetchone()
-    if row is None:
-        return None
-    return ModelRunSummary(
-        run_id=int(row["run_id"]),
-        model_name=str(row["model_name"]),
-        training_samples=int(row["training_samples"]),
-        positive_count=int(row["positive_count"]),
-        feature_names=json.loads(str(row["feature_names_json"])),
-        coefficients=json.loads(str(row["coefficients_json"])),
-        intercept=float(row["intercept"]),
-        metrics=json.loads(str(row["metrics_json"])),
-    )
+    if latest_row is None:
+        return []
+
+    comparison_group_id = latest_row["comparison_group_id"]
+    if comparison_group_id:
+        rows = connection.execute(
+            """
+            SELECT run_id, model_name, training_samples, positive_count, feature_names_json,
+                   coefficients_json, intercept, metrics_json, comparison_group_id,
+                   best_params_json, calibration_curve_json, shap_feature_importance_json,
+                   artifact_path, is_best_model
+            FROM model_runs
+            WHERE comparison_group_id = ?
+            ORDER BY is_best_model DESC, run_id DESC
+            """,
+            (comparison_group_id,),
+        ).fetchall()
+    else:
+        rows = connection.execute(
+            """
+            SELECT run_id, model_name, training_samples, positive_count, feature_names_json,
+                   coefficients_json, intercept, metrics_json, comparison_group_id,
+                   best_params_json, calibration_curve_json, shap_feature_importance_json,
+                   artifact_path, is_best_model
+            FROM model_runs
+            WHERE run_id = ?
+            """,
+            (latest_row["run_id"],),
+        ).fetchall()
+
+    return [_row_to_model_run(row) for row in rows]
 
 
 def get_latest_prediction_lookup(connection: DatabaseConnection) -> dict[tuple[str, str], ModelPrediction]:
@@ -882,6 +997,70 @@ def get_latest_prediction_lookup(connection: DatabaseConnection) -> dict[tuple[s
         )
         for row in rows
     }
+
+
+def store_model_comparison_bundle(
+    connection: DatabaseConnection,
+    *,
+    bundle: object,
+    feature_rows: list[PersistedFeatureRow],
+    artifact_path: str | None = None,
+) -> tuple[str, list[int]]:
+    """Persist a multi-model training bundle under one comparison group id."""
+
+    comparison_group_id = str(uuid4())
+    training_samples = len(feature_rows)
+    positive_count = sum(row.weak_label for row in feature_rows)
+    run_ids: list[int] = []
+    for result in bundle.results:
+        if len(result.predicted_probabilities) != len(feature_rows) or len(result.predicted_labels) != len(feature_rows):
+            raise ValueError("Model comparison result predictions do not align with the feature rows used for training")
+
+        coefficients, intercept = _extract_estimator_parameters(result.estimator)
+        predictions = [
+            ModelPrediction(
+                run_id=0,
+                current_accession_number=row.current_accession_number,
+                holding_key=row.holding_key,
+                issuer_name=row.issuer_name,
+                cusip=row.cusip,
+                probability=float(probability),
+                predicted_label=int(predicted_label),
+                weak_label=row.weak_label,
+                rule_score=row.rule_score,
+            )
+            for row, probability, predicted_label in zip(
+                feature_rows,
+                result.predicted_probabilities,
+                result.predicted_labels,
+            )
+        ]
+        run_ids.append(
+            store_model_run(
+                connection,
+                model_name=result.model_name,
+                training_samples=training_samples,
+                positive_count=positive_count,
+                feature_names=result.feature_names,
+                coefficients=coefficients,
+                intercept=intercept,
+                metrics=result.metrics,
+                predictions=predictions,
+                comparison_group_id=comparison_group_id,
+                best_params=result.best_params,
+                calibration_curve=[
+                    {
+                        "predicted_probability": point.predicted_probability,
+                        "observed_frequency": point.observed_frequency,
+                    }
+                    for point in result.calibration_curve
+                ],
+                shap_feature_importance=result.shap_feature_importance,
+                artifact_path=artifact_path if result.model_name == bundle.best_model_name else None,
+                is_best_model=result.model_name == bundle.best_model_name,
+            )
+        )
+    return comparison_group_id, run_ids
 
 
 def store_alerts(
@@ -1053,6 +1232,111 @@ def list_alert_impacts(connection: DatabaseConnection, alert_id: int) -> list[di
     return [dict(row) for row in rows]
 
 
+def store_recommendations(
+    connection: DatabaseConnection,
+    *,
+    current_accession_number: str,
+    recommendations: list[ClientRecommendation],
+    alert_ids_by_holding_key: dict[str, int],
+) -> list[int]:
+    """Persist ranked client recommendations for one filing window."""
+
+    connection.execute(
+        "DELETE FROM recommendations WHERE current_accession_number = ?",
+        (current_accession_number,),
+    )
+
+    recommendation_ids: list[int] = []
+    for recommendation in recommendations:
+        alert_id = alert_ids_by_holding_key.get(recommendation.holding_key)
+        if alert_id is None:
+            continue
+
+        insert_sql = """
+            INSERT INTO recommendations (
+                alert_id, client_id, client_name, strategy, current_accession_number,
+                holding_key, issuer_name, cusip, sector, alert_score, alert_severity,
+                relevance_score, content_similarity, direct_weight, sector_weight,
+                precedents_json, rationale_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        if connection.backend == "postgres":
+            insert_sql += " RETURNING recommendation_id"
+
+        cursor = connection.execute(
+            insert_sql,
+            (
+                alert_id,
+                recommendation.client_id,
+                recommendation.client_name,
+                recommendation.strategy,
+                recommendation.current_accession_number,
+                recommendation.holding_key,
+                recommendation.issuer_name,
+                recommendation.cusip,
+                recommendation.sector,
+                recommendation.alert_score,
+                recommendation.alert_severity,
+                recommendation.relevance_score,
+                recommendation.content_similarity,
+                recommendation.direct_weight,
+                recommendation.sector_weight,
+                json.dumps(
+                    [
+                        {
+                            "current_accession_number": precedent.current_accession_number,
+                            "previous_accession_number": precedent.previous_accession_number,
+                            "issuer_name": precedent.issuer_name,
+                            "cusip": precedent.cusip,
+                            "sector": precedent.sector,
+                            "abs_weight_delta": precedent.abs_weight_delta,
+                            "value_delta_thousands": precedent.value_delta_thousands,
+                            "rule_score": precedent.rule_score,
+                            "weak_label": precedent.weak_label,
+                            "similarity": precedent.similarity,
+                        }
+                        for precedent in recommendation.precedents
+                    ]
+                ),
+                json.dumps(recommendation.rationale),
+            ),
+        )
+        if connection.backend == "postgres":
+            inserted_row = cursor.fetchone()
+            if inserted_row is None:
+                raise RuntimeError("PostgreSQL did not return a recommendation id")
+            recommendation_ids.append(int(inserted_row["recommendation_id"]))
+        else:
+            recommendation_ids.append(int(cursor.lastrowid or 0))
+
+    connection.commit()
+    return recommendation_ids
+
+
+def list_recommendations(
+    connection: DatabaseConnection,
+    client_id: str,
+    *,
+    limit: int = 20,
+) -> list[PersistedRecommendation]:
+    """List ranked recommendations for one client."""
+
+    rows = connection.execute(
+        """
+        SELECT recommendation_id, alert_id, client_id, client_name, strategy,
+               current_accession_number, holding_key, issuer_name, cusip, sector,
+               alert_score, alert_severity, relevance_score, content_similarity,
+               direct_weight, sector_weight, precedents_json, rationale_json
+        FROM recommendations
+        WHERE client_id = ?
+        ORDER BY relevance_score DESC, alert_score DESC, recommendation_id DESC
+        LIMIT ?
+        """,
+        (client_id, limit),
+    ).fetchall()
+    return [_row_to_recommendation(row) for row in rows]
+
+
 def _row_to_alert(row: Mapping[str, Any]) -> PersistedAlert:
     return PersistedAlert(
         alert_id=int(row["alert_id"]),
@@ -1072,6 +1356,50 @@ def _row_to_alert(row: Mapping[str, Any]) -> PersistedAlert:
         current_rank=int(row["current_rank"]) if row["current_rank"] is not None else None,
         previous_rank=int(row["previous_rank"]) if row["previous_rank"] is not None else None,
         turnover_ratio=float(row["turnover_ratio"]),
+    )
+
+
+def _row_to_recommendation(row: Mapping[str, Any]) -> PersistedRecommendation:
+    return PersistedRecommendation(
+        recommendation_id=int(row["recommendation_id"]),
+        alert_id=int(row["alert_id"]),
+        client_id=str(row["client_id"]),
+        client_name=str(row["client_name"]),
+        strategy=str(row["strategy"]),
+        current_accession_number=str(row["current_accession_number"]),
+        holding_key=str(row["holding_key"]),
+        issuer_name=str(row["issuer_name"]),
+        cusip=str(row["cusip"]),
+        sector=str(row["sector"]),
+        alert_score=int(row["alert_score"]),
+        alert_severity=str(row["alert_severity"]),
+        relevance_score=int(row["relevance_score"]),
+        content_similarity=float(row["content_similarity"]),
+        direct_weight=float(row["direct_weight"]),
+        sector_weight=float(row["sector_weight"]),
+        precedents=json.loads(str(row["precedents_json"])),
+        rationale=json.loads(str(row["rationale_json"])),
+    )
+
+
+def _row_to_model_run(row: Mapping[str, Any]) -> ModelRunSummary:
+    return ModelRunSummary(
+        run_id=int(row["run_id"]),
+        model_name=str(row["model_name"]),
+        training_samples=int(row["training_samples"]),
+        positive_count=int(row["positive_count"]),
+        feature_names=json.loads(str(row["feature_names_json"])),
+        coefficients=json.loads(str(row["coefficients_json"])),
+        intercept=float(row["intercept"]),
+        metrics=json.loads(str(row["metrics_json"])),
+        comparison_group_id=str(row["comparison_group_id"]) if row["comparison_group_id"] is not None else None,
+        best_params=json.loads(str(row["best_params_json"])) if row["best_params_json"] else None,
+        calibration_curve=json.loads(str(row["calibration_curve_json"])) if row["calibration_curve_json"] else None,
+        shap_feature_importance=(
+            json.loads(str(row["shap_feature_importance_json"])) if row["shap_feature_importance_json"] else None
+        ),
+        artifact_path=str(row["artifact_path"]) if row["artifact_path"] is not None else None,
+        is_best_model=bool(row["is_best_model"]),
     )
 
 
@@ -1106,6 +1434,29 @@ def _row_to_feature_row(row: Mapping[str, Any]) -> PersistedFeatureRow:
         rule_score=int(row["rule_score"]),
         weak_label=int(row["weak_label"]),
     )
+
+
+def _extract_estimator_parameters(estimator: Any) -> tuple[list[float], float]:
+    if estimator is None:
+        return [], 0.0
+
+    model = estimator.named_steps["model"] if hasattr(estimator, "named_steps") else estimator
+    raw_coefficients = getattr(model, "coef_", None)
+    raw_intercept = getattr(model, "intercept_", None)
+    if raw_coefficients is None or raw_intercept is None:
+        return [], 0.0
+
+    coefficients = raw_coefficients.tolist()
+    if coefficients and isinstance(coefficients[0], list):
+        coefficients = coefficients[0]
+
+    intercept_values = raw_intercept.tolist() if hasattr(raw_intercept, "tolist") else raw_intercept
+    if isinstance(intercept_values, list):
+        intercept = float(intercept_values[0]) if intercept_values else 0.0
+    else:
+        intercept = float(intercept_values)
+
+    return [float(value) for value in coefficients], intercept
 
 
 def _parse_iso_date(value: str | date | None) -> date | None:

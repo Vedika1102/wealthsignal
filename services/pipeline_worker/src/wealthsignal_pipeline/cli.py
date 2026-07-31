@@ -8,6 +8,7 @@ from .baseline_model import train_logistic_baseline
 from .delta_engine import compute_filing_delta
 from .feature_engineering import build_persisted_feature_rows, build_position_features
 from .ingest import ingest_recent_filings_batch_for_cik
+from .ml_models import save_best_model, train_candidate_models
 from .persistence import (
     connect,
     load_feature_rows,
@@ -15,10 +16,13 @@ from .persistence import (
     load_latest_filing_accessions,
     load_parsed_filing,
     store_feature_rows,
+    store_model_comparison_bundle,
     store_model_run,
+    store_recommendations,
     store_alerts,
     store_filing_delta,
 )
+from .recommendation import build_client_recommendations
 from .reference_data import (
     build_security_lookup,
     load_official_list_snapshot,
@@ -54,6 +58,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--refresh-official-13f-list",
         action="store_true",
         help="Fetch and cache the latest official SEC 13F securities list before ingest.",
+    )
+    parser.add_argument(
+        "--train-advanced-models",
+        action="store_true",
+        help="Train scikit-learn/XGBoost candidate models and persist the best estimator artifact.",
+    )
+    parser.add_argument(
+        "--model-output-path",
+        default="data/models/materiality-best.joblib",
+        help="Output path for the persisted best advanced model artifact.",
+    )
+    parser.add_argument(
+        "--mlflow-experiment",
+        default=None,
+        help="Optional MLflow experiment name for advanced model comparison tracking.",
     )
     return parser
 
@@ -115,11 +134,20 @@ def main() -> int:
     connection = connect(db_path)
     try:
         initialize_database(connection)
-        accessions = load_latest_filing_accessions(connection, parsed_filings[0].filing.cik, limit=2)
+        accessions = load_latest_filing_accessions(
+            connection,
+            parsed_filings[0].filing.cik,
+            limit=max(args.limit, len(parsed_filings), 2),
+        )
         if len(accessions) >= 2:
-            current = load_parsed_filing(connection, accessions[0])
-            previous = load_parsed_filing(connection, accessions[1])
-            if current is not None and previous is not None:
+            latest_context: tuple | None = None
+            training_pair_count = 0
+            for pair_index, (current_accession, previous_accession) in enumerate(zip(accessions, accessions[1:])):
+                current = load_parsed_filing(connection, current_accession)
+                previous = load_parsed_filing(connection, previous_accession)
+                if current is None or previous is None:
+                    continue
+
                 delta = compute_filing_delta(current, previous)
                 store_filing_delta(connection, delta)
                 features = build_position_features(delta)
@@ -127,16 +155,37 @@ def main() -> int:
                 all_assessments, assessments, impacts_by_holding_key = generate_alert_candidates(delta, portfolios)
                 feature_rows = build_persisted_feature_rows(delta, features, all_assessments)
                 store_feature_rows(connection, feature_rows)
-                store_alerts(
-                    connection,
-                    current.filing.accession_number,
-                    previous.filing.accession_number,
-                    assessments,
-                    impacts_by_holding_key,
-                )
+                training_pair_count += 1
 
+                if pair_index == 0:
+                    alert_ids = store_alerts(
+                        connection,
+                        current.filing.accession_number,
+                        previous.filing.accession_number,
+                        assessments,
+                        impacts_by_holding_key,
+                    )
+                    latest_context = (current, delta, assessments, impacts_by_holding_key, alert_ids, portfolios)
+
+            if latest_context is not None:
+                current, delta, assessments, impacts_by_holding_key, alert_ids, portfolios = latest_context
                 model_probabilities: dict[str, float] = {}
                 training_rows = load_feature_rows(connection)
+                recommendations = build_client_recommendations(
+                    assessments,
+                    portfolios,
+                    impacts_by_holding_key,
+                    training_rows,
+                    current_accession_number=current.filing.accession_number,
+                )
+                store_recommendations(
+                    connection,
+                    current_accession_number=current.filing.accession_number,
+                    recommendations=recommendations,
+                    alert_ids_by_holding_key={
+                        assessment.holding_key: alert_id for assessment, alert_id in zip(assessments, alert_ids)
+                    },
+                )
                 try:
                     fit = train_logistic_baseline(training_rows)
                     store_model_run(
@@ -165,6 +214,42 @@ def main() -> int:
                 except ValueError as exc:
                     print(f"Baseline model skipped: {exc}")
 
+                if args.train_advanced_models:
+                    try:
+                        bundle = train_candidate_models(
+                            training_rows,
+                            mlflow_experiment=args.mlflow_experiment,
+                        )
+                        model_output_path = Path(args.model_output_path)
+                        model_output_path.parent.mkdir(parents=True, exist_ok=True)
+                        save_best_model(bundle, model_output_path)
+                        store_model_comparison_bundle(
+                            connection,
+                            bundle=bundle,
+                            feature_rows=training_rows,
+                            artifact_path=str(model_output_path),
+                        )
+                        model_probabilities = {
+                            row.holding_key: probability
+                            for row, probability in zip(
+                                training_rows,
+                                bundle.best_result.predicted_probabilities,
+                            )
+                            if row.current_accession_number == current.filing.accession_number
+                        }
+                        print(
+                            "Advanced model comparison: "
+                            f"best={bundle.best_model_name} "
+                            f"pr_auc={bundle.best_result.metrics['pr_auc']:.2f} "
+                            f"models={len(bundle.results)} "
+                            f"artifact={model_output_path}"
+                        )
+                    except (RuntimeError, ValueError) as exc:
+                        print(f"Advanced model training skipped: {exc}")
+
+                print(
+                    f"Prepared model training history from {training_pair_count} adjacent filing window(s)"
+                )
                 print(
                     f"Stored delta for {current.filing.filer_name or current.filing.cik}: "
                     f"{len(delta.positions)} position changes"
@@ -189,6 +274,13 @@ def main() -> int:
                             f"({top_impact.strategy}) score={top_impact.impact_score} "
                             f"direct={top_impact.direct_weight:.2%} sector={top_impact.sector_weight:.2%}"
                         )
+                for recommendation in recommendations[:5]:
+                    print(
+                        f"Recommended review for {recommendation.client_name} "
+                        f"based on content similarity={recommendation.content_similarity:.2f} "
+                        f"and {len(recommendation.precedents)} historical precedents: "
+                        f"{recommendation.issuer_name} relevance={recommendation.relevance_score}"
+                    )
         elif len(accessions) == 1:
             print(
                 f"Only one filing is available for {parsed_filings[0].filing.cik}; "

@@ -49,6 +49,7 @@ wealthsignal/
         │       ├── portfolios.py
         │       ├── persistence.py
         │       ├── parser.py
+        │       ├── recommendation.py
         │       ├── reference_data.py
         │       ├── storage.py
         │       └── worker_health.py
@@ -77,9 +78,11 @@ Implemented:
 - persisted alert and client impact records
 - persisted feature rows with weak labels
 - numpy logistic-regression baseline with stored probabilities and metrics
+- optional scikit-learn/XGBoost model comparison with calibration data, best-model artifact persistence, and MLflow-ready tracking
+- ranked client recommendations with content-similarity scoring and historical precedent retrieval
 - decision API endpoints for filings, alerts, and governance
 - Dockerfiles for `pipeline-worker` and `decision-api`
-- `docker-compose.yml` with PostgreSQL, MinIO, Redis, pipeline-worker, and decision-api
+- `docker-compose.yml` with PostgreSQL, MinIO, Redis, MLflow, pipeline-worker, and decision-api
 - live SEC artifact resolution verified against a real 13F filing
 - unit tests for parser, SEC utilities, persistence, and decisioning
 
@@ -87,8 +90,8 @@ Next:
 
 - add richer sector and reference-data enrichment
 - persist client portfolios as first-class entities
-- add out-of-sample evaluation and model calibration
-- expose feature rows and model explanations through the API
+- add recommendation ranking and precedent retrieval
+- expose feature rows and richer model explanations through the API
 
 ## Local Ingest Example
 
@@ -111,6 +114,20 @@ python -m wealthsignal_pipeline.cli `
   --db-path data/wealthsignal.db `
   --reference-data-path data/reference/sec_official_13f_list.json `
   --refresh-official-13f-list
+```
+
+To train and persist the advanced Phase 2 comparison set as part of the same run:
+
+```bash
+$env:PYTHONPATH="services/pipeline_worker/src"
+python -m wealthsignal_pipeline.cli `
+  --cik 1067983 `
+  --user-agent "Vedika Shinde Research wealthsignal@example.com" `
+  --db-path data/wealthsignal.db `
+  --reference-data-path data/reference/sec_official_13f_list.json `
+  --train-advanced-models `
+  --model-output-path data/models/materiality-best.joblib `
+  --mlflow-experiment wealthsignal-materiality
 ```
 
 This prints:
@@ -138,8 +155,12 @@ Current endpoints:
 - `GET /filings/{accession_number}/changes`
 - `GET /alerts`
 - `GET /alerts/{alert_id}`
+- `GET /recommendations/{client_id}`
+- `GET /api/v1/recommendations/{client_id}`
 - `GET /models/latest`
 - `GET /governance/materiality-policy`
+
+`GET /models/latest` returns the legacy single-run fields for backward compatibility and, when advanced comparison training has been run, also includes the latest `models` comparison array plus best-model artifact metadata.
 
 ## Docker Compose
 
@@ -155,6 +176,7 @@ This brings up:
 - `minio` on `localhost:9000`
 - `minio console` on `localhost:9001`
 - `redis` on `localhost:6379`
+- `mlflow` on `localhost:5000`
 - `pipeline-worker health` on `localhost:8090/health`
 - `decision-api` on `localhost:8000`
 

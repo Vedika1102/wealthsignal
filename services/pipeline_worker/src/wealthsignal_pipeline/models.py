@@ -280,6 +280,12 @@ class ModelRunSummary:
     coefficients: list[float]
     intercept: float
     metrics: dict[str, float]
+    comparison_group_id: str | None = None
+    best_params: dict[str, object] | None = None
+    calibration_curve: list[dict[str, float]] | None = None
+    shap_feature_importance: list[dict[str, float]] | None = None
+    artifact_path: str | None = None
+    is_best_model: bool = False
 
 
 @dataclass(slots=True)
@@ -295,3 +301,65 @@ class ModelPrediction:
     predicted_label: int
     weak_label: int
     rule_score: int
+
+
+@dataclass(slots=True)
+class RecommendationPrecedent:
+    """Historical precedent similar to a current material position change."""
+
+    current_accession_number: str
+    previous_accession_number: str
+    issuer_name: str
+    cusip: str
+    sector: str
+    abs_weight_delta: float
+    value_delta_thousands: int
+    rule_score: int
+    weak_label: int
+    similarity: float
+
+
+@dataclass(slots=True)
+class ClientRecommendation:
+    """Ranked alert recommendation for one client portfolio."""
+
+    client_id: str
+    client_name: str
+    strategy: str
+    current_accession_number: str
+    holding_key: str
+    issuer_name: str
+    cusip: str
+    sector: str
+    alert_score: int
+    alert_severity: str
+    relevance_score: int
+    content_similarity: float
+    direct_weight: float
+    sector_weight: float
+    precedents: list[RecommendationPrecedent]
+    rationale: list[str]
+
+
+@dataclass(slots=True)
+class PersistedRecommendation:
+    """Stored recommendation record exposed by the API."""
+
+    recommendation_id: int
+    alert_id: int
+    client_id: str
+    client_name: str
+    strategy: str
+    current_accession_number: str
+    holding_key: str
+    issuer_name: str
+    cusip: str
+    sector: str
+    alert_score: int
+    alert_severity: str
+    relevance_score: int
+    content_similarity: float
+    direct_weight: float
+    sector_weight: float
+    precedents: list[dict[str, object]]
+    rationale: list[str]
