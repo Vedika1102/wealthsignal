@@ -14,12 +14,20 @@ def _normalize_weights(weights: list[float]) -> list[float]:
 
 
 def _client_holdings_from_selection(selected: list[Holding], *, randomizer: Random) -> list[ClientHolding]:
-    raw_weights = []
+    aggregated: dict[str, tuple[Holding, float]] = {}
     for index, holding in enumerate(selected):
         base = max(holding.value_thousands, 1)
         tilt = 1.15 - (index * 0.03)
         noise = 0.85 + (randomizer.random() * 0.3)
-        raw_weights.append(base * tilt * noise)
+        raw_weight = base * tilt * noise
+        existing = aggregated.get(holding.cusip)
+        if existing is None:
+            aggregated[holding.cusip] = (holding, raw_weight)
+        else:
+            aggregated[holding.cusip] = (existing[0], existing[1] + raw_weight)
+
+    consolidated = list(aggregated.values())
+    raw_weights = [raw_weight for _, raw_weight in consolidated]
     normalized = _normalize_weights(raw_weights)
     return [
         ClientHolding(
@@ -28,7 +36,7 @@ def _client_holdings_from_selection(selected: list[Holding], *, randomizer: Rand
             sector=infer_sector(holding.issuer_name),
             weight=weight,
         )
-        for holding, weight in zip(selected, normalized)
+        for (holding, _), weight in zip(consolidated, normalized)
     ]
 
 
