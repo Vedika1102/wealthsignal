@@ -14,7 +14,11 @@ from wealthsignal_pipeline import ml_models
 from wealthsignal_pipeline.baseline_model import assign_weak_label, train_logistic_baseline
 from wealthsignal_pipeline.delta_engine import compute_filing_delta
 from wealthsignal_pipeline.feature_engineering import build_persisted_feature_rows, build_position_features
-from wealthsignal_pipeline.gold_dataset import export_labeling_candidates, validate_labeled_dataset
+from wealthsignal_pipeline.gold_dataset import (
+    evaluate_labeled_dataset,
+    export_labeling_candidates,
+    validate_labeled_dataset,
+)
 from wealthsignal_pipeline.models import (
     ClientHolding,
     ClientPortfolio,
@@ -1364,6 +1368,8 @@ class GoldDatasetTests(unittest.TestCase):
             db_path = Path(db_file.name)
         with NamedTemporaryFile(suffix=".csv", delete=False) as csv_file:
             csv_path = Path(csv_file.name)
+        with NamedTemporaryFile(suffix=".json", delete=False) as report_file:
+            report_path = Path(report_file.name)
 
         try:
             connection = connect(db_path)
@@ -1387,12 +1393,18 @@ class GoldDatasetTests(unittest.TestCase):
                 writer.writerows(rows)
 
             summary = validate_labeled_dataset(csv_path)
+            report = evaluate_labeled_dataset(csv_path, report_path, db_path=db_path)
             self.assertEqual(exported_count, 3)
             self.assertEqual(summary.row_count, 3)
             self.assertEqual(summary.positive_count + summary.negative_count, 3)
+            self.assertEqual(report["rule_engine"]["metrics"]["sample_count"], 3)
+            self.assertEqual(report["stored_model"]["coverage"], 0.0)
+            self.assertIn("sector", report["slices"])
+            self.assertEqual(len(report["dataset"]["version_sha256"]), 64)
         finally:
             db_path.unlink(missing_ok=True)
             csv_path.unlink(missing_ok=True)
+            report_path.unlink(missing_ok=True)
 
     def test_validation_rejects_incomplete_review(self) -> None:
         with NamedTemporaryFile(suffix=".csv", delete=False, mode="w", newline="", encoding="utf-8") as csv_file:

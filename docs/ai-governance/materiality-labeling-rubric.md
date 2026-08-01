@@ -62,3 +62,9 @@ A release-ready gold set has:
 - both positive and negative examples;
 - representation across more than one filer and reporting quarter;
 - a documented dataset version and adjudication date.
+
+## Evaluation and Leakage Control
+
+Run the validator before any evaluation. The evaluation report identifies the dataset by the SHA-256 digest of the reviewed CSV so results remain tied to the exact labels used.
+
+Rule-engine metrics can be treated as holdout results because manual labels are independent of the rules. A trained model must exclude all gold-set event IDs from training before its metrics are described as holdout performance. Reports generated from existing stored predictions label those results `diagnostic_in_sample` until that exclusion is implemented and verified.

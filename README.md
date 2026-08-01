@@ -186,6 +186,17 @@ python -m wealthsignal_pipeline.gold_dataset validate `
   --input data/evaluation/materiality_gold.csv
 ```
 
+Generate a versioned JSON evaluation report after validation:
+
+```bash
+python -m wealthsignal_pipeline.gold_dataset evaluate `
+  --input data/evaluation/materiality_gold.csv `
+  --output data/evaluation/materiality_evaluation.json `
+  --db-path data/wealthsignal.db
+```
+
+The report includes confusion-matrix counts, precision, recall, F1, PR-AUC, Brier score, top-decile precision, and rule performance slices by sector and event type. Stored-model results are explicitly marked `diagnostic_in_sample` until gold-set events are excluded from training.
+
 Gold-set files under `data/` remain local by default. Publish only an explicitly approved, versioned dataset with appropriate provenance.
 
 ## Docker Compose
