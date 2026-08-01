@@ -1,3 +1,4 @@
+import csv
 import unittest
 import os
 from io import BytesIO, StringIO
@@ -12,7 +13,10 @@ from wealthsignal_pipeline import ml_models
 from wealthsignal_pipeline.baseline_model import assign_weak_label, train_logistic_baseline
 from wealthsignal_pipeline.delta_engine import compute_filing_delta
 from wealthsignal_pipeline.feature_engineering import build_persisted_feature_rows, build_position_features
+from wealthsignal_pipeline.gold_dataset import export_labeling_candidates, validate_labeled_dataset
 from wealthsignal_pipeline.models import (
+    ClientHolding,
+    ClientPortfolio,
     FilingArtifacts,
     IngestBatchResult,
     IngestFailure,
@@ -32,11 +36,13 @@ from wealthsignal_pipeline.portfolios import generate_synthetic_client_portfolio
 from wealthsignal_pipeline.persistence import (
     connect,
     get_alert,
+    get_client_portfolio,
     get_latest_model_run,
     get_latest_prediction_lookup,
     initialize_database,
     list_alert_impacts,
     list_alerts,
+    list_client_portfolios,
     load_feature_rows,
     load_latest_filing_accessions,
     load_parsed_filing,
@@ -47,6 +53,7 @@ from wealthsignal_pipeline.persistence import (
     store_model_run,
     store_recommendations,
     store_alerts,
+    store_client_portfolio,
     store_filing_delta,
     store_parsed_filing,
 )
@@ -1014,6 +1021,62 @@ class IngestHardeningTests(unittest.TestCase):
         finally:
             db_path.unlink(missing_ok=True)
 
+    def test_store_client_portfolio_round_trip_and_replace(self) -> None:
+        portfolio = ClientPortfolio(
+            client_id="client-001",
+            client_name="Balanced Household",
+            strategy="balanced",
+            holdings=[
+                ClientHolding("037833100", "Apple Inc", "Technology", 0.6),
+                ClientHolding("166764100", "Chevron Corp", "Energy", 0.4),
+            ],
+        )
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            store_client_portfolio(connection, portfolio)
+
+            summaries = list_client_portfolios(connection)
+            loaded = get_client_portfolio(connection, "client-001")
+            self.assertEqual(summaries[0]["holding_count"], 2)
+            self.assertEqual(loaded, portfolio)
+
+            replacement = ClientPortfolio(
+                client_id="client-001",
+                client_name="Income Household",
+                strategy="income",
+                holdings=[ClientHolding("166764100", "Chevron Corp", "Energy", 1.0)],
+            )
+            store_client_portfolio(connection, replacement)
+            self.assertEqual(get_client_portfolio(connection, "client-001"), replacement)
+            connection.close()
+        finally:
+            db_path.unlink(missing_ok=True)
+
+    def test_store_client_portfolio_rejects_invalid_weights(self) -> None:
+        portfolio = ClientPortfolio(
+            client_id="client-001",
+            client_name="Invalid Household",
+            strategy="balanced",
+            holdings=[ClientHolding("037833100", "Apple Inc", "Technology", 0.8)],
+        )
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            with self.assertRaisesRegex(ValueError, "sum to 1"):
+                store_client_portfolio(connection, portfolio)
+            connection.close()
+        finally:
+            db_path.unlink(missing_ok=True)
+
     def test_store_alerts_and_impacts_round_trip(self) -> None:
         current = parse_information_table(
             SAMPLE_INFORMATION_TABLE,
@@ -1247,7 +1310,95 @@ class RecommendationTests(unittest.TestCase):
             db_path.unlink(missing_ok=True)
 
 
+class GoldDatasetTests(unittest.TestCase):
+    def test_export_and_validate_completed_gold_dataset(self) -> None:
+        with NamedTemporaryFile(suffix=".db", delete=False) as db_file:
+            db_path = Path(db_file.name)
+        with NamedTemporaryFile(suffix=".csv", delete=False) as csv_file:
+            csv_path = Path(csv_file.name)
+
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            store_feature_rows(connection, build_sample_feature_rows())
+            connection.close()
+
+            exported_count = export_labeling_candidates(db_path, csv_path, limit=3)
+            with csv_path.open(newline="", encoding="utf-8") as input_file:
+                reader = csv.DictReader(input_file)
+                fieldnames = reader.fieldnames
+                rows = list(reader)
+            for index, row in enumerate(rows):
+                row["manual_label"] = str(index % 2)
+                row["review_reason"] = "Independent rubric-based review."
+                row["reviewer_id"] = "reviewer-01"
+                row["reviewed_at"] = "2026-08-01"
+            with csv_path.open("w", newline="", encoding="utf-8") as output_file:
+                writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
+
+            summary = validate_labeled_dataset(csv_path)
+            self.assertEqual(exported_count, 3)
+            self.assertEqual(summary.row_count, 3)
+            self.assertEqual(summary.positive_count + summary.negative_count, 3)
+        finally:
+            db_path.unlink(missing_ok=True)
+            csv_path.unlink(missing_ok=True)
+
+    def test_validation_rejects_incomplete_review(self) -> None:
+        with NamedTemporaryFile(suffix=".csv", delete=False, mode="w", newline="", encoding="utf-8") as csv_file:
+            csv_path = Path(csv_file.name)
+            writer = csv.DictWriter(csv_file, fieldnames=[
+                "event_id", "current_accession_number", "previous_accession_number", "holding_key",
+                "issuer_name", "cusip", "sector", "current_weight", "previous_weight", "weight_delta",
+                "value_delta_thousands", "is_new_position", "is_exited_position", "current_rank",
+                "previous_rank", "turnover_ratio", "rule_score", "weak_label", "manual_label",
+                "review_reason", "reviewer_id", "reviewed_at",
+            ])
+            writer.writeheader()
+            writer.writerow({"event_id": "event-1", "manual_label": "1"})
+
+        try:
+            with self.assertRaisesRegex(ValueError, "review_reason is required"):
+                validate_labeled_dataset(csv_path)
+        finally:
+            csv_path.unlink(missing_ok=True)
+
+
 class DecisionApiTests(unittest.TestCase):
+    def test_client_portfolio_endpoints_upsert_and_read(self) -> None:
+        from services.decision_api.app import main as decision_api_main
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        original_db_path = decision_api_main.DB_PATH
+        try:
+            decision_api_main.DB_PATH = str(db_path)
+            payload = decision_api_main.ClientPortfolioPayload(
+                client_name="Growth Household",
+                strategy="growth",
+                holdings=[
+                    decision_api_main.ClientHoldingPayload(
+                        cusip="037833100",
+                        issuer_name="Apple Inc",
+                        sector="Technology",
+                        weight=1.0,
+                    )
+                ],
+            )
+            created = decision_api_main.upsert_client_portfolio("client-api-001", payload)
+            detail = decision_api_main.client_detail("client-api-001")
+            summaries = decision_api_main.clients(limit=100)
+
+            self.assertEqual(created["client_id"], "client-api-001")
+            self.assertEqual(detail["holdings"][0]["weight"], 1.0)
+            self.assertEqual(summaries[0]["holding_count"], 1)
+        finally:
+            decision_api_main.DB_PATH = original_db_path
+            db_path.unlink(missing_ok=True)
+
     def test_latest_model_returns_comparison_models_when_available(self) -> None:
         try:
             from services.decision_api.app import main as decision_api_main

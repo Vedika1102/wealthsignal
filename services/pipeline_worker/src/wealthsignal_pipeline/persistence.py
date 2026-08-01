@@ -19,7 +19,9 @@ except ImportError:  # pragma: no cover - exercised only when PostgreSQL deps ar
 
 from .delta_engine import holding_key
 from .models import (
+    ClientHolding,
     ClientImpact,
+    ClientPortfolio,
     ClientRecommendation,
     FilingArtifacts,
     FilingDelta,
@@ -133,6 +135,23 @@ CREATE TABLE IF NOT EXISTS alert_impacts (
     impact_label TEXT NOT NULL,
     PRIMARY KEY (alert_id, client_id),
     FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
+);
+
+CREATE TABLE IF NOT EXISTS client_portfolios (
+    client_id TEXT PRIMARY KEY,
+    client_name TEXT NOT NULL,
+    strategy TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS client_holdings (
+    client_id TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    weight REAL NOT NULL CHECK (weight >= 0 AND weight <= 1),
+    PRIMARY KEY (client_id, cusip),
+    FOREIGN KEY (client_id) REFERENCES client_portfolios(client_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS recommendations (
@@ -331,6 +350,23 @@ CREATE TABLE IF NOT EXISTS alert_impacts (
     impact_label TEXT NOT NULL,
     PRIMARY KEY (alert_id, client_id),
     FOREIGN KEY (alert_id) REFERENCES alerts(alert_id)
+);
+
+CREATE TABLE IF NOT EXISTS client_portfolios (
+    client_id TEXT PRIMARY KEY,
+    client_name TEXT NOT NULL,
+    strategy TEXT NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS client_holdings (
+    client_id TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    weight DOUBLE PRECISION NOT NULL CHECK (weight >= 0 AND weight <= 1),
+    PRIMARY KEY (client_id, cusip),
+    FOREIGN KEY (client_id) REFERENCES client_portfolios(client_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS recommendations (
@@ -1061,6 +1097,122 @@ def store_model_comparison_bundle(
             )
         )
     return comparison_group_id, run_ids
+
+
+def store_client_portfolio(connection: DatabaseConnection, portfolio: ClientPortfolio) -> None:
+    """Create or replace a normalized client portfolio as one transaction."""
+
+    if not portfolio.client_id.strip():
+        raise ValueError("Client ID is required")
+    if not portfolio.client_name.strip():
+        raise ValueError("Client name is required")
+    if not portfolio.strategy.strip():
+        raise ValueError("Portfolio strategy is required")
+    if not portfolio.holdings:
+        raise ValueError("Portfolio holdings are required")
+    if len({holding.cusip for holding in portfolio.holdings}) != len(portfolio.holdings):
+        raise ValueError("Portfolio holdings must have unique CUSIPs")
+
+    total_weight = sum(holding.weight for holding in portfolio.holdings)
+    if abs(total_weight - 1.0) > 0.001:
+        raise ValueError("Portfolio weights must sum to 1")
+    if any(holding.weight < 0 or holding.weight > 1 for holding in portfolio.holdings):
+        raise ValueError("Portfolio weights must be between 0 and 1")
+
+    values = (portfolio.client_id, portfolio.client_name, portfolio.strategy)
+    if connection.backend == "postgres":
+        connection.execute(
+            """
+            INSERT INTO client_portfolios (client_id, client_name, strategy, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (client_id) DO UPDATE SET
+                client_name = EXCLUDED.client_name,
+                strategy = EXCLUDED.strategy,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            values,
+        )
+    else:
+        connection.execute(
+            """
+            INSERT INTO client_portfolios (client_id, client_name, strategy, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (client_id) DO UPDATE SET
+                client_name = excluded.client_name,
+                strategy = excluded.strategy,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            values,
+        )
+
+    connection.execute("DELETE FROM client_holdings WHERE client_id = ?", (portfolio.client_id,))
+    connection.executemany(
+        """
+        INSERT INTO client_holdings (client_id, cusip, issuer_name, sector, weight)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        [
+            (portfolio.client_id, holding.cusip, holding.issuer_name, holding.sector, holding.weight)
+            for holding in portfolio.holdings
+        ],
+    )
+    connection.commit()
+
+
+def store_client_portfolios(connection: DatabaseConnection, portfolios: list[ClientPortfolio]) -> None:
+    """Persist a collection of client portfolios."""
+
+    for portfolio in portfolios:
+        store_client_portfolio(connection, portfolio)
+
+
+def list_client_portfolios(connection: DatabaseConnection, *, limit: int = 100) -> list[dict]:
+    rows = connection.execute(
+        """
+        SELECT p.client_id, p.client_name, p.strategy, p.updated_at,
+               COUNT(h.cusip) AS holding_count
+        FROM client_portfolios p
+        LEFT JOIN client_holdings h ON h.client_id = p.client_id
+        GROUP BY p.client_id, p.client_name, p.strategy, p.updated_at
+        ORDER BY p.client_name
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_client_portfolio(connection: DatabaseConnection, client_id: str) -> ClientPortfolio | None:
+    row = connection.execute(
+        "SELECT client_id, client_name, strategy FROM client_portfolios WHERE client_id = ?",
+        (client_id,),
+    ).fetchone()
+    if row is None:
+        return None
+
+    holdings = connection.execute(
+        """
+        SELECT cusip, issuer_name, sector, weight
+        FROM client_holdings
+        WHERE client_id = ?
+        ORDER BY weight DESC, issuer_name
+        """,
+        (client_id,),
+    ).fetchall()
+    return ClientPortfolio(
+        client_id=str(row["client_id"]),
+        client_name=str(row["client_name"]),
+        strategy=str(row["strategy"]),
+        holdings=[
+            ClientHolding(
+                cusip=str(holding["cusip"]),
+                issuer_name=str(holding["issuer_name"]),
+                sector=str(holding["sector"]),
+                weight=float(holding["weight"]),
+            )
+            for holding in holdings
+        ],
+    )
 
 
 def store_alerts(
