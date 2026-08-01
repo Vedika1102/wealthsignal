@@ -773,8 +773,18 @@ def load_latest_filing_accessions(
     rows = connection.execute(
         """
         SELECT accession_number
-        FROM filings
-        WHERE cik = ?
+        FROM (
+            SELECT accession_number, report_period, filing_date,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY COALESCE(report_period, accession_number)
+                       ORDER BY CASE WHEN form_type = '13F-HR' THEN 0 ELSE 1 END,
+                                filing_date DESC,
+                                accession_number DESC
+                   ) AS period_rank
+            FROM filings
+            WHERE cik = ?
+        ) ranked_filings
+        WHERE period_rank = 1
         ORDER BY report_period DESC, filing_date DESC, accession_number DESC
         LIMIT ?
         """,

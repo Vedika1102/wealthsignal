@@ -1,6 +1,7 @@
 import csv
 import unittest
 import os
+from datetime import date
 from io import BytesIO, StringIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -761,6 +762,21 @@ class DeltaEngineTests(unittest.TestCase):
         self.assertGreater(len(impacts), 0)
         self.assertGreater(impacts[0].impact_score, 0)
 
+    def test_synthetic_portfolios_consolidate_duplicate_cusips(self) -> None:
+        current = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="0001067983-24-000002",
+        )
+        holdings_with_duplicate = [current.holdings[0], current.holdings[0], *current.holdings[1:]]
+
+        portfolios = generate_synthetic_client_portfolios(holdings_with_duplicate, seed=11)
+
+        for portfolio in portfolios:
+            cusips = [holding.cusip for holding in portfolio.holdings]
+            self.assertEqual(len(cusips), len(set(cusips)))
+            self.assertAlmostEqual(sum(holding.weight for holding in portfolio.holdings), 1.0)
+
 
 class PersistenceTests(unittest.TestCase):
     def test_connect_supports_sqlite_database_url(self) -> None:
@@ -1017,6 +1033,38 @@ class IngestHardeningTests(unittest.TestCase):
 
             latest = load_latest_filing_accessions(connection, "0001067983", limit=2)
             self.assertEqual(latest, ["0001067983-24-000002", "0001067983-23-000999"])
+            connection.close()
+        finally:
+            db_path.unlink(missing_ok=True)
+
+    def test_latest_accessions_prefer_original_filing_for_each_report_period(self) -> None:
+        original = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="original-2024-q1",
+            form_type="13F-HR",
+            report_period=date(2024, 3, 31),
+        )
+        amendment = parse_information_table(
+            SAMPLE_INFORMATION_TABLE,
+            cik="0001067983",
+            accession_number="amendment-2024-q1",
+            form_type="13F-HR/A",
+            report_period=date(2024, 3, 31),
+        )
+
+        with NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
+            db_path = Path(temp_file.name)
+
+        try:
+            connection = connect(db_path)
+            initialize_database(connection)
+            store_parsed_filing(connection, original)
+            store_parsed_filing(connection, amendment)
+
+            accessions = load_latest_filing_accessions(connection, "0001067983", limit=2)
+
+            self.assertEqual(accessions, ["original-2024-q1"])
             connection.close()
         finally:
             db_path.unlink(missing_ok=True)
