@@ -75,6 +75,7 @@ Implemented:
 - optional official SEC 13F securities-list enrichment and local cache support
 - MinIO-compatible raw filing artifact storage
 - synthetic client portfolio impact scoring
+- persisted client portfolios and normalized client holdings
 - persisted alert and client impact records
 - persisted feature rows with weak labels
 - numpy logistic-regression baseline with stored probabilities and metrics
@@ -89,8 +90,9 @@ Implemented:
 Next:
 
 - add richer sector and reference-data enrichment
-- persist client portfolios as first-class entities
-- add recommendation ranking and precedent retrieval
+- build a manually labeled gold evaluation set
+- add prediction audit logging and model data-lineage metadata
+- add scheduled ingestion, retries, and monitoring metrics
 - expose feature rows and richer model explanations through the API
 
 ## Local Ingest Example
@@ -157,10 +159,34 @@ Current endpoints:
 - `GET /alerts/{alert_id}`
 - `GET /recommendations/{client_id}`
 - `GET /api/v1/recommendations/{client_id}`
+- `GET /clients`
+- `GET /clients/{client_id}`
+- `POST /clients/{client_id}/portfolio`
 - `GET /models/latest`
 - `GET /governance/materiality-policy`
 
 `GET /models/latest` returns the legacy single-run fields for backward compatibility and, when advanced comparison training has been run, also includes the latest `models` comparison array plus best-model artifact metadata.
+
+## Manual Gold-Set Workflow
+
+Export a deterministic review queue from persisted feature rows:
+
+```bash
+$env:PYTHONPATH="services/pipeline_worker/src"
+python -m wealthsignal_pipeline.gold_dataset export `
+  --db-path data/wealthsignal.db `
+  --output data/evaluation/materiality_gold.csv `
+  --limit 300
+```
+
+Reviewers complete `manual_label`, `review_reason`, `reviewer_id`, and `reviewed_at` using the rubric in `docs/ai-governance/materiality-labeling-rubric.md`. Validate the completed dataset before evaluation:
+
+```bash
+python -m wealthsignal_pipeline.gold_dataset validate `
+  --input data/evaluation/materiality_gold.csv
+```
+
+Gold-set files under `data/` remain local by default. Publish only an explicitly approved, versioned dataset with appropriate provenance.
 
 ## Docker Compose
 

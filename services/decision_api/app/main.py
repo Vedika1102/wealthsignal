@@ -5,19 +5,24 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel, Field
 
 from wealthsignal_pipeline.materiality import materiality_policy
+from wealthsignal_pipeline.models import ClientHolding, ClientPortfolio
 from wealthsignal_pipeline.persistence import (
     connect,
     get_alert,
+    get_client_portfolio,
     get_latest_prediction_lookup,
     initialize_database,
     list_alert_impacts,
     list_alerts,
+    list_client_portfolios,
     list_filing_summaries,
     list_latest_model_runs,
     list_position_deltas,
     list_recommendations,
+    store_client_portfolio,
 )
 
 try:
@@ -35,6 +40,19 @@ DB_PATH = os.getenv("WEALTHSIGNAL_DB_PATH", _default_db_path())
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = FastAPI(title="WealthSignal Decision API", version="0.1.0")
+
+
+class ClientHoldingPayload(BaseModel):
+    cusip: str = Field(min_length=1)
+    issuer_name: str = Field(min_length=1)
+    sector: str = Field(min_length=1)
+    weight: float = Field(ge=0, le=1)
+
+
+class ClientPortfolioPayload(BaseModel):
+    client_name: str = Field(min_length=1)
+    strategy: str = Field(min_length=1)
+    holdings: list[ClientHoldingPayload] = Field(min_length=1)
 
 
 def _connection():
@@ -113,6 +131,23 @@ def _serialize_recommendation(recommendation) -> dict[str, object]:
         "precedent_count": len(recommendation.precedents),
         "precedents": recommendation.precedents,
         "rationale": recommendation.rationale,
+    }
+
+
+def _serialize_client_portfolio(portfolio: ClientPortfolio) -> dict[str, object]:
+    return {
+        "client_id": portfolio.client_id,
+        "client_name": portfolio.client_name,
+        "strategy": portfolio.strategy,
+        "holdings": [
+            {
+                "cusip": holding.cusip,
+                "issuer_name": holding.issuer_name,
+                "sector": holding.sector,
+                "weight": holding.weight,
+            }
+            for holding in portfolio.holdings
+        ],
     }
 
 
@@ -233,6 +268,54 @@ def recommendations(client_id: str, limit: int = Query(default=20, ge=1, le=100)
             _serialize_recommendation(recommendation)
             for recommendation in list_recommendations(connection, client_id, limit=limit)
         ]
+    finally:
+        connection.close()
+
+
+@app.get("/clients")
+def clients(limit: int = Query(default=100, ge=1, le=500)) -> list[dict]:
+    connection = _connection()
+    try:
+        return list_client_portfolios(connection, limit=limit)
+    finally:
+        connection.close()
+
+
+@app.get("/clients/{client_id}")
+def client_detail(client_id: str) -> dict[str, object]:
+    connection = _connection()
+    try:
+        portfolio = get_client_portfolio(connection, client_id)
+        if portfolio is None:
+            raise HTTPException(status_code=404, detail="Client not found")
+        return _serialize_client_portfolio(portfolio)
+    finally:
+        connection.close()
+
+
+@app.post("/clients/{client_id}/portfolio")
+def upsert_client_portfolio(client_id: str, payload: ClientPortfolioPayload) -> dict[str, object]:
+    portfolio = ClientPortfolio(
+        client_id=client_id,
+        client_name=payload.client_name,
+        strategy=payload.strategy,
+        holdings=[
+            ClientHolding(
+                cusip=holding.cusip,
+                issuer_name=holding.issuer_name,
+                sector=holding.sector,
+                weight=holding.weight,
+            )
+            for holding in payload.holdings
+        ],
+    )
+    connection = _connection()
+    try:
+        try:
+            store_client_portfolio(connection, portfolio)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return _serialize_client_portfolio(portfolio)
     finally:
         connection.close()
 
