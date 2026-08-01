@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
-from .persistence import connect, initialize_database, load_feature_rows
+from .persistence import connect, get_latest_prediction_lookup, initialize_database, load_feature_rows
 
 
 REVIEW_COLUMNS = ("manual_label", "review_reason", "reviewer_id", "reviewed_at")
@@ -37,6 +40,81 @@ class ValidationSummary:
     row_count: int
     positive_count: int
     negative_count: int
+
+
+def evaluate_labeled_dataset(
+    input_path: str | Path,
+    output_path: str | Path,
+    *,
+    db_path: str | Path | None = None,
+    rule_threshold: int = 40,
+) -> dict[str, object]:
+    """Evaluate rules and available stored predictions against manual gold labels."""
+
+    validation = validate_labeled_dataset(input_path)
+    source = Path(input_path)
+    with source.open(newline="", encoding="utf-8-sig") as input_file:
+        rows = list(csv.DictReader(input_file))
+
+    labels = [int(row["manual_label"]) for row in rows]
+    rule_scores = [float(row["rule_score"]) / 100.0 for row in rows]
+    rule_predictions = [int(float(row["rule_score"]) >= rule_threshold) for row in rows]
+    report: dict[str, object] = {
+        "dataset": {
+            "version_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            "path": str(source),
+            "row_count": validation.row_count,
+            "positive_count": validation.positive_count,
+            "negative_count": validation.negative_count,
+        },
+        "generated_at": datetime.now(UTC).isoformat(),
+        "rule_engine": {
+            "threshold": rule_threshold,
+            "metrics": _binary_metrics(labels, rule_predictions, rule_scores),
+        },
+        "slices": {
+            "sector": _slice_metrics(rows, labels, rule_predictions, rule_scores, "sector"),
+            "event_type": _event_type_slices(rows, labels, rule_predictions, rule_scores),
+        },
+    }
+
+    if db_path is not None:
+        connection = connect(db_path)
+        try:
+            initialize_database(connection)
+            prediction_lookup = get_latest_prediction_lookup(connection)
+        finally:
+            connection.close()
+
+        matched_rows = []
+        model_labels = []
+        model_predictions = []
+        model_scores = []
+        for row, label in zip(rows, labels):
+            prediction = prediction_lookup.get((row["current_accession_number"], row["holding_key"]))
+            if prediction is None:
+                continue
+            matched_rows.append(row)
+            model_labels.append(label)
+            model_predictions.append(prediction.predicted_label)
+            model_scores.append(prediction.probability)
+        report["stored_model"] = {
+            "status": "diagnostic_in_sample",
+            "warning": (
+                "Stored predictions may come from models trained on weak labels for these same events; "
+                "exclude gold-set event IDs from training before treating these metrics as holdout results."
+            ),
+            "coverage": len(matched_rows) / len(rows),
+            "matched_events": len(matched_rows),
+            "metrics": (
+                _binary_metrics(model_labels, model_predictions, model_scores) if matched_rows else None
+            ),
+        }
+
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return report
 
 
 def export_labeling_candidates(db_path: str | Path, output_path: str | Path, *, limit: int = 300) -> int:
@@ -157,6 +235,92 @@ def _interleave(positives: list, negatives: list, limit: int) -> list:
     return selected
 
 
+def _binary_metrics(labels: list[int], predictions: list[int], scores: list[float]) -> dict[str, float | int]:
+    true_positive = sum(label == 1 and prediction == 1 for label, prediction in zip(labels, predictions))
+    true_negative = sum(label == 0 and prediction == 0 for label, prediction in zip(labels, predictions))
+    false_positive = sum(label == 0 and prediction == 1 for label, prediction in zip(labels, predictions))
+    false_negative = sum(label == 1 and prediction == 0 for label, prediction in zip(labels, predictions))
+    count = len(labels)
+    precision = true_positive / (true_positive + false_positive) if true_positive + false_positive else 0.0
+    recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else 0.0
+    return {
+        "sample_count": count,
+        "true_positive": true_positive,
+        "true_negative": true_negative,
+        "false_positive": false_positive,
+        "false_negative": false_negative,
+        "accuracy": (true_positive + true_negative) / count if count else 0.0,
+        "precision": precision,
+        "recall": recall,
+        "f1": 2 * precision * recall / (precision + recall) if precision + recall else 0.0,
+        "pr_auc": _average_precision(labels, scores),
+        "brier_score": sum((score - label) ** 2 for label, score in zip(labels, scores)) / count if count else 0.0,
+        "precision_at_top_10_percent": _precision_at_fraction(labels, scores, 0.1),
+    }
+
+
+def _average_precision(labels: list[int], scores: list[float]) -> float:
+    positive_count = sum(labels)
+    if positive_count == 0:
+        return 0.0
+    ranked = sorted(zip(scores, labels), key=lambda item: item[0], reverse=True)
+    true_positive = 0
+    precision_sum = 0.0
+    for rank, (_, label) in enumerate(ranked, start=1):
+        if label == 1:
+            true_positive += 1
+            precision_sum += true_positive / rank
+    return precision_sum / positive_count
+
+
+def _precision_at_fraction(labels: list[int], scores: list[float], fraction: float) -> float:
+    if not labels:
+        return 0.0
+    count = max(1, round(len(labels) * fraction))
+    ranked_labels = [label for _, label in sorted(zip(scores, labels), reverse=True)[:count]]
+    return sum(ranked_labels) / count
+
+
+def _slice_metrics(
+    rows: list[dict[str, str]],
+    labels: list[int],
+    predictions: list[int],
+    scores: list[float],
+    column: str,
+) -> dict[str, dict[str, float | int]]:
+    groups: dict[str, list[int]] = {}
+    for index, row in enumerate(rows):
+        groups.setdefault(row[column] or "Unknown", []).append(index)
+    return {
+        group: _binary_metrics(
+            [labels[index] for index in indices],
+            [predictions[index] for index in indices],
+            [scores[index] for index in indices],
+        )
+        for group, indices in sorted(groups.items())
+    }
+
+
+def _event_type_slices(
+    rows: list[dict[str, str]],
+    labels: list[int],
+    predictions: list[int],
+    scores: list[float],
+) -> dict[str, dict[str, float | int]]:
+    typed_rows = []
+    for row in rows:
+        if row["is_new_position"] == "1":
+            event_type = "new_position"
+        elif row["is_exited_position"] == "1":
+            event_type = "exited_position"
+        elif float(row["weight_delta"]) > 0:
+            event_type = "increased_position"
+        else:
+            event_type = "decreased_position"
+        typed_rows.append({**row, "event_type": event_type})
+    return _slice_metrics(typed_rows, labels, predictions, scores, "event_type")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Export or validate the WealthSignal manual gold dataset.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -168,6 +332,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate_parser = subparsers.add_parser("validate", help="Validate a completed labeling CSV.")
     validate_parser.add_argument("--input", default="data/evaluation/materiality_gold.csv")
+
+    evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate rules and stored predictions.")
+    evaluate_parser.add_argument("--input", default="data/evaluation/materiality_gold.csv")
+    evaluate_parser.add_argument("--output", default="data/evaluation/materiality_evaluation.json")
+    evaluate_parser.add_argument("--db-path")
+    evaluate_parser.add_argument("--rule-threshold", type=int, default=40)
     return parser
 
 
@@ -178,11 +348,21 @@ def main() -> int:
         print(f"Exported {count} candidate events to {args.output}")
         return 0
 
-    summary = validate_labeled_dataset(args.input)
-    print(
-        f"Validated {summary.row_count} events: "
-        f"{summary.positive_count} advisor-worthy, {summary.negative_count} routine"
+    if args.command == "validate":
+        summary = validate_labeled_dataset(args.input)
+        print(
+            f"Validated {summary.row_count} events: "
+            f"{summary.positive_count} advisor-worthy, {summary.negative_count} routine"
+        )
+        return 0
+
+    report = evaluate_labeled_dataset(
+        args.input,
+        args.output,
+        db_path=args.db_path,
+        rule_threshold=args.rule_threshold,
     )
+    print(f"Wrote evaluation report for {report['dataset']['row_count']} events to {args.output}")
     return 0
 
 
