@@ -26,6 +26,8 @@ from .models import (
     FilingArtifacts,
     FilingDelta,
     FilingReference,
+    ForecastPrediction,
+    ForecastRun,
     Holding,
     MaterialityAssessment,
     ModelPrediction,
@@ -249,6 +251,45 @@ CREATE TABLE IF NOT EXISTS model_predictions (
 
 CREATE INDEX IF NOT EXISTS idx_model_predictions_current
     ON model_predictions(current_accession_number, probability DESC);
+
+CREATE TABLE IF NOT EXISTS forecast_runs (
+    run_id TEXT PRIMARY KEY,
+    model_name TEXT NOT NULL,
+    model_version TEXT NOT NULL,
+    status TEXT NOT NULL,
+    dataset_id TEXT NOT NULL,
+    dataset_manifest_sha256 TEXT NOT NULL,
+    protocol_version TEXT NOT NULL,
+    protocol_sha256 TEXT NOT NULL,
+    code_revision TEXT,
+    implementation_sha256 TEXT NOT NULL,
+    source_cutoff TEXT NOT NULL,
+    target_quarter TEXT NOT NULL,
+    generated_at TEXT NOT NULL,
+    limitations_json TEXT NOT NULL,
+    source_lineage_json TEXT NOT NULL,
+    prediction_count INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS forecast_predictions (
+    run_id TEXT NOT NULL,
+    example_id TEXT NOT NULL,
+    cik TEXT NOT NULL,
+    security_key TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    feature_report_period TEXT NOT NULL,
+    feature_available_at TEXT NOT NULL,
+    target_report_period TEXT NOT NULL,
+    predicted_weight REAL NOT NULL CHECK (predicted_weight >= 0),
+    predicted_rank INTEGER NOT NULL CHECK (predicted_rank > 0),
+    source_accessions_json TEXT NOT NULL,
+    PRIMARY KEY (run_id, example_id),
+    FOREIGN KEY (run_id) REFERENCES forecast_runs(run_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_forecast_predictions_manager_target
+    ON forecast_predictions(cik, target_report_period, predicted_rank);
 """
 
 
@@ -464,6 +505,45 @@ CREATE TABLE IF NOT EXISTS model_predictions (
 
 CREATE INDEX IF NOT EXISTS idx_model_predictions_current
     ON model_predictions(current_accession_number, probability DESC);
+
+CREATE TABLE IF NOT EXISTS forecast_runs (
+    run_id TEXT PRIMARY KEY,
+    model_name TEXT NOT NULL,
+    model_version TEXT NOT NULL,
+    status TEXT NOT NULL,
+    dataset_id TEXT NOT NULL,
+    dataset_manifest_sha256 TEXT NOT NULL,
+    protocol_version TEXT NOT NULL,
+    protocol_sha256 TEXT NOT NULL,
+    code_revision TEXT,
+    implementation_sha256 TEXT NOT NULL,
+    source_cutoff TEXT NOT NULL,
+    target_quarter TEXT NOT NULL,
+    generated_at TIMESTAMP NOT NULL,
+    limitations_json TEXT NOT NULL,
+    source_lineage_json TEXT NOT NULL,
+    prediction_count INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS forecast_predictions (
+    run_id TEXT NOT NULL,
+    example_id TEXT NOT NULL,
+    cik TEXT NOT NULL,
+    security_key TEXT NOT NULL,
+    cusip TEXT NOT NULL,
+    issuer_name TEXT NOT NULL,
+    feature_report_period TEXT NOT NULL,
+    feature_available_at TEXT NOT NULL,
+    target_report_period TEXT NOT NULL,
+    predicted_weight DOUBLE PRECISION NOT NULL CHECK (predicted_weight >= 0),
+    predicted_rank INTEGER NOT NULL CHECK (predicted_rank > 0),
+    source_accessions_json TEXT NOT NULL,
+    PRIMARY KEY (run_id, example_id),
+    FOREIGN KEY (run_id) REFERENCES forecast_runs(run_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_forecast_predictions_manager_target
+    ON forecast_predictions(cik, target_report_period, predicted_rank);
 """
 
 
@@ -521,6 +601,9 @@ class DatabaseConnection:
 
     def commit(self) -> None:
         self._raw_connection.commit()
+
+    def rollback(self) -> None:
+        self._raw_connection.rollback()
 
     def close(self) -> None:
         self._raw_connection.close()
@@ -873,6 +956,99 @@ def load_feature_rows(connection: DatabaseConnection, *, limit: int | None = Non
         parameters = (limit,)
     rows = connection.execute(query, parameters).fetchall()
     return [_row_to_feature_row(row) for row in rows]
+
+
+def store_forecast_run(
+    connection: DatabaseConnection,
+    run: ForecastRun,
+    predictions: list[ForecastPrediction],
+) -> bool:
+    """Atomically insert a forecast run; return False for an identical existing run."""
+
+    if run.prediction_count != len(predictions):
+        raise ValueError("Forecast run prediction_count does not match supplied predictions")
+    if any(prediction.run_id != run.run_id for prediction in predictions):
+        raise ValueError("Every forecast prediction must reference the supplied run_id")
+    existing = get_forecast_run(connection, run.run_id)
+    if existing is not None:
+        if existing != run or count_forecast_predictions(connection, run.run_id) != len(predictions):
+            raise ValueError(f"Forecast run identity collision: {run.run_id}")
+        return False
+    try:
+        connection.execute(
+            """
+            INSERT INTO forecast_runs (
+                run_id, model_name, model_version, status, dataset_id,
+                dataset_manifest_sha256, protocol_version, protocol_sha256,
+                code_revision, implementation_sha256, source_cutoff, target_quarter,
+                generated_at, limitations_json, source_lineage_json, prediction_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                run.run_id, run.model_name, run.model_version, run.status, run.dataset_id,
+                run.dataset_manifest_sha256, run.protocol_version, run.protocol_sha256,
+                run.code_revision, run.implementation_sha256, run.source_cutoff, run.target_quarter,
+                run.generated_at, json.dumps(run.limitations, sort_keys=True),
+                json.dumps(run.source_lineage, sort_keys=True), run.prediction_count,
+            ),
+        )
+        if predictions:
+            connection.executemany(
+                """
+                INSERT INTO forecast_predictions (
+                    run_id, example_id, cik, security_key, cusip, issuer_name,
+                    feature_report_period, feature_available_at, target_report_period,
+                    predicted_weight, predicted_rank, source_accessions_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        value.run_id, value.example_id, value.cik, value.security_key,
+                        value.cusip, value.issuer_name, value.feature_report_period,
+                        value.feature_available_at, value.target_report_period,
+                        value.predicted_weight, value.predicted_rank,
+                        json.dumps(value.source_accession_numbers, sort_keys=True),
+                    )
+                    for value in predictions
+                ],
+            )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    return True
+
+
+def get_forecast_run(connection: DatabaseConnection, run_id: str) -> ForecastRun | None:
+    row = connection.execute("SELECT * FROM forecast_runs WHERE run_id = ?", (run_id,)).fetchone()
+    return _row_to_forecast_run(row) if row is not None else None
+
+
+def count_forecast_predictions(connection: DatabaseConnection, run_id: str) -> int:
+    row = connection.execute(
+        "SELECT COUNT(*) AS prediction_count FROM forecast_predictions WHERE run_id = ?", (run_id,)
+    ).fetchone()
+    return int(row["prediction_count"]) if row is not None else 0
+
+
+def list_forecast_predictions(
+    connection: DatabaseConnection,
+    run_id: str,
+    *,
+    cik: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[ForecastPrediction]:
+    if limit < 1 or offset < 0:
+        raise ValueError("limit must be positive and offset must be non-negative")
+    query = "SELECT * FROM forecast_predictions WHERE run_id = ?"
+    parameters: list[object] = [run_id]
+    if cik is not None:
+        query += " AND cik = ?"
+        parameters.append(cik)
+    query += " ORDER BY cik, predicted_rank, security_key LIMIT ? OFFSET ?"
+    parameters.extend([limit, offset])
+    return [_row_to_forecast_prediction(row) for row in connection.execute(query, parameters).fetchall()]
 
 
 def store_model_run(
@@ -1562,6 +1738,33 @@ def _row_to_model_run(row: Mapping[str, Any]) -> ModelRunSummary:
         ),
         artifact_path=str(row["artifact_path"]) if row["artifact_path"] is not None else None,
         is_best_model=bool(row["is_best_model"]),
+    )
+
+
+def _row_to_forecast_run(row: Mapping[str, Any]) -> ForecastRun:
+    return ForecastRun(
+        run_id=str(row["run_id"]), model_name=str(row["model_name"]),
+        model_version=str(row["model_version"]), status=str(row["status"]),
+        dataset_id=str(row["dataset_id"]), dataset_manifest_sha256=str(row["dataset_manifest_sha256"]),
+        protocol_version=str(row["protocol_version"]), protocol_sha256=str(row["protocol_sha256"]),
+        code_revision=str(row["code_revision"]) if row["code_revision"] is not None else None,
+        implementation_sha256=str(row["implementation_sha256"]), source_cutoff=str(row["source_cutoff"]),
+        target_quarter=str(row["target_quarter"]), generated_at=str(row["generated_at"]),
+        limitations=list(json.loads(str(row["limitations_json"]))),
+        source_lineage=list(json.loads(str(row["source_lineage_json"]))),
+        prediction_count=int(row["prediction_count"]),
+    )
+
+
+def _row_to_forecast_prediction(row: Mapping[str, Any]) -> ForecastPrediction:
+    return ForecastPrediction(
+        run_id=str(row["run_id"]), example_id=str(row["example_id"]), cik=str(row["cik"]),
+        security_key=str(row["security_key"]), cusip=str(row["cusip"]), issuer_name=str(row["issuer_name"]),
+        feature_report_period=str(row["feature_report_period"]),
+        feature_available_at=str(row["feature_available_at"]),
+        target_report_period=str(row["target_report_period"]), predicted_weight=float(row["predicted_weight"]),
+        predicted_rank=int(row["predicted_rank"]),
+        source_accession_numbers=list(json.loads(str(row["source_accessions_json"]))),
     )
 
 

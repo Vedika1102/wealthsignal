@@ -21,7 +21,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 
-BASELINE_CONTRACT_VERSION = 4
+BASELINE_CONTRACT_VERSION = 5
 FEATURE_COLUMNS = (
     "current_weight", "previous_weight", "lag2_weight", "weight_momentum",
     "current_rank", "previous_rank", "rank_momentum", "holding_history_quarters",
@@ -213,13 +213,22 @@ def _prediction_rows(fold, rows, model_name, predicted, action_predictions):
     for index, (row, score) in enumerate(zip(rows, predicted)):
         result.append({
             "fold_id": fold["fold_id"], "role": fold["role"], "model": model_name,
-            "example_id": row["example_id"], "cik": row["cik"],
-            "feature_report_period": row["feature_report_period"], "target_report_period": row["target_report_period"],
+            "example_id": row["example_id"], "cik": row["cik"], "security_key": row["security_key"],
+            "cusip": row["cusip"], "issuer_name": row["issuer_name"],
+            "feature_report_period": row["feature_report_period"], "feature_available_at": row["feature_available_at"],
+            "target_report_period": row["target_report_period"],
             "current_weight": float(row["current_weight"]), "target_weight": float(row["target_weight"]),
             "target_is_new": int(row["target_is_new"]), "target_is_exit": int(row["target_is_exit"]),
             "predicted_weight": float(score), "predicted_is_new": int(action_predictions["new"][index]),
             "predicted_is_exit": int(action_predictions["exit"][index]),
         })
+    grouped: dict[tuple[str, str], list[dict[str, object]]] = defaultdict(list)
+    for value in result:
+        grouped[(str(value["cik"]), str(value["target_report_period"]))].append(value)
+    for values in grouped.values():
+        values.sort(key=lambda value: (-float(value["predicted_weight"]), str(value["security_key"])))
+        for rank, value in enumerate(values, start=1):
+            value["predicted_rank"] = rank
     return result
 
 

@@ -178,9 +178,20 @@ class TemporalDatasetTests(unittest.TestCase):
             writer.writeheader()
             writer.writerows(rows)
         checksum = hashlib.sha256(holdings_path.read_bytes()).hexdigest()
+        effective_path = path / "effective_filings.csv"
+        with effective_path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=["cik", "report_period", "source_accession_numbers"])
+            writer.writeheader()
+            for cik, histories in manager_holdings.items():
+                for quarter_index, ((report_period, _), _) in enumerate(zip(quarters, histories)):
+                    writer.writerow({"cik": cik, "report_period": report_period.isoformat(), "source_accession_numbers": f"{cik}-{quarter_index}"})
         manifest = {
             "dataset_id": "synthetic-temporal-fixture",
-            "outputs": {"normalized_holdings.csv": {"sha256": checksum}},
+            "outputs": {
+                "normalized_holdings.csv": {"sha256": checksum},
+                "effective_filings.csv": {"sha256": hashlib.sha256(effective_path.read_bytes()).hexdigest()},
+            },
+            "sources": [{"package": "fixture", "source_url": "fixture://13f", "sha256": "fixture", "size_bytes": 1}],
         }
         (path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
         return path

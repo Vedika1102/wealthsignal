@@ -117,6 +117,8 @@ This snapshot was re-established from the repository after Protocol V1 was froze
 - expanding-window validation/test manifests and automated leakage audits;
 - persistence, EMA, institutional-popularity, Ridge, histogram gradient-boosting, and logistic action baselines;
 - frozen comparison protocols with checksum-gated final-test access;
+- lineage-aware forecast-run and forecast-prediction persistence for SQLite and PostgreSQL;
+- idempotent persistence-reference forecast materialization with security, filing, dataset, protocol, model, and code lineage;
 - synthetic client portfolios and portfolio-impact scoring;
 - FastAPI endpoints and Docker Compose services;
 - 56 passing tests reported after the Protocol V1 evaluation.
@@ -155,9 +157,6 @@ Keep and harden:
 
 Implement next:
 
-- forecast-specific run and prediction persistence;
-- prediction exports that retain `security_key` and `cusip` rather than only `example_id` and manager CIK;
-- forecast provenance from source cutoff through dataset, protocol, model, code revision, and generated output;
 - forecast APIs that clearly separate predicted future holdings from observed position changes;
 - a current-data Protocol V2 and a research-reproduction lane for NAVIS;
 - downstream portfolio-impact workflow using only a model that passes its promotion policy;
@@ -175,11 +174,11 @@ The rule-based materiality score may remain as a clearly named observed-change s
 
 ### Confirmed risks and blockers
 
-1. The completed forecasting work and this guide are currently uncommitted on the local `master` worktree; preserve and checkpoint them before beginning another model family.
-2. Forecast outputs currently live as experiment CSV/JSON artifacts. The database and API still expose the legacy weak-label model-run path, not next-quarter forecasts.
-3. Forecast prediction rows omit the security identifier even though temporal rows contain `security_key` and `cusip`; this blocks trustworthy persistence and serving.
+1. Protocol V1 was checkpointed locally in commit `14c5d01`; the newer forecast-persistence milestone remains uncommitted until reviewed.
+2. Forecast runs and predictions now have separate lineage-aware tables, but the API still exposes the legacy weak-label model-run path rather than next-quarter forecasts.
+3. The local V1 forecast database is ignored under `data/`; a clean checkout must rebuild it from checksum-verified source artifacts with the documented CLI.
 4. Protocol V1's final test is consumed. It cannot be reused for NAVIS development, feature selection, candidate changes, or threshold tuning.
-5. The README contains stale statements that forecasting is not implemented and that the final test remains locked; reconcile documentation against the saved artifacts.
+5. The failed action classifiers remain diagnostic and must not be introduced into alerts, portfolio impact, or the forecast API.
 6. Ten managers and six target quarters demonstrate the method but do not reproduce the research paper's scale or establish broad external validity.
 7. Long-term security identity, corporate actions, and historical index-membership policies still need explicit treatment.
 8. Current Python dependencies do not yet declare a graph-learning framework or PySpark. Add them only inside the milestone that uses them and with reproducible lock/config updates.
@@ -188,14 +187,13 @@ The rule-based materiality score may remain as a clearly named observed-change s
 
 Follow this dependency order from the actual stopping point:
 
-1. Review the uncommitted V1 diff, reconcile stale documentation, rerun the 56-test suite, and create a clean checkpoint without reopening the consumed test.
-2. Add lineage-aware persistence for the V1 persistence forecast and retain manager, security, cutoff, target-quarter, dataset, protocol, model, and code identities.
-3. Serve those forecasts through typed, paginated API endpoints with provenance and limitations.
-4. Build an immutable, newer-data Protocol V2 using later SEC packages and a newly declared untouched evaluation window.
-5. Create a framework-independent temporal bipartite graph adapter and prove that graph snapshots reconcile with the tabular portfolios and baseline metrics.
-6. Reproduce NAVIS against a frozen upstream revision, record every deviation, and compare it fairly with the same persistence and EMA baselines.
-7. Implement one clearly original WealthSignal extension and ablation after the reproduction is credible.
-8. Add PySpark/SQL scaling, monitoring, Excel, PowerPoint, dashboard, and verified resume metrics as measured engineering and communication layers.
+1. Review and checkpoint the lineage-aware forecast persistence milestone without reopening the consumed test.
+2. Serve those forecasts through typed, paginated API endpoints with provenance and limitations.
+3. Build an immutable, newer-data Protocol V2 using later SEC packages and a newly declared untouched evaluation window.
+4. Create a framework-independent temporal bipartite graph adapter and prove that graph snapshots reconcile with the tabular portfolios and baseline metrics.
+5. Reproduce NAVIS against a frozen upstream revision, record every deviation, and compare it fairly with the same persistence and EMA baselines.
+6. Implement one clearly original WealthSignal extension and ablation after the reproduction is credible.
+7. Add PySpark/SQL scaling, monitoring, Excel, PowerPoint, dashboard, and verified resume metrics as measured engineering and communication layers.
 
 At the start of every milestone, Codex must verify that its prerequisite milestone is actually complete rather than relying on this document or the README.
 
@@ -1155,6 +1153,8 @@ Run these prompts in order. Each prompt is intentionally bounded so Codex can im
 
 ### Milestone 0 — Preserve and Reconcile Protocol V1
 
+Status: completed and checkpointed locally in commit `14c5d01`.
+
 ```text
 Read docs/CODEX_PROJECT_NAVIGATION.md, docs/WealthSignal_Final_Test_Report_V1.md, docs/WealthSignal_Candidate_Universe_Sensitivity.md, and docs/ai-governance/forecast-comparison-protocol-v1.md completely. Inspect the full uncommitted diff and current Git status.
 
@@ -1164,6 +1164,8 @@ Deliver a clean, reviewable V1 checkpoint proposal, including the exact files to
 ```
 
 ### Milestone 1 — Forecast Persistence and End-to-End Lineage
+
+Status: implemented locally; review and checkpoint pending.
 
 ```text
 Inspect the temporal dataset, forecasting baseline, persistence schemas, CLI, and API. Implement forecast-specific persistence for the honest V1 persistence model without reusing the consumed test for tuning.
@@ -1268,7 +1270,7 @@ WealthSignal is portfolio-ready only when:
 Copy this into a new Codex task opened in the WealthSignal repository:
 
 ```text
-Read docs/CODEX_PROJECT_NAVIGATION.md completely and execute Milestone 0 — Preserve and Reconcile Protocol V1.
+Read docs/CODEX_PROJECT_NAVIGATION.md completely and execute Milestone 2 — Forecast API and Honest Product Surface.
 
-Treat the existing final test as consumed. Do not tune, rerun, or reinterpret it. Begin by inspecting the full uncommitted diff and saved V1 artifacts, then preserve the current work in a clean, tested checkpoint before implementing forecast persistence or NAVIS.
+Treat the existing final test as consumed. Do not tune, rerun, or reinterpret it. Begin by reviewing and checkpointing the lineage-aware forecast persistence diff, then implement typed, paginated forecast endpoints over the separate forecast tables. Keep failed action classifiers out of alerts and client decisions.
 ```

@@ -38,6 +38,9 @@ def test_baseline_run_is_deterministic_and_test_is_locked(tmp_path: Path) -> Non
     assert all("weight_rmse" in fold["metrics"] for fold in report["evaluated_folds"])
     assert (first / "fold-1-logistic_new.json").exists()
     assert (first / "fold-1-logistic_exit.json").exists()
+    with (first / "predictions.csv").open(encoding="utf-8") as handle:
+        header = handle.readline().strip().split(",")
+    assert {"security_key", "cusip", "issuer_name", "feature_available_at", "predicted_rank"} <= set(header)
 
 
 def test_final_test_requires_fixed_protocol(tmp_path: Path) -> None:

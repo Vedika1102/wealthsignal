@@ -304,6 +304,46 @@ class ModelPrediction:
 
 
 @dataclass(slots=True)
+class ForecastRun:
+    """Lineage-complete metadata for one immutable holdings forecast."""
+
+    run_id: str
+    model_name: str
+    model_version: str
+    status: str
+    dataset_id: str
+    dataset_manifest_sha256: str
+    protocol_version: str
+    protocol_sha256: str
+    code_revision: str | None
+    implementation_sha256: str
+    source_cutoff: str
+    target_quarter: str
+    generated_at: str
+    limitations: list[str]
+    source_lineage: list[dict[str, object]]
+    prediction_count: int
+
+
+@dataclass(slots=True)
+class ForecastPrediction:
+    """One manager-security next-quarter forecast without future truth fields."""
+
+    run_id: str
+    example_id: str
+    cik: str
+    security_key: str
+    cusip: str
+    issuer_name: str
+    feature_report_period: str
+    feature_available_at: str
+    target_report_period: str
+    predicted_weight: float
+    predicted_rank: int
+    source_accession_numbers: list[str]
+
+
+@dataclass(slots=True)
 class RecommendationPrecedent:
     """Historical precedent similar to a current material position change."""
 

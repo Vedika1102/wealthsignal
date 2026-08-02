@@ -16,6 +16,8 @@ The [candidate-universe sensitivity study](docs/WealthSignal_Candidate_Universe_
 
 [Final-Test Report V1](docs/WealthSignal_Final_Test_Report_V1.md) preserves the one-time holdout result. Persistence wins the primary final-test ranking and MAE metrics; no learned model is promoted, and the Protocol V1 holdout is now consumed.
 
+[Forecast Persistence and Lineage](docs/WealthSignal_Forecast_Persistence.md) documents the separate forecast-run and prediction schemas, checksum-traced materialization CLI, idempotency contract, and measured V1 reconciliation.
+
 This repository starts with the `13F ingestion foundation`, because a credible platform depends on:
 
 1. reliable parsing of real filings,
@@ -109,12 +111,13 @@ Implemented:
 - expanding-window split manifests and automated temporal-leakage audits
 - persistence, EMA, popularity, ridge, gradient-boosting, and logistic action baselines
 - checksum-gated Protocol V1 validation and one-time final-test artifacts
+- lineage-aware SQLite/PostgreSQL forecast persistence and idempotent persistence-reference materialization
 - unit tests for parser, SEC utilities, historical/temporal datasets, baselines, persistence, and decisioning
 
 Next:
 
 - use persistence as the V1 reference forecast without presenting it as a learned-model breakthrough
-- add lineage-aware forecast persistence and APIs; reserve later untouched quarters for future model evaluation
+- add typed forecast APIs over the lineage-aware forecast tables; reserve later untouched quarters for future model evaluation
 
 ### Legacy materiality path
 
