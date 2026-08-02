@@ -176,8 +176,8 @@ The rule-based materiality score may remain as a clearly named observed-change s
 
 ### Confirmed risks and blockers
 
-1. Protocol V1, forecast persistence, and forecast APIs are checkpointed locally; Protocol V2 design remains uncommitted until reviewed.
-2. Protocol V2 development packages have not been downloaded and the deterministic 25-manager CIK list has not yet been materialized.
+1. Protocol V1, forecast persistence, and forecast APIs are checkpointed. Protocol V2 design revision 1 is checkpointed in commit `fe78dc7`; the revised 50-manager design revision 2 is frozen and checksum-verified, with its review checkpoint pending.
+2. Protocol V2 development packages have not been downloaded and the deterministic 50-manager CIK list has not yet been materialized. Its first 10 and 25 managers are nested engineering subsets; 99 managers remain an optional paper-scale study.
 3. The local V1 forecast database is ignored under `data/`; a clean checkout must rebuild it from checksum-verified source artifacts with the documented CLI.
 4. Protocol V1's final test is consumed. It cannot be reused for NAVIS development, feature selection, candidate changes, or threshold tuning.
 5. The failed action classifiers remain diagnostic and must not be introduced into alerts, portfolio impact, or the forecast API.
@@ -1167,7 +1167,7 @@ Deliver a clean, reviewable V1 checkpoint proposal, including the exact files to
 
 ### Milestone 1 — Forecast Persistence and End-to-End Lineage
 
-Status: implemented locally; review and checkpoint pending.
+Status: completed and checkpointed in commit `1f2c4f9`.
 
 ```text
 Inspect the temporal dataset, forecasting baseline, persistence schemas, CLI, and API. Implement forecast-specific persistence for the honest V1 persistence model without reusing the consumed test for tuning.
@@ -1179,7 +1179,7 @@ Add migrations or compatibility logic, transaction safety, indexes justified by 
 
 ### Milestone 2 — Forecast API and Honest Product Surface
 
-Status: implemented locally; review and checkpoint pending.
+Status: completed and checkpointed in commit `a407aa8`.
 
 ```text
 Using the lineage-aware forecast tables, implement typed API endpoints to list forecast runs, retrieve one run with provenance, and retrieve a manager's ranked forecast for a target quarter with pagination. Clearly label observed holdings, observed changes, and predicted future weights as different concepts.
@@ -1189,7 +1189,7 @@ Return manager and security identifiers, predicted weight/rank, source cutoff, t
 
 ### Milestone 3 — Current-Data Protocol V2
 
-Status: design frozen locally before download; review and checkpoint pending.
+Status: design revision 2 frozen locally before download; protocol/config checksums verified, with review checkpoint pending.
 
 ```text
 Design Protocol V2 before downloading or evaluating new data. Inventory the latest complete official SEC 13F bulk packages available at execution time, then declare a larger manager cohort, historical coverage, security-universe policy, source cutoff, validation windows, and a brand-new untouched final or prospective window.
@@ -1278,5 +1278,5 @@ Copy this into a new Codex task opened in the WealthSignal repository:
 ```text
 Read docs/CODEX_PROJECT_NAVIGATION.md and the three Protocol V2 governance files completely. Review the frozen Protocol V2 design and execute only its development-data acquisition and training-period cohort-selection stage.
 
-Treat Protocol V1's final test as consumed and Protocol V2's 2026 Q2 target as unavailable and untouched. Verify the protocol/config checksums before downloading. Acquire only the declared development packages through May 2026, derive the 25-manager cohort using only 2019 Q1–2023 Q4 report quarters, and persist its ordered CIK list and checksum. Do not acquire or inspect the future 2026 Q2 truth source.
+Treat Protocol V1's final test as consumed and Protocol V2's 2026 Q2 target as unavailable and untouched. Verify the protocol/config checksums before downloading. Acquire only the declared development packages through May 2026, derive the ordered 50-manager main cohort using only 2019 Q1–2023 Q4 report quarters, and persist its ordered CIK list and checksum. Define the first 10 and first 25 as nested engineering subsets; do not use them for the main validation claim. Preserve the same ordering so an optional first-99 scale study can be run later. Do not acquire or inspect the future 2026 Q2 truth source.
 ```

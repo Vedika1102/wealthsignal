@@ -38,11 +38,15 @@ The final manager list is derived only from 2019 Q1–2023 Q4 data by this deter
 3. Require at least 16 of the 20 selection-period report quarters, including 2023 Q4.
 4. Compute each eligible manager's median reported long-market value over its eligible selection-period quarters.
 5. Sort descending by median value, then ascending by CIK.
-6. Select the first 25 managers and freeze the ordered CIK list with a checksum.
+6. Select the first 50 managers and freeze the ordered CIK list with a checksum.
 
 Future continuity, validation performance, and test availability may not affect cohort selection. A selected manager missing a later quarter receives an explicit missing status; it is not silently replaced. This prevents future-survivor selection.
 
-Twenty-five managers are the declared local target. If fewer than 25 satisfy the predeclared eligibility rule, use all eligible managers and record the shortfall without weakening the rule.
+Fifty managers are the declared main-study target. If fewer than 50 satisfy the predeclared eligibility rule, use all eligible managers and record the shortfall without weakening the rule.
+
+The ordered cohort also defines nested engineering subsets: the first 10 and first 25 managers may be used for smoke tests, graph-contract debugging, and runtime estimation. Results from these subsets are engineering evidence, not the main Protocol V2 model comparison. Official validation, model selection, and ablation claims use all 50 managers.
+
+After the 50-manager pipeline and NAVIS reproduction are stable, an optional 99-manager scale study may be run to approach the published paper's manager count. It must use the first 99 managers from the same deterministic ordering; manager selection rules may not change. The 50- and 99-manager results must be reported separately, and the final cohort/model configuration must be frozen before prospective-test access. The 2026 Q2 holdout may not be used to decide whether 50 or 99 managers produces the preferred result.
 
 ## Effective filing and missingness policy
 
@@ -138,6 +142,6 @@ Before acquiring or opening 2026 Q2 truth:
 - SEC bulk data is as filed and may contain filer or extraction errors.
 - Confidential treatment and later amendments can make observed history incomplete.
 - CUSIP identity breaks remain unless supported by point-in-time crosswalks.
-- Twenty-five large, persistent managers do not represent the full filer population.
+- Fifty large, persistent managers do not represent the full filer population; the optional 99-manager scale study improves comparison with the paper but still does not represent all 13F filers.
 - The prospective window is one quarter; it tests temporal generalization but not every market regime.
 - Forecasts are research and decision-support outputs, not investment advice.

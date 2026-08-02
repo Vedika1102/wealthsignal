@@ -1,5 +1,5 @@
 {
-  "protocol_version": "v2-design-1",
+  "protocol_version": "v2-design-2",
   "freeze_date": "2026-08-02",
   "source": {
     "authority": "SEC Form 13F Data Sets",
@@ -15,7 +15,10 @@
     "prospective_test": "2026-06-30"
   },
   "manager_policy": {
-    "target_count": 25,
+    "target_count": 50,
+    "engineering_subset_counts": [10, 25],
+    "optional_scale_count": 99,
+    "nested_ordering_required": true,
     "selection_quarters_required": 16,
     "must_include_report_quarter": "2023-12-31",
     "ranking": "median reported long-market value descending, CIK ascending",
