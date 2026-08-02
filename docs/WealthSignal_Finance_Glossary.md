@@ -391,7 +391,7 @@ What it means:
 
 Why it matters here:
 
-- This should be the central ML target.
+- It remains useful for observed-change triage, but it is not the central ML target. The primary targets are objective next-quarter holdings outcomes defined in `docs/WealthSignal_Forecasting_Spec.md`.
 
 Mistake to avoid:
 
@@ -418,7 +418,7 @@ What it means:
 
 Why it matters here:
 
-- This is your main contrast class.
+- This is the contrast class for the optional legacy materiality-policy evaluation, not for the primary forecasting task.
 
 ### Conviction
 
@@ -448,7 +448,7 @@ What it means:
 
 Why it matters here:
 
-- If the system says `0.85 materiality`, that number should be trustworthy.
+- Any probability or uncertainty measure must be validated for its stated task. Legacy materiality scores must not be interpreted as next-quarter forecast probabilities.
 
 ### Drift
 
