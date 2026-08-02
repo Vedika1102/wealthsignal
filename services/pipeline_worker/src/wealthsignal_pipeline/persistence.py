@@ -1024,6 +1024,23 @@ def get_forecast_run(connection: DatabaseConnection, run_id: str) -> ForecastRun
     return _row_to_forecast_run(row) if row is not None else None
 
 
+def list_forecast_runs(
+    connection: DatabaseConnection, *, limit: int = 20, offset: int = 0
+) -> tuple[list[ForecastRun], int]:
+    if limit < 1 or offset < 0:
+        raise ValueError("limit must be positive and offset must be non-negative")
+    total_row = connection.execute("SELECT COUNT(*) AS run_count FROM forecast_runs").fetchone()
+    rows = connection.execute(
+        """
+        SELECT * FROM forecast_runs
+        ORDER BY generated_at DESC, run_id DESC
+        LIMIT ? OFFSET ?
+        """,
+        (limit, offset),
+    ).fetchall()
+    return [_row_to_forecast_run(row) for row in rows], int(total_row["run_count"] if total_row else 0)
+
+
 def count_forecast_predictions(connection: DatabaseConnection, run_id: str) -> int:
     row = connection.execute(
         "SELECT COUNT(*) AS prediction_count FROM forecast_predictions WHERE run_id = ?", (run_id,)
@@ -1031,11 +1048,26 @@ def count_forecast_predictions(connection: DatabaseConnection, run_id: str) -> i
     return int(row["prediction_count"]) if row is not None else 0
 
 
+def count_manager_forecast_predictions(
+    connection: DatabaseConnection, run_id: str, cik: str, target_quarter: str
+) -> int:
+    row = connection.execute(
+        """
+        SELECT COUNT(*) AS prediction_count
+        FROM forecast_predictions
+        WHERE run_id = ? AND cik = ? AND target_report_period = ?
+        """,
+        (run_id, cik, target_quarter),
+    ).fetchone()
+    return int(row["prediction_count"] if row else 0)
+
+
 def list_forecast_predictions(
     connection: DatabaseConnection,
     run_id: str,
     *,
     cik: str | None = None,
+    target_quarter: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[ForecastPrediction]:
@@ -1046,6 +1078,9 @@ def list_forecast_predictions(
     if cik is not None:
         query += " AND cik = ?"
         parameters.append(cik)
+    if target_quarter is not None:
+        query += " AND target_report_period = ?"
+        parameters.append(target_quarter)
     query += " ORDER BY cik, predicted_rank, security_key LIMIT ? OFFSET ?"
     parameters.extend([limit, offset])
     return [_row_to_forecast_prediction(row) for row in connection.execute(query, parameters).fetchall()]

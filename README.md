@@ -18,6 +18,8 @@ The [candidate-universe sensitivity study](docs/WealthSignal_Candidate_Universe_
 
 [Forecast Persistence and Lineage](docs/WealthSignal_Forecast_Persistence.md) documents the separate forecast-run and prediction schemas, checksum-traced materialization CLI, idempotency contract, and measured V1 reconciliation.
 
+[Forecast API and Honest Product Surface](docs/WealthSignal_Forecast_API.md) documents typed run-provenance and paginated manager-forecast endpoints, concept separation, errors, traceability, and local latency measurements.
+
 This repository starts with the `13F ingestion foundation`, because a credible platform depends on:
 
 1. reliable parsing of real filings,
@@ -112,12 +114,13 @@ Implemented:
 - persistence, EMA, popularity, ridge, gradient-boosting, and logistic action baselines
 - checksum-gated Protocol V1 validation and one-time final-test artifacts
 - lineage-aware SQLite/PostgreSQL forecast persistence and idempotent persistence-reference materialization
+- typed, paginated forecast-run and manager-forecast API endpoints with provenance and limitations
 - unit tests for parser, SEC utilities, historical/temporal datasets, baselines, persistence, and decisioning
 
 Next:
 
 - use persistence as the V1 reference forecast without presenting it as a learned-model breakthrough
-- add typed forecast APIs over the lineage-aware forecast tables; reserve later untouched quarters for future model evaluation
+- design current-data Protocol V2 with a new untouched evaluation window
 
 ### Legacy materiality path
 
@@ -181,6 +184,9 @@ uvicorn services.decision_api.app.main:app --reload
 Current endpoints:
 
 - `GET /health`
+- `GET /api/v1/forecast-runs`
+- `GET /api/v1/forecast-runs/{run_id}`
+- `GET /api/v1/forecast-runs/{run_id}/managers/{manager_cik}`
 - `GET /filings`
 - `GET /filings/{accession_number}/changes`
 - `GET /alerts`

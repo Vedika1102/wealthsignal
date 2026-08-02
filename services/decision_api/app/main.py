@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -11,14 +12,18 @@ from wealthsignal_pipeline.materiality import materiality_policy
 from wealthsignal_pipeline.models import ClientHolding, ClientPortfolio
 from wealthsignal_pipeline.persistence import (
     connect,
+    count_manager_forecast_predictions,
     get_alert,
     get_client_portfolio,
+    get_forecast_run,
     get_latest_prediction_lookup,
     initialize_database,
     list_alert_impacts,
     list_alerts,
     list_client_portfolios,
     list_filing_summaries,
+    list_forecast_predictions,
+    list_forecast_runs,
     list_latest_model_runs,
     list_position_deltas,
     list_recommendations,
@@ -39,7 +44,7 @@ def _default_db_path() -> str:
 DB_PATH = os.getenv("WEALTHSIGNAL_DB_PATH", _default_db_path())
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-app = FastAPI(title="WealthSignal Decision API", version="0.1.0")
+app = FastAPI(title="WealthSignal Decision API", version="0.2.0")
 
 
 class ClientHoldingPayload(BaseModel):
@@ -53,6 +58,68 @@ class ClientPortfolioPayload(BaseModel):
     client_name: str = Field(min_length=1)
     strategy: str = Field(min_length=1)
     holdings: list[ClientHoldingPayload] = Field(min_length=1)
+
+
+class ForecastRunPayload(BaseModel):
+    concept: Literal["predicted_future_holdings"] = "predicted_future_holdings"
+    run_id: str
+    model_name: str
+    model_version: str
+    status: str
+    dataset_id: str
+    dataset_manifest_sha256: str
+    protocol_version: str
+    protocol_sha256: str
+    code_revision: str | None
+    implementation_sha256: str
+    source_cutoff: str
+    target_quarter: str
+    generated_at: str
+    limitations: list[str]
+    source_lineage: list[dict[str, object]]
+    prediction_count: int
+
+
+class ForecastRunPage(BaseModel):
+    concept: Literal["predicted_future_holdings"] = "predicted_future_holdings"
+    items: list[ForecastRunPayload]
+    total: int
+    limit: int
+    offset: int
+
+
+class ForecastPredictionPayload(BaseModel):
+    example_id: str
+    manager_cik: str
+    security_key: str
+    cusip: str
+    issuer_name: str
+    feature_report_period: str
+    feature_available_at: str
+    target_quarter: str
+    predicted_weight: float = Field(ge=0)
+    predicted_rank: int = Field(ge=1)
+    source_accession_numbers: list[str]
+
+
+class ManagerForecastPage(BaseModel):
+    concept: Literal["predicted_future_holdings"] = "predicted_future_holdings"
+    observed_holdings_included: Literal[False] = False
+    investment_advice: Literal[False] = False
+    run_id: str
+    manager_cik: str
+    target_quarter: str
+    source_cutoff: str
+    model_name: str
+    model_version: str
+    dataset_id: str
+    protocol_version: str
+    generated_at: str
+    limitations: list[str]
+    items: list[ForecastPredictionPayload]
+    total: int
+    limit: int
+    offset: int
 
 
 def _connection():
@@ -108,6 +175,20 @@ def _serialize_model_run(model_run) -> dict[str, object]:
         "artifact_path": model_run.artifact_path,
         "artifact_loaded": _artifact_loaded(model_run.artifact_path),
         "is_best_model": model_run.is_best_model,
+    }
+
+
+def _serialize_forecast_run(run) -> dict[str, object]:
+    return {
+        "concept": "predicted_future_holdings",
+        "run_id": run.run_id, "model_name": run.model_name, "model_version": run.model_version,
+        "status": run.status, "dataset_id": run.dataset_id,
+        "dataset_manifest_sha256": run.dataset_manifest_sha256,
+        "protocol_version": run.protocol_version, "protocol_sha256": run.protocol_sha256,
+        "code_revision": run.code_revision, "implementation_sha256": run.implementation_sha256,
+        "source_cutoff": run.source_cutoff, "target_quarter": run.target_quarter,
+        "generated_at": run.generated_at, "limitations": run.limitations,
+        "source_lineage": run.source_lineage, "prediction_count": run.prediction_count,
     }
 
 
@@ -323,6 +404,88 @@ def upsert_client_portfolio(client_id: str, payload: ClientPortfolioPayload) -> 
 @app.get("/governance/materiality-policy")
 def governance_materiality_policy() -> dict[str, object]:
     return materiality_policy()
+
+
+@app.get("/api/v1/forecast-runs", response_model=ForecastRunPage)
+def forecast_runs(
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> dict[str, object]:
+    connection = _connection()
+    try:
+        runs, total = list_forecast_runs(connection, limit=limit, offset=offset)
+        return {
+            "concept": "predicted_future_holdings", "items": [_serialize_forecast_run(run) for run in runs],
+            "total": total, "limit": limit, "offset": offset,
+        }
+    finally:
+        connection.close()
+
+
+@app.get("/api/v1/forecast-runs/{run_id}", response_model=ForecastRunPayload)
+def forecast_run_detail(run_id: str) -> dict[str, object]:
+    connection = _connection()
+    try:
+        run = get_forecast_run(connection, run_id)
+        if run is None:
+            raise HTTPException(status_code=404, detail="Forecast run not found")
+        return _serialize_forecast_run(run)
+    finally:
+        connection.close()
+
+
+@app.get(
+    "/api/v1/forecast-runs/{run_id}/managers/{manager_cik}",
+    response_model=ManagerForecastPage,
+)
+def manager_forecast(
+    run_id: str,
+    manager_cik: str,
+    target_quarter: str = Query(pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+) -> dict[str, object]:
+    if not manager_cik.isdigit() or len(manager_cik) > 10:
+        raise HTTPException(status_code=422, detail="manager_cik must contain at most ten digits")
+    normalized_cik = manager_cik.zfill(10)
+    connection = _connection()
+    try:
+        run = get_forecast_run(connection, run_id)
+        if run is None:
+            raise HTTPException(status_code=404, detail="Forecast run not found")
+        if target_quarter != run.target_quarter:
+            raise HTTPException(status_code=404, detail="Target quarter not found for forecast run")
+        total = count_manager_forecast_predictions(connection, run_id, normalized_cik, target_quarter)
+        if total == 0:
+            raise HTTPException(status_code=404, detail="Manager forecast not found")
+        predictions = list_forecast_predictions(
+            connection, run_id, cik=normalized_cik, target_quarter=target_quarter,
+            limit=limit, offset=offset,
+        )
+        return {
+            "concept": "predicted_future_holdings", "observed_holdings_included": False,
+            "investment_advice": False, "run_id": run.run_id, "manager_cik": normalized_cik,
+            "target_quarter": target_quarter, "source_cutoff": run.source_cutoff,
+            "model_name": run.model_name, "model_version": run.model_version,
+            "dataset_id": run.dataset_id, "protocol_version": run.protocol_version,
+            "generated_at": run.generated_at, "limitations": run.limitations,
+            "items": [
+                {
+                    "example_id": value.example_id, "manager_cik": value.cik,
+                    "security_key": value.security_key, "cusip": value.cusip,
+                    "issuer_name": value.issuer_name,
+                    "feature_report_period": value.feature_report_period,
+                    "feature_available_at": value.feature_available_at,
+                    "target_quarter": value.target_report_period,
+                    "predicted_weight": value.predicted_weight, "predicted_rank": value.predicted_rank,
+                    "source_accession_numbers": value.source_accession_numbers,
+                }
+                for value in predictions
+            ],
+            "total": total, "limit": limit, "offset": offset,
+        }
+    finally:
+        connection.close()
 
 
 @app.get("/models/latest")
