@@ -20,6 +20,8 @@ The [candidate-universe sensitivity study](docs/WealthSignal_Candidate_Universe_
 
 [Forecast API and Honest Product Surface](docs/WealthSignal_Forecast_API.md) documents typed run-provenance and paginated manager-forecast endpoints, concept separation, errors, traceability, and local latency measurements.
 
+[Protocol V2 Design](docs/WealthSignal_Protocol_V2_Design.md) declares a 25-manager current-data study, point-in-time identity and missingness rules, 2024 Q1–2026 Q1 validation, and an unavailable-at-freeze 2026 Q2 prospective holdout before any new download or evaluation.
+
 This repository starts with the `13F ingestion foundation`, because a credible platform depends on:
 
 1. reliable parsing of real filings,
@@ -115,12 +117,13 @@ Implemented:
 - checksum-gated Protocol V1 validation and one-time final-test artifacts
 - lineage-aware SQLite/PostgreSQL forecast persistence and idempotent persistence-reference materialization
 - typed, paginated forecast-run and manager-forecast API endpoints with provenance and limitations
+- checksum-frozen Protocol V2 design with a new prospective evaluation window
 - unit tests for parser, SEC utilities, historical/temporal datasets, baselines, persistence, and decisioning
 
 Next:
 
 - use persistence as the V1 reference forecast without presenting it as a learned-model breakthrough
-- design current-data Protocol V2 with a new untouched evaluation window
+- review the frozen Protocol V2 design, then acquire only its declared development packages
 
 ### Legacy materiality path
 
