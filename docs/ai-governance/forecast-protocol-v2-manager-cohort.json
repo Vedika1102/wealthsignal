@@ -1,0 +1,856 @@
+{
+  "eligible_manager_count": 4407,
+  "engineering_subsets": {
+    "10": [
+      "0000102909",
+      "0001364742",
+      "0000093751",
+      "0001351731",
+      "0000315066",
+      "0001278249",
+      "0000070858",
+      "0001633037",
+      "0000080255",
+      "0000895421"
+    ],
+    "25": [
+      "0000102909",
+      "0001364742",
+      "0000093751",
+      "0001351731",
+      "0000315066",
+      "0001278249",
+      "0000070858",
+      "0001633037",
+      "0000080255",
+      "0000895421",
+      "0000019617",
+      "0001374170",
+      "0001214717",
+      "0001039565",
+      "0000902219",
+      "0000073124",
+      "0001446194",
+      "0001422849",
+      "0001171592",
+      "0001390777",
+      "0000886982",
+      "0001423053",
+      "0001562230",
+      "0000914208",
+      "0000072971"
+    ]
+  },
+  "main_actual_count": 50,
+  "main_ordered_ciks": [
+    "0000102909",
+    "0001364742",
+    "0000093751",
+    "0001351731",
+    "0000315066",
+    "0001278249",
+    "0000070858",
+    "0001633037",
+    "0000080255",
+    "0000895421",
+    "0000019617",
+    "0001374170",
+    "0001214717",
+    "0001039565",
+    "0000902219",
+    "0000073124",
+    "0001446194",
+    "0001422849",
+    "0001171592",
+    "0001390777",
+    "0000886982",
+    "0001423053",
+    "0001562230",
+    "0000914208",
+    "0000072971",
+    "0001000275",
+    "0001422848",
+    "0000354204",
+    "0001067983",
+    "0001452861",
+    "0000820027",
+    "0000912938",
+    "0000884546",
+    "0001610520",
+    "0000764068",
+    "0001521019",
+    "0001602237",
+    "0001536890",
+    "0001595888",
+    "0001109448",
+    "0001630939",
+    "0000038777",
+    "0000861177",
+    "0000927971",
+    "0001307878",
+    "0001730386",
+    "0001274173",
+    "0001407543",
+    "0001535293",
+    "0000948046"
+  ],
+  "main_ordered_ciks_sha256": "23617b83308e9b073212f9eb493e57921877eacc887f2fcdd923cf3b9ebfc3ff",
+  "main_target_count": 50,
+  "optional_scale_target_count": 99,
+  "ordered_manager_records": [
+    {
+      "cik": "0000102909",
+      "eligible_quarter_count": 20,
+      "filer_name": "VANGUARD GROUP INC",
+      "median_reported_long_market_value_usd": 3614948714608
+    },
+    {
+      "cik": "0001364742",
+      "eligible_quarter_count": 20,
+      "filer_name": "BlackRock Inc.",
+      "median_reported_long_market_value_usd": 3163224594719
+    },
+    {
+      "cik": "0000093751",
+      "eligible_quarter_count": 20,
+      "filer_name": "STATE STREET CORP",
+      "median_reported_long_market_value_usd": 1651047211000
+    },
+    {
+      "cik": "0001351731",
+      "eligible_quarter_count": 20,
+      "filer_name": "WestEnd Advisors, LLC",
+      "median_reported_long_market_value_usd": 1407910448000
+    },
+    {
+      "cik": "0000315066",
+      "eligible_quarter_count": 20,
+      "filer_name": "FMR LLC",
+      "median_reported_long_market_value_usd": 1065354932580
+    },
+    {
+      "cik": "0001278249",
+      "eligible_quarter_count": 20,
+      "filer_name": "TOWER BRIDGE ADVISORS",
+      "median_reported_long_market_value_usd": 930000321500
+    },
+    {
+      "cik": "0000070858",
+      "eligible_quarter_count": 20,
+      "filer_name": "BANK OF AMERICA CORP /DE/",
+      "median_reported_long_market_value_usd": 878472135155
+    },
+    {
+      "cik": "0001633037",
+      "eligible_quarter_count": 19,
+      "filer_name": "Rehmann Capital Advisory Group",
+      "median_reported_long_market_value_usd": 788486038000
+    },
+    {
+      "cik": "0000080255",
+      "eligible_quarter_count": 20,
+      "filer_name": "PRICE T ROWE ASSOCIATES INC /MD/",
+      "median_reported_long_market_value_usd": 741663035500
+    },
+    {
+      "cik": "0000895421",
+      "eligible_quarter_count": 20,
+      "filer_name": "MORGAN STANLEY",
+      "median_reported_long_market_value_usd": 737590160000
+    },
+    {
+      "cik": "0000019617",
+      "eligible_quarter_count": 20,
+      "filer_name": "JPMORGAN CHASE & CO",
+      "median_reported_long_market_value_usd": 707117827500
+    },
+    {
+      "cik": "0001374170",
+      "eligible_quarter_count": 20,
+      "filer_name": "NORGES BANK",
+      "median_reported_long_market_value_usd": 705715162000
+    },
+    {
+      "cik": "0001214717",
+      "eligible_quarter_count": 20,
+      "filer_name": "GEODE CAPITAL MANAGEMENT, LLC",
+      "median_reported_long_market_value_usd": 670944665500
+    },
+    {
+      "cik": "0001039565",
+      "eligible_quarter_count": 20,
+      "filer_name": "KAHN BROTHERS GROUP INC",
+      "median_reported_long_market_value_usd": 640888778500
+    },
+    {
+      "cik": "0000902219",
+      "eligible_quarter_count": 20,
+      "filer_name": "WELLINGTON MANAGEMENT GROUP LLP",
+      "median_reported_long_market_value_usd": 499113584388
+    },
+    {
+      "cik": "0000073124",
+      "eligible_quarter_count": 20,
+      "filer_name": "NORTHERN TRUST CORP",
+      "median_reported_long_market_value_usd": 490460483509
+    },
+    {
+      "cik": "0001446194",
+      "eligible_quarter_count": 20,
+      "filer_name": "SUSQUEHANNA INTERNATIONAL GROUP, LLP",
+      "median_reported_long_market_value_usd": 486132258818
+    },
+    {
+      "cik": "0001422849",
+      "eligible_quarter_count": 20,
+      "filer_name": "Capital World Investors",
+      "median_reported_long_market_value_usd": 477253779172
+    },
+    {
+      "cik": "0001171592",
+      "eligible_quarter_count": 20,
+      "filer_name": "HAHN CAPITAL MANAGEMENT LLC",
+      "median_reported_long_market_value_usd": 475791300000
+    },
+    {
+      "cik": "0001390777",
+      "eligible_quarter_count": 20,
+      "filer_name": "Bank of New York Mellon Corp",
+      "median_reported_long_market_value_usd": 446444082996
+    },
+    {
+      "cik": "0000886982",
+      "eligible_quarter_count": 20,
+      "filer_name": "GOLDMAN SACHS GROUP INC",
+      "median_reported_long_market_value_usd": 437534881000
+    },
+    {
+      "cik": "0001423053",
+      "eligible_quarter_count": 20,
+      "filer_name": "CITADEL ADVISORS LLC",
+      "median_reported_long_market_value_usd": 417863878164
+    },
+    {
+      "cik": "0001562230",
+      "eligible_quarter_count": 20,
+      "filer_name": "Capital International Investors",
+      "median_reported_long_market_value_usd": 370085232890
+    },
+    {
+      "cik": "0000914208",
+      "eligible_quarter_count": 20,
+      "filer_name": "Invesco Ltd.",
+      "median_reported_long_market_value_usd": 364891911949
+    },
+    {
+      "cik": "0000072971",
+      "eligible_quarter_count": 20,
+      "filer_name": "WELLS FARGO & COMPANY/MN",
+      "median_reported_long_market_value_usd": 357483238000
+    },
+    {
+      "cik": "0001000275",
+      "eligible_quarter_count": 20,
+      "filer_name": "Royal Bank of Canada",
+      "median_reported_long_market_value_usd": 344873610000
+    },
+    {
+      "cik": "0001422848",
+      "eligible_quarter_count": 20,
+      "filer_name": "Capital Research Global Investors",
+      "median_reported_long_market_value_usd": 341940566845
+    },
+    {
+      "cik": "0000354204",
+      "eligible_quarter_count": 20,
+      "filer_name": "DIMENSIONAL FUND ADVISORS LP",
+      "median_reported_long_market_value_usd": 299624210045
+    },
+    {
+      "cik": "0001067983",
+      "eligible_quarter_count": 20,
+      "filer_name": "Berkshire Hathaway Inc",
+      "median_reported_long_market_value_usd": 293235414500
+    },
+    {
+      "cik": "0001452861",
+      "eligible_quarter_count": 20,
+      "filer_name": "IMC-Chicago, LLC",
+      "median_reported_long_market_value_usd": 292529824000
+    },
+    {
+      "cik": "0000820027",
+      "eligible_quarter_count": 20,
+      "filer_name": "AMERIPRISE FINANCIAL INC",
+      "median_reported_long_market_value_usd": 289233017500
+    },
+    {
+      "cik": "0000912938",
+      "eligible_quarter_count": 20,
+      "filer_name": "MASSACHUSETTS FINANCIAL SERVICES CO /MA/",
+      "median_reported_long_market_value_usd": 288263877682
+    },
+    {
+      "cik": "0000884546",
+      "eligible_quarter_count": 20,
+      "filer_name": "CHARLES SCHWAB INVESTMENT MANAGEMENT INC",
+      "median_reported_long_market_value_usd": 283375328031
+    },
+    {
+      "cik": "0001610520",
+      "eligible_quarter_count": 20,
+      "filer_name": "UBS Group AG",
+      "median_reported_long_market_value_usd": 280521657608
+    },
+    {
+      "cik": "0000764068",
+      "eligible_quarter_count": 20,
+      "filer_name": "Legal & General Group Plc",
+      "median_reported_long_market_value_usd": 264476685523
+    },
+    {
+      "cik": "0001521019",
+      "eligible_quarter_count": 20,
+      "filer_name": "Nuveen Asset Management, LLC",
+      "median_reported_long_market_value_usd": 259288627500
+    },
+    {
+      "cik": "0001602237",
+      "eligible_quarter_count": 20,
+      "filer_name": "IPG Investment Advisors LLC",
+      "median_reported_long_market_value_usd": 256397472000
+    },
+    {
+      "cik": "0001536890",
+      "eligible_quarter_count": 20,
+      "filer_name": "BAROMETER CAPITAL MANAGEMENT INC.",
+      "median_reported_long_market_value_usd": 243333107500
+    },
+    {
+      "cik": "0001595888",
+      "eligible_quarter_count": 20,
+      "filer_name": "JANE STREET GROUP, LLC",
+      "median_reported_long_market_value_usd": 222408709520
+    },
+    {
+      "cik": "0001109448",
+      "eligible_quarter_count": 20,
+      "filer_name": "ALLIANCEBERNSTEIN L.P.",
+      "median_reported_long_market_value_usd": 220570371417
+    },
+    {
+      "cik": "0001630939",
+      "eligible_quarter_count": 20,
+      "filer_name": "Boston Standard Wealth Management, LLC",
+      "median_reported_long_market_value_usd": 205924500000
+    },
+    {
+      "cik": "0000038777",
+      "eligible_quarter_count": 20,
+      "filer_name": "FRANKLIN RESOURCES INC",
+      "median_reported_long_market_value_usd": 200471886787
+    },
+    {
+      "cik": "0000861177",
+      "eligible_quarter_count": 20,
+      "filer_name": "UBS ASSET MANAGEMENT AMERICAS INC",
+      "median_reported_long_market_value_usd": 198695346192
+    },
+    {
+      "cik": "0000927971",
+      "eligible_quarter_count": 19,
+      "filer_name": "BANK OF MONTREAL /CAN/",
+      "median_reported_long_market_value_usd": 188188603000
+    },
+    {
+      "cik": "0001307878",
+      "eligible_quarter_count": 20,
+      "filer_name": "Laffer Tengler Investments, Inc.",
+      "median_reported_long_market_value_usd": 186998055000
+    },
+    {
+      "cik": "0001730386",
+      "eligible_quarter_count": 20,
+      "filer_name": "Retirement Income Solutions, Inc",
+      "median_reported_long_market_value_usd": 182820000000
+    },
+    {
+      "cik": "0001274173",
+      "eligible_quarter_count": 20,
+      "filer_name": "JANUS HENDERSON GROUP PLC",
+      "median_reported_long_market_value_usd": 182391224000
+    },
+    {
+      "cik": "0001407543",
+      "eligible_quarter_count": 20,
+      "filer_name": "ENVESTNET ASSET MANAGEMENT INC",
+      "median_reported_long_market_value_usd": 175634243500
+    },
+    {
+      "cik": "0001535293",
+      "eligible_quarter_count": 17,
+      "filer_name": "J.Safra Asset Management Corp",
+      "median_reported_long_market_value_usd": 172633256000
+    },
+    {
+      "cik": "0000948046",
+      "eligible_quarter_count": 20,
+      "filer_name": "DEUTSCHE BANK AG\\",
+      "median_reported_long_market_value_usd": 169176420000
+    },
+    {
+      "cik": "0001129770",
+      "eligible_quarter_count": 16,
+      "filer_name": "CHARTIST INC /CA/",
+      "median_reported_long_market_value_usd": 166071478000
+    },
+    {
+      "cik": "0000312069",
+      "eligible_quarter_count": 20,
+      "filer_name": "BARCLAYS PLC",
+      "median_reported_long_market_value_usd": 152440370000
+    },
+    {
+      "cik": "0000200217",
+      "eligible_quarter_count": 20,
+      "filer_name": "Dodge & Cox",
+      "median_reported_long_market_value_usd": 142164104500
+    },
+    {
+      "cik": "0000831001",
+      "eligible_quarter_count": 20,
+      "filer_name": "CITIGROUP INC",
+      "median_reported_long_market_value_usd": 140825505034
+    },
+    {
+      "cik": "0001582202",
+      "eligible_quarter_count": 20,
+      "filer_name": "Swiss National Bank",
+      "median_reported_long_market_value_usd": 139532348441
+    },
+    {
+      "cik": "0001273087",
+      "eligible_quarter_count": 20,
+      "filer_name": "MILLENNIUM MANAGEMENT LLC",
+      "median_reported_long_market_value_usd": 139121460500
+    },
+    {
+      "cik": "0000893738",
+      "eligible_quarter_count": 20,
+      "filer_name": "DELTA CAPITAL MANAGEMENT LLC",
+      "median_reported_long_market_value_usd": 138189500000
+    },
+    {
+      "cik": "0000850529",
+      "eligible_quarter_count": 20,
+      "filer_name": "Fisher Asset Management, LLC",
+      "median_reported_long_market_value_usd": 137389330000
+    },
+    {
+      "cik": "0001126328",
+      "eligible_quarter_count": 20,
+      "filer_name": "PRINCIPAL FINANCIAL GROUP INC",
+      "median_reported_long_market_value_usd": 135083918500
+    },
+    {
+      "cik": "0001475365",
+      "eligible_quarter_count": 20,
+      "filer_name": "Sumitomo Mitsui Trust Holdings, Inc.",
+      "median_reported_long_market_value_usd": 132115827608
+    },
+    {
+      "cik": "0000763212",
+      "eligible_quarter_count": 20,
+      "filer_name": "PRIMECAP MANAGEMENT CO/CA/",
+      "median_reported_long_market_value_usd": 129445766077
+    },
+    {
+      "cik": "0000748054",
+      "eligible_quarter_count": 20,
+      "filer_name": "AMERICAN CENTURY COMPANIES INC",
+      "median_reported_long_market_value_usd": 124661023654
+    },
+    {
+      "cik": "0000928047",
+      "eligible_quarter_count": 20,
+      "filer_name": "MANUFACTURERS LIFE INSURANCE COMPANY, THE",
+      "median_reported_long_market_value_usd": 122751536500
+    },
+    {
+      "cik": "0000824468",
+      "eligible_quarter_count": 20,
+      "filer_name": "CREDIT SUISSE AG/",
+      "median_reported_long_market_value_usd": 116302663000
+    },
+    {
+      "cik": "0001348883",
+      "eligible_quarter_count": 20,
+      "filer_name": "Clearbridge Investments, LLC",
+      "median_reported_long_market_value_usd": 114977613500
+    },
+    {
+      "cik": "0000919079",
+      "eligible_quarter_count": 20,
+      "filer_name": "California Public Employees Retirement System",
+      "median_reported_long_market_value_usd": 114462769305
+    },
+    {
+      "cik": "0001088875",
+      "eligible_quarter_count": 20,
+      "filer_name": "BAILLIE GIFFORD & CO",
+      "median_reported_long_market_value_usd": 114236410926
+    },
+    {
+      "cik": "0000053417",
+      "eligible_quarter_count": 20,
+      "filer_name": "JENNISON ASSOCIATES LLC",
+      "median_reported_long_market_value_usd": 114210314892
+    },
+    {
+      "cik": "0001403438",
+      "eligible_quarter_count": 20,
+      "filer_name": "LPL Financial LLC",
+      "median_reported_long_market_value_usd": 101273717500
+    },
+    {
+      "cik": "0001535323",
+      "eligible_quarter_count": 20,
+      "filer_name": "Allianz Asset Management GmbH",
+      "median_reported_long_market_value_usd": 101068848500
+    },
+    {
+      "cik": "0001465109",
+      "eligible_quarter_count": 20,
+      "filer_name": "NEUBERGER BERMAN GROUP LLC",
+      "median_reported_long_market_value_usd": 100755105530
+    },
+    {
+      "cik": "0001084208",
+      "eligible_quarter_count": 20,
+      "filer_name": "RAYMOND JAMES & ASSOCIATES",
+      "median_reported_long_market_value_usd": 100672029500
+    },
+    {
+      "cik": "0001801573",
+      "eligible_quarter_count": 17,
+      "filer_name": "Aufman Associates Inc",
+      "median_reported_long_market_value_usd": 95184748000
+    },
+    {
+      "cik": "0001009207",
+      "eligible_quarter_count": 20,
+      "filer_name": "D. E. Shaw & Co., Inc.",
+      "median_reported_long_market_value_usd": 94594389395
+    },
+    {
+      "cik": "0001803804",
+      "eligible_quarter_count": 20,
+      "filer_name": "Archer Investment Corp",
+      "median_reported_long_market_value_usd": 88774115385
+    },
+    {
+      "cik": "0000315032",
+      "eligible_quarter_count": 20,
+      "filer_name": "STATE FARM MUTUAL AUTOMOBILE INSURANCE CO",
+      "median_reported_long_market_value_usd": 88752879500
+    },
+    {
+      "cik": "0001040188",
+      "eligible_quarter_count": 20,
+      "filer_name": "VICTORY CAPITAL MANAGEMENT INC",
+      "median_reported_long_market_value_usd": 88405868575
+    },
+    {
+      "cik": "0001521001",
+      "eligible_quarter_count": 20,
+      "filer_name": "Parallax Volatility Advisers, L.P.",
+      "median_reported_long_market_value_usd": 88350602500
+    },
+    {
+      "cik": "0000713676",
+      "eligible_quarter_count": 20,
+      "filer_name": "PNC FINANCIAL SERVICES GROUP, INC.",
+      "median_reported_long_market_value_usd": 86372291000
+    },
+    {
+      "cik": "0001418333",
+      "eligible_quarter_count": 20,
+      "filer_name": "MACQUARIE GROUP LTD",
+      "median_reported_long_market_value_usd": 84432833387
+    },
+    {
+      "cik": "0000318989",
+      "eligible_quarter_count": 20,
+      "filer_name": "FIL Ltd",
+      "median_reported_long_market_value_usd": 83682342832
+    },
+    {
+      "cik": "0001037389",
+      "eligible_quarter_count": 20,
+      "filer_name": "RENAISSANCE TECHNOLOGIES LLC",
+      "median_reported_long_market_value_usd": 82424000500
+    },
+    {
+      "cik": "0001125816",
+      "eligible_quarter_count": 20,
+      "filer_name": "FIRST TRUST ADVISORS LP",
+      "median_reported_long_market_value_usd": 81787916000
+    },
+    {
+      "cik": "0001056053",
+      "eligible_quarter_count": 20,
+      "filer_name": "TD Asset Management Inc",
+      "median_reported_long_market_value_usd": 80448691117
+    },
+    {
+      "cik": "0000810265",
+      "eligible_quarter_count": 20,
+      "filer_name": "NEW YORK STATE COMMON RETIREMENT FUND",
+      "median_reported_long_market_value_usd": 78735088500
+    },
+    {
+      "cik": "0000873630",
+      "eligible_quarter_count": 20,
+      "filer_name": "HSBC HOLDINGS PLC",
+      "median_reported_long_market_value_usd": 78427601500
+    },
+    {
+      "cik": "0001386060",
+      "eligible_quarter_count": 20,
+      "filer_name": "Boston Partners",
+      "median_reported_long_market_value_usd": 74108370753
+    },
+    {
+      "cik": "0001115418",
+      "eligible_quarter_count": 20,
+      "filer_name": "RHUMBLINE ADVISERS",
+      "median_reported_long_market_value_usd": 67829543000
+    },
+    {
+      "cik": "0001207017",
+      "eligible_quarter_count": 20,
+      "filer_name": "LAZARD ASSET MANAGEMENT LLC",
+      "median_reported_long_market_value_usd": 66754607000
+    },
+    {
+      "cik": "0001166588",
+      "eligible_quarter_count": 20,
+      "filer_name": "BNP PARIBAS FINANCIAL MARKETS",
+      "median_reported_long_market_value_usd": 66705629520
+    },
+    {
+      "cik": "0001086619",
+      "eligible_quarter_count": 20,
+      "filer_name": "SCHRODER INVESTMENT MANAGEMENT GROUP",
+      "median_reported_long_market_value_usd": 66120182950
+    },
+    {
+      "cik": "0001218210",
+      "eligible_quarter_count": 20,
+      "filer_name": "NORDEA INVESTMENT MANAGEMENT AB",
+      "median_reported_long_market_value_usd": 65816274897
+    },
+    {
+      "cik": "0001081019",
+      "eligible_quarter_count": 20,
+      "filer_name": "CALIFORNIA STATE TEACHERS RETIREMENT SYSTEM",
+      "median_reported_long_market_value_usd": 64354992008
+    },
+    {
+      "cik": "0000927337",
+      "eligible_quarter_count": 20,
+      "filer_name": "WOLVERINE TRADING, LLC",
+      "median_reported_long_market_value_usd": 64204038500
+    },
+    {
+      "cik": "0001137774",
+      "eligible_quarter_count": 20,
+      "filer_name": "PRUDENTIAL FINANCIAL INC",
+      "median_reported_long_market_value_usd": 63798939334
+    },
+    {
+      "cik": "0000720672",
+      "eligible_quarter_count": 20,
+      "filer_name": "STIFEL FINANCIAL CORP",
+      "median_reported_long_market_value_usd": 62478198000
+    },
+    {
+      "cik": "0001283718",
+      "eligible_quarter_count": 20,
+      "filer_name": "CANADA PENSION PLAN INVESTMENT BOARD",
+      "median_reported_long_market_value_usd": 61690394851
+    },
+    {
+      "cik": "0001466153",
+      "eligible_quarter_count": 20,
+      "filer_name": "Artisan Partners Limited Partnership",
+      "median_reported_long_market_value_usd": 61492949020
+    },
+    {
+      "cik": "0000919859",
+      "eligible_quarter_count": 20,
+      "filer_name": "MACKENZIE FINANCIAL CORP",
+      "median_reported_long_market_value_usd": 59674599038
+    }
+  ],
+  "protocol_version": "v2-design-2",
+  "selection_rule": {
+    "must_include_report_quarter": "2023-12-31",
+    "ranking": "median reported long-market value descending, CIK ascending",
+    "required_quarters": 16
+  },
+  "selection_window": [
+    "2019-03-31",
+    "2023-12-31"
+  ],
+  "skipped_filings_missing_summary_total": 16,
+  "sources": [
+    {
+      "package": "2019q1",
+      "retrieved_at": null,
+      "sha256": "ddc49b87210a9f12efac87468c293809b49f4ccd8d7c022cdfff5321e423f5c8",
+      "size_bytes": 46510727,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2019q1_form13f.zip"
+    },
+    {
+      "package": "2019q2",
+      "retrieved_at": null,
+      "sha256": "4d45846cdec0fe86e2c2db2347fd6028beb110f26c4022b96f0a393175773e02",
+      "size_bytes": 54098902,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2019q2_form13f.zip"
+    },
+    {
+      "package": "2019q3",
+      "retrieved_at": null,
+      "sha256": "4a5934848f8015baf94da053c48de4d7b498cb1730224e8ed31d6677bdb528cb",
+      "size_bytes": 49891647,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2019q3_form13f.zip"
+    },
+    {
+      "package": "2019q4",
+      "retrieved_at": null,
+      "sha256": "385b4cff8585524fc596da42e7460543697d7b26eea158fae767656ca40e57bd",
+      "size_bytes": 49522599,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2019q4_form13f.zip"
+    },
+    {
+      "package": "2020q1",
+      "retrieved_at": null,
+      "sha256": "126e228c522a385eaa8f3daa2af732992d727844d545ceb791ee5bb97fa5a8dd",
+      "size_bytes": 50411043,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2020q1_form13f.zip"
+    },
+    {
+      "package": "2020q2",
+      "retrieved_at": null,
+      "sha256": "6aa1320d7acc38920a4245dd5167c20eeea3138792deb53bceb90241ed8c9382",
+      "size_bytes": 49653613,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2020q2_form13f.zip"
+    },
+    {
+      "package": "2020q3",
+      "retrieved_at": null,
+      "sha256": "2bcc0bebb7f9eb66b757e44583c0b51069941b9f87a3b4b107a24abe2b7cd7f3",
+      "size_bytes": 49051852,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2020q3_form13f.zip"
+    },
+    {
+      "package": "2020q4",
+      "retrieved_at": null,
+      "sha256": "c1701a139cd9097af65255e212811aab691f3d74a80d59e02f1d1de161ebacd7",
+      "size_bytes": 50154265,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2020q4_form13f.zip"
+    },
+    {
+      "package": "2021q1",
+      "retrieved_at": null,
+      "sha256": "8ec0c2bd8083bd2a6cb979b746ac205b7eb09d36d33264797067c5fe5f2a80e6",
+      "size_bytes": 56569074,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2021q1_form13f.zip"
+    },
+    {
+      "package": "2021q2",
+      "retrieved_at": null,
+      "sha256": "362785998a12e654edd3098f4e61f3bbc7fb27c00183ff257522baecae8a6c61",
+      "size_bytes": 56211280,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2021q2_form13f.zip"
+    },
+    {
+      "package": "2021q3",
+      "retrieved_at": null,
+      "sha256": "70cb463e1a63c87e69ff8c5b22719bbc106ca9872f7845a4146aa18383d389f1",
+      "size_bytes": 62859962,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2021q3_form13f.zip"
+    },
+    {
+      "package": "2021q4",
+      "retrieved_at": null,
+      "sha256": "25030b6c8d4f04760a26235181facb2b18fa4b266bf00b3da634a70f77ea4927",
+      "size_bytes": 60838096,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2021q4_form13f.zip"
+    },
+    {
+      "package": "2022q1",
+      "retrieved_at": null,
+      "sha256": "d2b47bc3f5a677d42c4370e50d3bcdd13029f2683604963f4f5058567a8fe4e6",
+      "size_bytes": 64100013,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2022q1_form13f.zip"
+    },
+    {
+      "package": "2022q2",
+      "retrieved_at": null,
+      "sha256": "166fe7f8ea6b4b3a2000a74165de62f8677aa95cdf9301d4a5b705e00fc0a48f",
+      "size_bytes": 62698411,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2022q2_form13f.zip"
+    },
+    {
+      "package": "2022q3",
+      "retrieved_at": null,
+      "sha256": "f09e3588a93aa5fca7bef17009be924de9c3c5179b36c5c8749d3cb0f7fc61ad",
+      "size_bytes": 63065916,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2022q3_form13f.zip"
+    },
+    {
+      "package": "2022q4",
+      "retrieved_at": null,
+      "sha256": "9275e86ec07d95b8958cfd6a0617a4eb72e3f6769490d7f008ea09e9cc999fe9",
+      "size_bytes": 62847968,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2022q4_form13f.zip"
+    },
+    {
+      "package": "2023q1",
+      "retrieved_at": null,
+      "sha256": "b7dbfa5b3bde3a5e822872885becfb486a498a037c18e151267ebc01d8a69dd7",
+      "size_bytes": 71770077,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2023q1_form13f.zip"
+    },
+    {
+      "package": "2023q2",
+      "retrieved_at": null,
+      "sha256": "0b360c45cd805471d33fb6dc0945dfc68494fb96a35cfacd6118055d9d6f8b39",
+      "size_bytes": 68860103,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2023q2_form13f.zip"
+    },
+    {
+      "package": "2023q3",
+      "retrieved_at": null,
+      "sha256": "68d4a299ff5d1b8224695fc017ffce3030d972cfe9ccd0e450a99001a1cc171f",
+      "size_bytes": 70206149,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2023q3_form13f.zip"
+    },
+    {
+      "package": "2023q4",
+      "retrieved_at": null,
+      "sha256": "aaccf592ab3c329fbb02a8d99eb1ed59aaeb1d578c57676273fcb89a69bdd6c4",
+      "size_bytes": 73022463,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2023q4_form13f.zip"
+    },
+    {
+      "package": "2024q1",
+      "retrieved_at": null,
+      "sha256": "ea5e5a9a0124a3d068d723cff502dc33b4ecbf7d0bf1b1ddad9e216a815ed6d9",
+      "size_bytes": 73048066,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01jan2024-29feb2024_form13f.zip"
+    }
+  ]
+}

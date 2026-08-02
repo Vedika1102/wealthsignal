@@ -1,0 +1,219 @@
+{
+  "first_package": "2019q1",
+  "latest_package": "2026q2",
+  "package_count": 30,
+  "packages": [
+    {
+      "package": "2019q1",
+      "retrieved_at": null,
+      "sha256": "ddc49b87210a9f12efac87468c293809b49f4ccd8d7c022cdfff5321e423f5c8",
+      "size_bytes": 46510727,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2019q1_form13f.zip"
+    },
+    {
+      "package": "2019q2",
+      "retrieved_at": null,
+      "sha256": "4d45846cdec0fe86e2c2db2347fd6028beb110f26c4022b96f0a393175773e02",
+      "size_bytes": 54098902,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2019q2_form13f.zip"
+    },
+    {
+      "package": "2019q3",
+      "retrieved_at": null,
+      "sha256": "4a5934848f8015baf94da053c48de4d7b498cb1730224e8ed31d6677bdb528cb",
+      "size_bytes": 49891647,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2019q3_form13f.zip"
+    },
+    {
+      "package": "2019q4",
+      "retrieved_at": null,
+      "sha256": "385b4cff8585524fc596da42e7460543697d7b26eea158fae767656ca40e57bd",
+      "size_bytes": 49522599,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2019q4_form13f.zip"
+    },
+    {
+      "package": "2020q1",
+      "retrieved_at": null,
+      "sha256": "126e228c522a385eaa8f3daa2af732992d727844d545ceb791ee5bb97fa5a8dd",
+      "size_bytes": 50411043,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2020q1_form13f.zip"
+    },
+    {
+      "package": "2020q2",
+      "retrieved_at": null,
+      "sha256": "6aa1320d7acc38920a4245dd5167c20eeea3138792deb53bceb90241ed8c9382",
+      "size_bytes": 49653613,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2020q2_form13f.zip"
+    },
+    {
+      "package": "2020q3",
+      "retrieved_at": null,
+      "sha256": "2bcc0bebb7f9eb66b757e44583c0b51069941b9f87a3b4b107a24abe2b7cd7f3",
+      "size_bytes": 49051852,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2020q3_form13f.zip"
+    },
+    {
+      "package": "2020q4",
+      "retrieved_at": null,
+      "sha256": "c1701a139cd9097af65255e212811aab691f3d74a80d59e02f1d1de161ebacd7",
+      "size_bytes": 50154265,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2020q4_form13f.zip"
+    },
+    {
+      "package": "2021q1",
+      "retrieved_at": null,
+      "sha256": "8ec0c2bd8083bd2a6cb979b746ac205b7eb09d36d33264797067c5fe5f2a80e6",
+      "size_bytes": 56569074,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2021q1_form13f.zip"
+    },
+    {
+      "package": "2021q2",
+      "retrieved_at": null,
+      "sha256": "362785998a12e654edd3098f4e61f3bbc7fb27c00183ff257522baecae8a6c61",
+      "size_bytes": 56211280,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2021q2_form13f.zip"
+    },
+    {
+      "package": "2021q3",
+      "retrieved_at": null,
+      "sha256": "70cb463e1a63c87e69ff8c5b22719bbc106ca9872f7845a4146aa18383d389f1",
+      "size_bytes": 62859962,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2021q3_form13f.zip"
+    },
+    {
+      "package": "2021q4",
+      "retrieved_at": null,
+      "sha256": "25030b6c8d4f04760a26235181facb2b18fa4b266bf00b3da634a70f77ea4927",
+      "size_bytes": 60838096,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2021q4_form13f.zip"
+    },
+    {
+      "package": "2022q1",
+      "retrieved_at": null,
+      "sha256": "d2b47bc3f5a677d42c4370e50d3bcdd13029f2683604963f4f5058567a8fe4e6",
+      "size_bytes": 64100013,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2022q1_form13f.zip"
+    },
+    {
+      "package": "2022q2",
+      "retrieved_at": null,
+      "sha256": "166fe7f8ea6b4b3a2000a74165de62f8677aa95cdf9301d4a5b705e00fc0a48f",
+      "size_bytes": 62698411,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2022q2_form13f.zip"
+    },
+    {
+      "package": "2022q3",
+      "retrieved_at": null,
+      "sha256": "f09e3588a93aa5fca7bef17009be924de9c3c5179b36c5c8749d3cb0f7fc61ad",
+      "size_bytes": 63065916,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2022q3_form13f.zip"
+    },
+    {
+      "package": "2022q4",
+      "retrieved_at": null,
+      "sha256": "9275e86ec07d95b8958cfd6a0617a4eb72e3f6769490d7f008ea09e9cc999fe9",
+      "size_bytes": 62847968,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2022q4_form13f.zip"
+    },
+    {
+      "package": "2023q1",
+      "retrieved_at": null,
+      "sha256": "b7dbfa5b3bde3a5e822872885becfb486a498a037c18e151267ebc01d8a69dd7",
+      "size_bytes": 71770077,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2023q1_form13f.zip"
+    },
+    {
+      "package": "2023q2",
+      "retrieved_at": null,
+      "sha256": "0b360c45cd805471d33fb6dc0945dfc68494fb96a35cfacd6118055d9d6f8b39",
+      "size_bytes": 68860103,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2023q2_form13f.zip"
+    },
+    {
+      "package": "2023q3",
+      "retrieved_at": null,
+      "sha256": "68d4a299ff5d1b8224695fc017ffce3030d972cfe9ccd0e450a99001a1cc171f",
+      "size_bytes": 70206149,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2023q3_form13f.zip"
+    },
+    {
+      "package": "2023q4",
+      "retrieved_at": null,
+      "sha256": "aaccf592ab3c329fbb02a8d99eb1ed59aaeb1d578c57676273fcb89a69bdd6c4",
+      "size_bytes": 73022463,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/2023q4_form13f.zip"
+    },
+    {
+      "package": "2024q1",
+      "retrieved_at": null,
+      "sha256": "ea5e5a9a0124a3d068d723cff502dc33b4ecbf7d0bf1b1ddad9e216a815ed6d9",
+      "size_bytes": 73048066,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01jan2024-29feb2024_form13f.zip"
+    },
+    {
+      "package": "2024q2",
+      "retrieved_at": null,
+      "sha256": "fe723ad7d3e58f7e5f0bb3d5e46158c4c3bacc8a23a69b2d6eef3c97782d5cf8",
+      "size_bytes": 78174865,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01mar2024-31may2024_form13f.zip"
+    },
+    {
+      "package": "2024q3",
+      "retrieved_at": null,
+      "sha256": "b4f31fb944016f6317fcc20d42227c9bd27c16ae94b73cc489dccd24849c3597",
+      "size_bytes": 83912121,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01jun2024-31aug2024_form13f.zip"
+    },
+    {
+      "package": "2024q4",
+      "retrieved_at": null,
+      "sha256": "1a34fe4db7865656e2fe5ac2f27fca30e8712e2fd3ceeba4a5fa867fdd9345c1",
+      "size_bytes": 81665193,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01sep2024-30nov2024_form13f.zip"
+    },
+    {
+      "package": "2025q1",
+      "retrieved_at": null,
+      "sha256": "11c6a1461051983f63839a655d4c9e4473a2ce963783f9d482af36e9b85551ea",
+      "size_bytes": 86543810,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01dec2024-28feb2025_form13f.zip"
+    },
+    {
+      "package": "2025q2",
+      "retrieved_at": null,
+      "sha256": "9dc2a285fb489b4d815be009f8cb94e0ff5fd12323bf976712a7e76c89e82e1d",
+      "size_bytes": 88273029,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01mar2025-31may2025_form13f.zip"
+    },
+    {
+      "package": "2025q3",
+      "retrieved_at": null,
+      "sha256": "9468ae5e90278e847d5035f5efe4294b104a2a25f35169f532b83cea6de19365",
+      "size_bytes": 86295095,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01jun2025-31aug2025_form13f.zip"
+    },
+    {
+      "package": "2025q4",
+      "retrieved_at": null,
+      "sha256": "7753ae28988c076baeb30a94656622ff0b3c5f55c90078d9d69fc14ba3d3b682",
+      "size_bytes": 85618099,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01sep2025-30nov2025_form13f.zip"
+    },
+    {
+      "package": "2026q1",
+      "retrieved_at": null,
+      "sha256": "ff340fc5dc0bc60539b03c3a97fffa3fe4ab0d728d6507a4aadabb4a888fbe01",
+      "size_bytes": 90264650,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01dec2025-28feb2026_form13f.zip"
+    },
+    {
+      "package": "2026q2",
+      "retrieved_at": null,
+      "sha256": "05f4da8f526cd471a387af45661a8cb3bbfaf345d3ec9c2cefd31349aa257e63",
+      "size_bytes": 99411274,
+      "source_url": "https://www.sec.gov/files/structureddata/data/form-13f-data-sets/01mar2026-31may2026_form13f.zip"
+    }
+  ],
+  "prospective_2026q3_included": false,
+  "protocol_version": "v2-design-2"
+}

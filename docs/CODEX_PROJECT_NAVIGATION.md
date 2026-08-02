@@ -159,7 +159,7 @@ Keep and harden:
 
 Implement next:
 
-- Protocol V2 development-data acquisition and deterministic cohort materialization under the frozen design;
+- Protocol V2 leakage-audited validation dataset construction from the checksum-manifested development packages and frozen 50-manager cohort;
 - a research-reproduction lane for NAVIS after graph reconciliation;
 - downstream portfolio-impact workflow using only a model that passes its promotion policy;
 - analytical SQL and indexes;
@@ -177,7 +177,7 @@ The rule-based materiality score may remain as a clearly named observed-change s
 ### Confirmed risks and blockers
 
 1. Protocol V1, forecast persistence, and forecast APIs are checkpointed. Protocol V2 design revision 1 is checkpointed in commit `fe78dc7`; the revised 50-manager design revision 2 is frozen and checksum-verified, with its review checkpoint pending.
-2. Protocol V2 development packages have not been downloaded and the deterministic 50-manager CIK list has not yet been materialized. Its first 10 and 25 managers are nested engineering subsets; 99 managers remain an optional paper-scale study.
+2. Protocol V2 development packages through May 2026 are checksum-manifested, and the deterministic 50-manager CIK list is materialized with hash `23617b83308e9b073212f9eb493e57921877eacc887f2fcdd923cf3b9ebfc3ff`. Its first 10 and 25 managers are nested engineering subsets; 99 managers remain an optional paper-scale study. Leakage-audited V2 validation data is not yet built.
 3. The local V1 forecast database is ignored under `data/`; a clean checkout must rebuild it from checksum-verified source artifacts with the documented CLI.
 4. Protocol V1's final test is consumed. It cannot be reused for NAVIS development, feature selection, candidate changes, or threshold tuning.
 5. The failed action classifiers remain diagnostic and must not be introduced into alerts, portfolio impact, or the forecast API.
@@ -189,8 +189,8 @@ The rule-based materiality score may remain as a clearly named observed-change s
 
 Follow this dependency order from the actual stopping point:
 
-1. Review and checkpoint the Protocol V2 design without downloading data or reopening the consumed V1 test.
-2. Acquire the declared development packages, materialize and checksum the training-only manager cohort, and build leakage-audited validation data.
+1. Review and checkpoint the Protocol V2 design without downloading data or reopening the consumed V1 test. Completed in commits `fe78dc7` and `0205710`.
+2. Acquire the declared development packages and materialize and checksum the training-only manager cohort. Completed locally; next build the leakage-audited validation data.
 3. Freeze the selected V2 candidate/model configuration before the prospective 2026 Q2 source becomes available.
 4. Create a framework-independent temporal bipartite graph adapter and prove that graph snapshots reconcile with the tabular portfolios and baseline metrics.
 5. Reproduce NAVIS against a frozen upstream revision, record every deviation, and compare it fairly with the same persistence and EMA baselines.
@@ -1189,7 +1189,7 @@ Return manager and security identifiers, predicted weight/rank, source cutoff, t
 
 ### Milestone 3 — Current-Data Protocol V2
 
-Status: design revision 2 frozen locally before download; protocol/config checksums verified, with review checkpoint pending.
+Status: design revision 2 frozen and checkpointed; development packages through May 2026 acquired and checksum-manifested; ordered 50-manager training-only cohort materialized. Leakage-audited validation construction is next.
 
 ```text
 Design Protocol V2 before downloading or evaluating new data. Inventory the latest complete official SEC 13F bulk packages available at execution time, then declare a larger manager cohort, historical coverage, security-universe policy, source cutoff, validation windows, and a brand-new untouched final or prospective window.
@@ -1276,7 +1276,7 @@ WealthSignal is portfolio-ready only when:
 Copy this into a new Codex task opened in the WealthSignal repository:
 
 ```text
-Read docs/CODEX_PROJECT_NAVIGATION.md and the three Protocol V2 governance files completely. Review the frozen Protocol V2 design and execute only its development-data acquisition and training-period cohort-selection stage.
+Read docs/CODEX_PROJECT_NAVIGATION.md and the Protocol V2 governance files completely. Verify the frozen development-source and manager-cohort manifests, then execute only the leakage-audited validation-dataset construction stage.
 
-Treat Protocol V1's final test as consumed and Protocol V2's 2026 Q2 target as unavailable and untouched. Verify the protocol/config checksums before downloading. Acquire only the declared development packages through May 2026, derive the ordered 50-manager main cohort using only 2019 Q1–2023 Q4 report quarters, and persist its ordered CIK list and checksum. Define the first 10 and first 25 as nested engineering subsets; do not use them for the main validation claim. Preserve the same ordering so an optional first-99 scale study can be run later. Do not acquire or inspect the future 2026 Q2 truth source.
+Treat Protocol V1's final test as consumed and Protocol V2's 2026 Q2 target as unavailable and untouched. Verify all 30 package checksums and the frozen ordered 50-manager cohort hash before use. Build immutable normalized and temporal validation artifacts for the 50-manager main cohort, applying the V2 security identity, amendment, missing-quarter, and point-in-time availability policies. The first 10 and 25 managers are engineering subsets only. Do not acquire or inspect the future package containing 2026 Q2 truth.
 ```
