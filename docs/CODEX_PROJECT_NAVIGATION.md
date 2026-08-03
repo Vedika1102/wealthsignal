@@ -159,7 +159,7 @@ Keep and harden:
 
 Implement next:
 
-- Protocol V2 leakage-audited validation dataset construction from the checksum-manifested development packages and frozen 50-manager cohort;
+- Databricks-based Protocol V2 leakage-audited PySpark/Delta dataset construction from the checksum-manifested development packages and frozen 50-manager cohort;
 - a research-reproduction lane for NAVIS after graph reconciliation;
 - downstream portfolio-impact workflow using only a model that passes its promotion policy;
 - analytical SQL and indexes;
@@ -184,18 +184,22 @@ The rule-based materiality score may remain as a clearly named observed-change s
 6. Ten managers and six target quarters demonstrate the method but do not reproduce the research paper's scale or establish broad external validity.
 7. Long-term security identity, corporate actions, and historical index-membership policies still need explicit treatment.
 8. Current Python dependencies do not yet declare a graph-learning framework or PySpark. Add them only inside the milestone that uses them and with reproducible lock/config updates.
+9. The attempted local 50-manager build exceeded 28 GB private memory on a 15.85 GB RAM machine without finalizing. The cloud path in `docs/WealthSignal_Cloud_Execution_Plan.md` replaces further unbounded local builds.
+10. Databricks CLI v1.10.0 is OAuth-connected to the WealthSignal workspace with no active clusters or jobs. RunPod connection is owner-deferred until the graph/NAVIS stages. Any billable resource creation still requires explicit user approval.
 
 ### Required implementation order
 
 Follow this dependency order from the actual stopping point:
 
 1. Review and checkpoint the Protocol V2 design without downloading data or reopening the consumed V1 test. Completed in commits `fe78dc7` and `0205710`.
-2. Acquire the declared development packages and materialize and checksum the training-only manager cohort. Completed locally; next build the leakage-audited validation data.
-3. Freeze the selected V2 candidate/model configuration before the prospective 2026 Q2 source becomes available.
-4. Create a framework-independent temporal bipartite graph adapter and prove that graph snapshots reconcile with the tabular portfolios and baseline metrics.
-5. Reproduce NAVIS against a frozen upstream revision, record every deviation, and compare it fairly with the same persistence and EMA baselines.
-6. Implement one clearly original WealthSignal extension and ablation after the reproduction is credible.
-7. Add PySpark/SQL scaling, monitoring, Excel, PowerPoint, dashboard, and verified resume metrics as measured engineering and communication layers.
+2. Acquire the declared development packages and materialize and checksum the training-only manager cohort. Completed in commit `ce1171e`.
+3. Complete Cloud 0/1: connect Databricks safely, establish cost/secret controls, and verify all 30 source checksums and the cohort checksum in the workspace.
+4. Complete Cloud 2/3: build and reconcile Bronze/Silver/Gold PySpark/Delta artifacts for 10, 25, and the official 50-manager cohort without driver collection.
+5. Freeze the selected V2 candidate/model configuration before the prospective 2026 Q2 source becomes available.
+6. Create a framework-independent temporal bipartite graph bundle and prove graph persistence/EMA reconcile with tabular metrics.
+7. Complete Cloud 5/6: reproduce NAVIS on RunPod against a frozen upstream revision and compare it fairly with persistence and EMA.
+8. Optionally scale the same ordering to 99 managers, then implement one clearly original WealthSignal extension and ablation.
+9. Add monitoring, Excel, PowerPoint, dashboard, and verified resume metrics as measured engineering and communication layers.
 
 At the start of every milestone, Codex must verify that its prerequisite milestone is actually complete rather than relying on this document or the README.
 
@@ -1276,7 +1280,7 @@ WealthSignal is portfolio-ready only when:
 Copy this into a new Codex task opened in the WealthSignal repository:
 
 ```text
-Read docs/CODEX_PROJECT_NAVIGATION.md and the Protocol V2 governance files completely. Verify the frozen development-source and manager-cohort manifests, then execute only the leakage-audited validation-dataset construction stage.
+Read docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, and the Protocol V2 governance files completely. Execute only Cloud 0 — Safety and account connection.
 
-Treat Protocol V1's final test as consumed and Protocol V2's 2026 Q2 target as unavailable and untouched. Verify all 30 package checksums and the frozen ordered 50-manager cohort hash before use. Build immutable normalized and temporal validation artifacts for the 50-manager main cohort, applying the V2 security identity, amendment, missing-quarter, and point-in-time availability policies. The first 10 and 25 managers are engineering subsets only. Do not acquire or inspect the future package containing 2026 Q2 truth.
+Do not create paid compute, a GPU Pod, a network volume, or cloud storage without explicit approval. Do not print, persist, or commit credentials. Inspect the active unbounded local build and request authorization before terminating it. Preserve and verify the 30-package development-source manifest and frozen 50-manager cohort manifest. Determine the official Databricks and RunPod connection prerequisites, guide me through authentication, and finish with read-only connection checks, secret scanning, Git status, cost controls, and the exact Cloud 1 prompt.
 ```
