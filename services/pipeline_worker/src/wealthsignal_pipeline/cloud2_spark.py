@@ -85,7 +85,7 @@ def run_pipeline(manager_count: int) -> dict[str, object]:
             F.to_date("FILING_DATE").alias("filing_date"),
             F.to_date("PERIODOFREPORT").alias("report_period"),
             F.upper(F.trim(F.col("SUBMISSIONTYPE"))).alias("submission_type"),
-            F.input_file_name().alias("source_file"),
+            F.col("_metadata.file_path").alias("source_file"),
         )
         .join(F.broadcast(manager_df), "cik")
         .filter(F.col("submission_type").isin("13F-HR", "13F-HR/A"))
