@@ -178,6 +178,10 @@ def build_temporal_rows(
     skipped_target_already_available = 0
     target_holding_count = 0
     covered_target_holding_count = 0
+    target_weight_mass_total = 0.0
+    covered_target_weight_mass_total = 0.0
+    coverage_by_target_quarter: dict[str, dict[str, float | int]] = {}
+    coverage_by_manager_quarter: list[dict[str, object]] = []
     for cik in sorted(manager_periods):
         periods = manager_periods[cik]
         for period in periods:
@@ -208,6 +212,48 @@ def build_temporal_rows(
             candidate_keys = sorted(current_keys | set(ranked_negatives))
             target_holding_count += len(target)
             covered_target_holding_count += len(set(target) & set(candidate_keys))
+            target_weight_mass = sum(row.weight for row in target.values())
+            covered_target_weight_mass = sum(
+                row.weight for key, row in target.items() if key in candidate_keys
+            )
+            target_weight_mass_total += target_weight_mass
+            covered_target_weight_mass_total += covered_target_weight_mass
+            quarter_metrics = coverage_by_target_quarter.setdefault(
+                target_period.isoformat(),
+                {
+                    "manager_quarter_count": 0,
+                    "target_holdings": 0,
+                    "target_holdings_in_candidate_universe": 0,
+                    "target_weight_mass_total": 0.0,
+                    "target_weight_mass_in_candidate_universe": 0.0,
+                },
+            )
+            quarter_metrics["manager_quarter_count"] = int(quarter_metrics["manager_quarter_count"]) + 1
+            quarter_metrics["target_holdings"] = int(quarter_metrics["target_holdings"]) + len(target)
+            quarter_metrics["target_holdings_in_candidate_universe"] = (
+                int(quarter_metrics["target_holdings_in_candidate_universe"])
+                + len(set(target) & set(candidate_keys))
+            )
+            quarter_metrics["target_weight_mass_total"] = (
+                float(quarter_metrics["target_weight_mass_total"]) + target_weight_mass
+            )
+            quarter_metrics["target_weight_mass_in_candidate_universe"] = (
+                float(quarter_metrics["target_weight_mass_in_candidate_universe"]) + covered_target_weight_mass
+            )
+            coverage_by_manager_quarter.append(
+                {
+                    "cik": cik,
+                    "feature_report_period": period.isoformat(),
+                    "target_report_period": target_period.isoformat(),
+                    "target_holding_count": len(target),
+                    "covered_target_holding_count": len(set(target) & set(candidate_keys)),
+                    "target_weight_mass_total": target_weight_mass,
+                    "target_weight_mass_in_candidate_universe": covered_target_weight_mass,
+                    "target_weight_mass_coverage": (
+                        covered_target_weight_mass / target_weight_mass if target_weight_mass else 0.0
+                    ),
+                }
+            )
 
             previous_period = _previous_quarter(period)
             previous = portfolios.get((cik, previous_period), {})
@@ -273,6 +319,12 @@ def build_temporal_rows(
                     }
                 )
     rows.sort(key=lambda row: (row["target_report_period"], row["cik"], row["security_key"]))
+    mean_target_weight_mass_coverage = (
+        sum(float(item["target_weight_mass_coverage"]) for item in coverage_by_manager_quarter)
+        / len(coverage_by_manager_quarter)
+        if coverage_by_manager_quarter
+        else 0.0
+    )
     return rows, {
         "eligible_manager_quarters": eligible_manager_quarters,
         "manager_quarters_without_exact_next_quarter": skipped_missing_next_quarter,
@@ -282,6 +334,33 @@ def build_temporal_rows(
         "target_candidate_coverage": (
             covered_target_holding_count / target_holding_count if target_holding_count else 0.0
         ),
+        "target_weight_mass_total": target_weight_mass_total,
+        "target_weight_mass_in_candidate_universe": covered_target_weight_mass_total,
+        "target_weight_mass_coverage": (
+            covered_target_weight_mass_total / target_weight_mass_total if target_weight_mass_total else 0.0
+        ),
+        "mean_target_weight_mass_coverage": mean_target_weight_mass_coverage,
+        "coverage_by_target_quarter": [
+            {
+                "target_report_period": target_report_period,
+                "manager_quarter_count": int(metrics["manager_quarter_count"]),
+                "target_holdings": int(metrics["target_holdings"]),
+                "target_holdings_in_candidate_universe": int(metrics["target_holdings_in_candidate_universe"]),
+                "target_candidate_coverage": (
+                    int(metrics["target_holdings_in_candidate_universe"]) / int(metrics["target_holdings"])
+                    if int(metrics["target_holdings"]) else 0.0
+                ),
+                "target_weight_mass_total": float(metrics["target_weight_mass_total"]),
+                "target_weight_mass_in_candidate_universe": float(metrics["target_weight_mass_in_candidate_universe"]),
+                "target_weight_mass_coverage": (
+                    float(metrics["target_weight_mass_in_candidate_universe"])
+                    / float(metrics["target_weight_mass_total"])
+                    if float(metrics["target_weight_mass_total"]) else 0.0
+                ),
+            }
+            for target_report_period, metrics in sorted(coverage_by_target_quarter.items())
+        ],
+        "coverage_by_manager_quarter": coverage_by_manager_quarter,
         "negative_candidate_limit": negative_candidate_limit,
         "action_tolerance": action_tolerance,
     }

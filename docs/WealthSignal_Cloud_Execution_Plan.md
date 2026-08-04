@@ -86,6 +86,14 @@ Partition holdings by report year/quarter rather than manager to avoid small-fil
 
 Run 10 managers first and reconcile with the Python fixture. Run 25 for scale verification, then all 50 for the official dataset. The 10/25 results are engineering evidence, not main V2 claims.
 
+The checked-in 10-manager Databricks handoff payload is `databricks/cloud2-10-handoff-submit.json`. It runs three tasks in one immutable Git-pinned job:
+
+1. `cloud2_spark.py` for the distributed Bronze/Silver build;
+2. `v2_reference.py` for the pure-Python Protocol V2 reference CSV on the same frozen sources;
+3. `cloud2_reconcile.py` for exact Spark-versus-reference reconciliation.
+
+After both report artifacts exist, validate the scale-up gate with `python -m wealthsignal_pipeline.cloud2_handoff gate-report`.
+
 ### Cloud 3 — Gold temporal validation dataset
 
 Construct each target quarter independently using only required historical windows and as-of availability data. Use Spark windows/joins rather than Python row objects and write partitioned manager-security-quarter examples without driver collection.

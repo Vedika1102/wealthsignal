@@ -6,7 +6,7 @@ import argparse
 import csv
 import hashlib
 import json
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 from typing import Iterable
@@ -26,6 +26,37 @@ FIELDS = (
     "cik", "report_period", "security_key", "value_usd", "shares_or_principal",
     "portfolio_weight", "holding_rank", "available_at", "source_accession_numbers",
 )
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedFilingRecord:
+    cik: str
+    report_period: date
+    filer_name: str
+    selected_filing_date: date
+    selected_accession_number: str
+    source_accession_numbers: tuple[str, ...]
+    superseded_accession_numbers: tuple[str, ...]
+    resolution: str
+    package: str
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedHoldingRecord:
+    cik: str
+    report_period: date
+    filer_name: str
+    filing_date: date
+    effective_accession_number: str
+    security_key: str
+    issuer_name: str
+    cusip: str
+    value_usd: int
+    shares_or_principal: float
+    portfolio_weight: float
+    holding_rank: int
+    available_at: date
+    source_accession_numbers: tuple[str, ...]
 
 
 def v2_security_key(holding: BulkHolding) -> str:
@@ -55,14 +86,15 @@ def _aggregate(rows: Iterable[BulkHolding]) -> tuple[dict[str, BulkHolding], int
     return grouped, duplicates
 
 
-def resolve_manager(
+def resolve_manager_records(
     submissions: list[BulkSubmission], holdings_by_accession: dict[str, list[BulkHolding]]
-) -> tuple[list[dict[str, object]], dict[str, int]]:
+) -> tuple[list[ResolvedFilingRecord], list[ResolvedHoldingRecord], dict[str, int]]:
     groups: dict[date, list[BulkSubmission]] = {}
     for submission in submissions:
         if V2_START <= submission.report_period <= V2_END:
             groups.setdefault(submission.report_period, []).append(submission)
-    output: list[dict[str, object]] = []
+    filing_rows: list[ResolvedFilingRecord] = []
+    holding_rows: list[ResolvedHoldingRecord] = []
     duplicate_count = 0
     selected_filing_count = 0
     for report_period, group in sorted(groups.items()):
@@ -72,6 +104,11 @@ def resolve_manager(
         applicable = [row for row in ordered if _submission_order(row) >= _submission_order(base)]
         effective: dict[str, tuple[BulkHolding, set[str], date]] = {}
         accessions: list[str] = []
+        resolution = (
+            "amendment_only_additive_chain"
+            if not ordinary and base.submission_type != "13F-HR"
+            else "initial"
+        )
         for submission in applicable:
             rows, duplicates = _aggregate(holdings_by_accession.get(submission.accession_number, []))
             duplicate_count += duplicates
@@ -97,30 +134,91 @@ def resolve_manager(
                             max(previous_available_at, submission.filing_date),
                         )
                 accessions.append(submission.accession_number)
+                if ordinary:
+                    resolution = "initial_plus_additive_amendment"
+                else:
+                    resolution = "amendment_only_additive_chain"
             else:
                 effective = {
                     key: (row, {submission.accession_number}, submission.filing_date)
                     for key, row in rows.items()
                 }
                 accessions = [submission.accession_number]
+                resolution = (
+                    "initial"
+                    if submission.submission_type == "13F-HR"
+                    else (
+                        "restatement_amendment"
+                        if submission.amendment_type
+                        else "unspecified_amendment_replacement"
+                    )
+                )
         selected_filing_count += len(accessions)
+        selected_accession_number = accessions[-1] if accessions else base.accession_number
+        selected_submission = next(
+            row for row in reversed(applicable) if row.accession_number == selected_accession_number
+        )
+        filing_rows.append(
+            ResolvedFilingRecord(
+                cik=base.cik,
+                report_period=report_period,
+                filer_name=selected_submission.filer_name or base.filer_name,
+                selected_filing_date=selected_submission.filing_date,
+                selected_accession_number=selected_accession_number,
+                source_accession_numbers=tuple(accessions),
+                superseded_accession_numbers=tuple(
+                    row.accession_number for row in ordered if row.accession_number not in accessions
+                ),
+                resolution=resolution,
+                package=selected_submission.package,
+            )
+        )
         total = sum(item[0].value_usd for item in effective.values())
         ranked = sorted(effective.items(), key=lambda item: (-item[1][0].value_usd, item[0]))
         for rank, (security_key, (holding, security_accessions, available_at)) in enumerate(ranked, start=1):
-            output.append(
-                {
-                    "cik": base.cik,
-                    "report_period": report_period.isoformat(),
-                    "security_key": security_key,
-                    "value_usd": holding.value_usd,
-                    "shares_or_principal": format(holding.shares_or_principal, ".17g"),
-                    "portfolio_weight": format(holding.value_usd / total if total else 0.0, ".17g"),
-                    "holding_rank": rank,
-                    "available_at": available_at.isoformat(),
-                    "source_accession_numbers": json.dumps(sorted(security_accessions), separators=(",", ":")),
-                }
+            holding_rows.append(
+                ResolvedHoldingRecord(
+                    cik=base.cik,
+                    report_period=report_period,
+                    filer_name=selected_submission.filer_name or base.filer_name,
+                    filing_date=selected_submission.filing_date,
+                    effective_accession_number=selected_accession_number,
+                    security_key=security_key,
+                    issuer_name=holding.issuer_name,
+                    cusip=holding.cusip,
+                    value_usd=holding.value_usd,
+                    shares_or_principal=holding.shares_or_principal,
+                    portfolio_weight=holding.value_usd / total if total else 0.0,
+                    holding_rank=rank,
+                    available_at=available_at,
+                    source_accession_numbers=tuple(sorted(security_accessions)),
+                )
             )
-    return output, {"duplicates_resolved": duplicate_count, "selected_filing_rows": selected_filing_count}
+    return filing_rows, holding_rows, {
+        "duplicates_resolved": duplicate_count,
+        "selected_filing_rows": selected_filing_count,
+    }
+
+
+def resolve_manager(
+    submissions: list[BulkSubmission], holdings_by_accession: dict[str, list[BulkHolding]]
+) -> tuple[list[dict[str, object]], dict[str, int]]:
+    _, holding_rows, metrics = resolve_manager_records(submissions, holdings_by_accession)
+    output = [
+        {
+            "cik": row.cik,
+            "report_period": row.report_period.isoformat(),
+            "security_key": row.security_key,
+            "value_usd": row.value_usd,
+            "shares_or_principal": format(row.shares_or_principal, ".17g"),
+            "portfolio_weight": format(row.portfolio_weight, ".17g"),
+            "holding_rank": row.holding_rank,
+            "available_at": row.available_at.isoformat(),
+            "source_accession_numbers": json.dumps(list(row.source_accession_numbers), separators=(",", ":")),
+        }
+        for row in holding_rows
+    ]
+    return output, metrics
 
 
 def build_reference(

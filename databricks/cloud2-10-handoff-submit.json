@@ -1,0 +1,71 @@
+{
+  "run_name": "wealthsignal-cloud2-10-manager-handoff",
+  "timeout_seconds": 14400,
+  "git_source": {
+    "git_url": "https://github.com/Vedika1102/wealthsignal.git",
+    "git_provider": "gitHub",
+    "git_commit": "893cd3e5bc9513b6786e60b76641acffa03de405"
+  },
+  "tasks": [
+    {
+      "task_key": "bronze_to_silver_10",
+      "spark_python_task": {
+        "python_file": "services/pipeline_worker/src/wealthsignal_pipeline/cloud2_spark.py",
+        "parameters": [
+          "--manager-count",
+          "10"
+        ],
+        "source": "GIT"
+      },
+      "environment_key": "default"
+    },
+    {
+      "task_key": "python_reference_10",
+      "spark_python_task": {
+        "python_file": "services/pipeline_worker/src/wealthsignal_pipeline/v2_reference.py",
+        "parameters": [
+          "--source-dir",
+          "/Volumes/workspace/bronze/sec_13f_development",
+          "--cohort",
+          "docs/ai-governance/forecast-protocol-v2-manager-cohort.json",
+          "--output",
+          "/Volumes/workspace/silver/cloud2_reports/protocol-v2-python-reference-10.csv",
+          "--manager-count",
+          "10"
+        ],
+        "source": "GIT"
+      },
+      "environment_key": "default"
+    },
+    {
+      "task_key": "reconcile_10",
+      "depends_on": [
+        {
+          "task_key": "bronze_to_silver_10"
+        },
+        {
+          "task_key": "python_reference_10"
+        }
+      ],
+      "spark_python_task": {
+        "python_file": "services/pipeline_worker/src/wealthsignal_pipeline/cloud2_reconcile.py",
+        "parameters": [
+          "--manager-count",
+          "10",
+          "--reference-path",
+          "/Volumes/workspace/silver/cloud2_reports/protocol-v2-python-reference-10.csv"
+        ],
+        "source": "GIT"
+      },
+      "environment_key": "default"
+    }
+  ],
+  "environments": [
+    {
+      "environment_key": "default",
+      "spec": {
+        "client": "2"
+      }
+    }
+  ]
+}

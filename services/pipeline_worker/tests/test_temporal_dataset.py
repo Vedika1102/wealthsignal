@@ -58,6 +58,11 @@ class TemporalDatasetTests(unittest.TestCase):
             self.assertEqual(leakage["issue_count"], 0)
             self.assertEqual(quality["eligible_manager_quarters"], 8)
             self.assertGreater(quality["target_candidate_coverage"], 0.8)
+            self.assertGreater(quality["mean_target_weight_mass_coverage"], 0.8)
+            self.assertEqual(
+                [row["target_report_period"] for row in quality["coverage_by_target_quarter"]],
+                ["2024-06-30", "2024-09-30", "2024-12-31", "2025-03-31"],
+            )
 
             reused = build_temporal_dataset(
                 [source],
