@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,6 +26,15 @@ def security_key_expression(cusip_column: str = "cusip", put_call_column: str = 
         f"case when upper(trim(coalesce({put_call_column}, ''))) in ('PUT','CALL') "
         f"then upper(trim({put_call_column})) else 'LONG' end)"
     )
+
+
+def repository_root(script_path: str | Path | None = None) -> Path:
+    """Resolve the Git checkout under local Python and Databricks' exec wrapper."""
+    path = Path(script_path or sys.argv[0]).resolve()
+    for parent in (path, *path.parents):
+        if (parent / COHORT_PATH).is_file() and (parent / MANIFEST_PATH).is_file():
+            return parent
+    raise RuntimeError(f"cannot locate WealthSignal repository from {path}")
 
 
 def _extract_packages(source_root: Path, extracted_root: Path, packages: list[str]) -> None:
@@ -54,7 +64,7 @@ def run_pipeline(manager_count: int) -> dict[str, object]:
         raise ValueError("manager_count must be one of 10, 25, or 50")
     started = time.monotonic()
     spark = SparkSession.builder.getOrCreate()
-    repo_root = Path(__file__).resolve().parents[4]
+    repo_root = repository_root()
     cohort = json.loads((repo_root / COHORT_PATH).read_text(encoding="utf-8"))
     manifest = json.loads((repo_root / MANIFEST_PATH).read_text(encoding="utf-8"))
     managers = cohort["main_ordered_ciks"][:manager_count]
