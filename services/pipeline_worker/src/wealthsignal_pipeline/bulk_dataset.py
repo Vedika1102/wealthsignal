@@ -7,6 +7,7 @@ import io
 import json
 import os
 import shutil
+import statistics
 import time
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timezone
@@ -18,6 +19,18 @@ from zipfile import ZipFile
 
 SEC_BULK_BASE_URL = "https://www.sec.gov/files/structureddata/data/form-13f-data-sets"
 VALUE_UNIT_CHANGE_DATE = date(2023, 1, 3)
+MODERN_SEC_BULK_FILENAMES = {
+    "2024q1": "01jan2024-29feb2024_form13f.zip",
+    "2024q2": "01mar2024-31may2024_form13f.zip",
+    "2024q3": "01jun2024-31aug2024_form13f.zip",
+    "2024q4": "01sep2024-30nov2024_form13f.zip",
+    "2025q1": "01dec2024-28feb2025_form13f.zip",
+    "2025q2": "01mar2025-31may2025_form13f.zip",
+    "2025q3": "01jun2025-31aug2025_form13f.zip",
+    "2025q4": "01sep2025-30nov2025_form13f.zip",
+    "2026q1": "01dec2025-28feb2026_form13f.zip",
+    "2026q2": "01mar2026-31may2026_form13f.zip",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,7 +122,9 @@ def quarter_range(start: str, end: str) -> list[str]:
 
 def sec_bulk_url(package: str) -> str:
     _parse_quarter(package)
-    return f"{SEC_BULK_BASE_URL}/{package.lower()}_form13f.zip"
+    normalized = package.lower()
+    filename = MODERN_SEC_BULK_FILENAMES.get(normalized, f"{normalized}_form13f.zip")
+    return f"{SEC_BULK_BASE_URL}/{filename}"
 
 
 def download_quarter_packages(
@@ -159,10 +174,10 @@ def download_quarter_packages(
             with ZipFile(temporary) as archive:
                 if archive.testzip() is not None:
                     raise ValueError(f"Downloaded ZIP failed integrity check: {url}")
-            os.replace(temporary, target)
+            _replace_with_retry(temporary, target)
         finally:
             if temporary.exists():
-                temporary.unlink()
+                _unlink_with_retry(temporary)
 
         retrieved_at = datetime.now(timezone.utc).isoformat()
         metadata = {
@@ -297,6 +312,152 @@ def build_historical_dataset(
     _write_json_atomic(staging_dir / "manifest.json", manifest)
     os.replace(staging_dir, output_dir)
     return output_dir
+
+
+def materialize_manager_cohort(
+    sources: Iterable[BulkPackageSource],
+    *,
+    output_path: str | Path,
+    target_count: int = 50,
+    optional_scale_count: int = 99,
+    required_quarters: int = 16,
+    must_include_report_quarter: date = date(2023, 12, 31),
+) -> Path:
+    """Select managers from filing-level totals without retaining holding rows."""
+
+    source_list = sorted(sources, key=lambda item: item.package)
+    submissions: list[BulkSubmission] = []
+    totals_by_accession: dict[str, int] = {}
+    skipped_missing_summary_total = 0
+    selection_start = date(2019, 3, 31)
+    selection_end = date(2023, 12, 31)
+    for source in source_list:
+        covers = {
+            row.get("ACCESSION_NUMBER", "").strip(): row
+            for row in _iter_table_rows(source.path, "COVERPAGE")
+        }
+        summaries = {
+            row.get("ACCESSION_NUMBER", "").strip(): row
+            for row in _iter_table_rows(source.path, "SUMMARYPAGE")
+        }
+        for row in _iter_table_rows(source.path, "SUBMISSION"):
+            submission_type = row.get("SUBMISSIONTYPE", "").strip().upper()
+            if submission_type not in {"13F-HR", "13F-HR/A"}:
+                continue
+            accession = _required(row, "ACCESSION_NUMBER")
+            report_period = _parse_sec_date(_required(row, "PERIODOFREPORT"))
+            if not selection_start <= report_period <= selection_end:
+                continue
+            filing_date = _parse_sec_date(_required(row, "FILING_DATE"))
+            cover = covers.get(accession, {})
+            summary = summaries.get(accession, {})
+            if not summary.get("TABLEVALUETOTAL", "").strip():
+                skipped_missing_summary_total += 1
+                continue
+            raw_total = _required_int(summary, "TABLEVALUETOTAL")
+            totals_by_accession[accession] = (
+                raw_total if filing_date >= VALUE_UNIT_CHANGE_DATE else raw_total * 1000
+            )
+            submissions.append(
+                BulkSubmission(
+                    accession_number=accession,
+                    filing_date=filing_date,
+                    submission_type=submission_type,
+                    cik=_normalize_cik(_required(row, "CIK")),
+                    report_period=report_period,
+                    filer_name=cover.get("FILINGMANAGER_NAME", "").strip(),
+                    is_amendment=submission_type.endswith("/A") or _truthy(cover.get("ISAMENDMENT", "")),
+                    amendment_number=_optional_int(cover.get("AMENDMENTNO", "")),
+                    amendment_type=cover.get("AMENDMENTTYPE", "").strip().upper(),
+                    package=source.package,
+                )
+            )
+
+    values_by_manager: dict[str, dict[date, int]] = {}
+    names_by_manager: dict[str, str] = {}
+    grouped: dict[tuple[str, date], list[BulkSubmission]] = {}
+    for submission in submissions:
+        grouped.setdefault((submission.cik, submission.report_period), []).append(submission)
+        if submission.filer_name:
+            names_by_manager[submission.cik] = submission.filer_name
+    for (cik, report_period), group in grouped.items():
+        ordered = sorted(group, key=_submission_order)
+        ordinary = [row for row in ordered if row.submission_type == "13F-HR"]
+        base = ordinary[-1] if ordinary else ordered[0]
+        total = 0
+        for submission in (row for row in ordered if _submission_order(row) >= _submission_order(base)):
+            value = totals_by_accession[submission.accession_number]
+            amendment_type = submission.amendment_type.replace("_", " ")
+            if submission.submission_type == "13F-HR" or not (
+                "NEW HOLDING" in amendment_type or "ADD" in amendment_type
+            ):
+                total = value
+            else:
+                total += value
+        values_by_manager.setdefault(cik, {})[report_period] = total
+
+    eligible = []
+    for cik, quarter_values in values_by_manager.items():
+        if len(quarter_values) < required_quarters or must_include_report_quarter not in quarter_values:
+            continue
+        eligible.append(
+            {
+                "cik": cik,
+                "filer_name": names_by_manager.get(cik, ""),
+                "eligible_quarter_count": len(quarter_values),
+                "median_reported_long_market_value_usd": int(statistics.median(quarter_values.values())),
+            }
+        )
+    eligible.sort(key=lambda row: (-row["median_reported_long_market_value_usd"], row["cik"]))
+    ordered = eligible[:optional_scale_count]
+    main_ciks = [row["cik"] for row in ordered[:target_count]]
+    payload = {
+        "protocol_version": "v2-design-2",
+        "selection_window": [selection_start.isoformat(), selection_end.isoformat()],
+        "selection_rule": {
+            "required_quarters": required_quarters,
+            "must_include_report_quarter": must_include_report_quarter.isoformat(),
+            "ranking": "median reported long-market value descending, CIK ascending",
+        },
+        "eligible_manager_count": len(eligible),
+        "skipped_filings_missing_summary_total": skipped_missing_summary_total,
+        "main_target_count": target_count,
+        "main_actual_count": len(main_ciks),
+        "main_ordered_ciks": main_ciks,
+        "main_ordered_ciks_sha256": hashlib.sha256(_canonical_json(main_ciks).encode("utf-8")).hexdigest(),
+        "engineering_subsets": {"10": main_ciks[:10], "25": main_ciks[:25]},
+        "optional_scale_target_count": optional_scale_count,
+        "ordered_manager_records": ordered,
+        "sources": [
+            {key: value for key, value in _source_manifest(source).items() if key != "source_path"}
+            for source in source_list
+        ],
+    }
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    _write_json_atomic(destination, payload)
+    return destination
+
+
+def materialize_source_manifest(sources: Iterable[BulkPackageSource], *, output_path: str | Path) -> Path:
+    """Persist portable checksums for an ordered set of downloaded SEC packages."""
+
+    records = [
+        {key: value for key, value in _source_manifest(source).items() if key != "source_path"}
+        for source in sorted(sources, key=lambda item: item.package)
+    ]
+    payload = {
+        "protocol_version": "v2-design-2",
+        "package_count": len(records),
+        "first_package": records[0]["package"] if records else None,
+        "latest_package": records[-1]["package"] if records else None,
+        "prospective_2026q3_included": any(row["package"] == "2026q3" for row in records),
+        "packages": records,
+    }
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    _write_json_atomic(destination, payload)
+    return destination
 
 
 def _read_package(
@@ -586,6 +747,32 @@ def _write_json_atomic(path: Path, payload: object) -> None:
     os.replace(temporary, path)
 
 
+def _replace_with_retry(source: Path, target: Path, *, attempts: int = 20, delay_seconds: float = 0.1) -> None:
+    """Promote a download despite short-lived Windows file-indexing locks."""
+
+    for attempt in range(attempts):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(delay_seconds)
+
+
+def _unlink_with_retry(path: Path, *, attempts: int = 20, delay_seconds: float = 0.1) -> None:
+    """Remove a temporary download despite short-lived Windows file-indexing locks."""
+
+    for attempt in range(attempts):
+        try:
+            path.unlink(missing_ok=True)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(delay_seconds)
+
+
 def _canonical_json(payload: object) -> str:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
@@ -676,6 +863,14 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("--output-root", default="data/historical", help="Root for immutable versioned dataset directories.")
     build.add_argument("--manager-cik", action="append", default=[], help="Optional manager CIK filter; repeatable.")
     build.add_argument("--security-cusip", action="append", default=[], help="Optional CUSIP filter; repeatable.")
+
+    cohort = subparsers.add_parser("cohort", help="Materialize the deterministic Protocol V2 manager cohort.")
+    cohort.add_argument("--source", action="append", required=True, help="PACKAGE=path; repeatable.")
+    cohort.add_argument("--output", required=True, help="Output JSON path.")
+
+    source_manifest = subparsers.add_parser("source-manifest", help="Persist portable SEC package checksums.")
+    source_manifest.add_argument("--source", action="append", required=True, help="PACKAGE=path; repeatable.")
+    source_manifest.add_argument("--output", required=True, help="Output JSON path.")
     return parser
 
 
@@ -699,6 +894,15 @@ def main() -> int:
             raise SystemExit("Each --source must use PACKAGE=path format")
         package, raw_path = value.split("=", 1)
         sources.append(BulkPackageSource(package.lower(), Path(raw_path), sec_bulk_url(package)))
+    if args.command == "cohort":
+        output = materialize_manager_cohort(sources, output_path=args.output)
+        print(output)
+        return 0
+    if args.command == "source-manifest":
+        output = materialize_source_manifest(sources, output_path=args.output)
+        print(output)
+        return 0
+
     output = build_historical_dataset(
         sources,
         output_root=args.output_root,

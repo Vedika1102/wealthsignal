@@ -2,7 +2,7 @@
 
 WealthSignal is evolving into an auditable temporal ML platform that ingests public SEC `13F-HR` filings, forecasts next-quarter institutional holdings, detects unusual observed changes, and explains their relevance to synthetic client portfolios.
 
-The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository now implements the historical bulk-data, objective temporal-target, leakage-audit, and Protocol V1 baseline-evaluation path. Forecast persistence and serving remain to be implemented; the existing database and API still expose the legacy observed-change and weak-label workflow.
+The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository implements the historical bulk-data, objective temporal-target, leakage-audit, Protocol V1 evaluation, forecast persistence, and forecast API paths. Protocol V2 cloud data construction and the attributed NAVIS research lane remain in progress; the legacy observed-change and weak-label workflow remains separate.
 
 The historical bulk-data workflow and its amendment, checksum, and output contracts are documented in [docs/SEC_13F_Bulk_Dataset.md](docs/SEC_13F_Bulk_Dataset.md).
 
@@ -21,6 +21,8 @@ The [candidate-universe sensitivity study](docs/WealthSignal_Candidate_Universe_
 [Forecast API and Honest Product Surface](docs/WealthSignal_Forecast_API.md) documents typed run-provenance and paginated manager-forecast endpoints, concept separation, errors, traceability, and local latency measurements.
 
 [Protocol V2 Design](docs/WealthSignal_Protocol_V2_Design.md) declares a 50-manager main current-data study, nested 10/25-manager engineering subsets, an optional 99-manager scale study, point-in-time identity and missingness rules, 2024 Q1–2026 Q1 validation, and an unavailable-at-freeze 2026 Q2 prospective holdout before any new download or evaluation.
+
+[Cloud Execution Plan](docs/WealthSignal_Cloud_Execution_Plan.md) moves Protocol V2 PySpark/Delta construction to Databricks and reserves RunPod for checksum-frozen NAVIS GPU experiments after graph reconciliation.
 
 This repository starts with the `13F ingestion foundation`, because a credible platform depends on:
 
