@@ -1,5 +1,5 @@
 {
-  "run_name": "wealthsignal-cloud2-10-manager",
+  "run_name": "wealthsignal-cloud2-10-manager-reconciliation",
   "timeout_seconds": 7200,
   "git_source": {
     "git_url": "https://github.com/Vedika1102/wealthsignal.git",
@@ -8,9 +8,9 @@
   },
   "tasks": [
     {
-      "task_key": "bronze_to_silver_10",
+      "task_key": "reconcile_10",
       "spark_python_task": {
-        "python_file": "services/pipeline_worker/src/wealthsignal_pipeline/cloud2_spark.py",
+        "python_file": "services/pipeline_worker/src/wealthsignal_pipeline/cloud2_reconcile.py",
         "parameters": ["--manager-count", "10"],
         "source": "GIT"
       },
@@ -20,9 +20,7 @@
   "environments": [
     {
       "environment_key": "default",
-      "spec": {
-        "client": "2"
-      }
+      "spec": { "client": "2" }
     }
   ]
 }
