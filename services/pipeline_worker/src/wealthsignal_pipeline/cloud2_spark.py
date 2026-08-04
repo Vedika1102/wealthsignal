@@ -97,6 +97,7 @@ def run_pipeline(manager_count: int) -> dict[str, object]:
         )
         .join(F.broadcast(manager_df), "cik")
         .filter(F.col("submission_type").isin("13F-HR", "13F-HR/A"))
+        .filter(F.col("report_period").between("2019-03-31", "2026-03-31"))
         .withColumn("package", F.regexp_extract("source_file", r"package=([^/]+)", 1))
     )
     covers = covers.select(
@@ -195,6 +196,12 @@ def run_pipeline(manager_count: int) -> dict[str, object]:
         "normalized_holding_rows": normalized.count(),
         "distinct_managers": normalized.select("cik").distinct().count(),
         "distinct_report_periods": normalized.select("report_period").distinct().count(),
+        "min_report_period": str(normalized.agg(F.min("report_period")).first()[0]),
+        "max_report_period": str(normalized.agg(F.max("report_period")).first()[0]),
+        "prospective_rows": normalized.filter(F.col("report_period") > F.lit("2026-03-31").cast("date")).count(),
+        "portfolio_weight_max_abs_error": normalized.groupBy("cik", "report_period").agg(
+            F.abs(F.sum("weight") - F.lit(1.0)).alias("error")
+        ).agg(F.max("error")).first()[0],
         "invalid_cusip_rows": info.join(F.broadcast(valid_accessions), F.trim(info["ACCESSION_NUMBER"]) == valid_accessions["accession_number"]).filter(F.length(cleaned_cusip) != 9).count(),
         "duplicate_rows_resolved": holdings.count() - per_accession.count(),
         "holdings_table": holdings_table,
