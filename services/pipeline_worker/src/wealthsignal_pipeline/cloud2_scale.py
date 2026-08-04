@@ -74,7 +74,12 @@ def run_scale_validation(manager_count: int, baseline_manager_count: int = 10) -
     ).first().asDict()
     scaled = spark.table(scaled_table)
     weight_error = scaled.groupBy("cik", "report_period").agg(
-        F.abs(F.sum("weight") - F.lit(1.0)).alias("error")
+        F.sum("weight").alias("weight_sum"), F.max("portfolio_value_usd").alias("portfolio_value_usd")
+    ).select(
+        F.abs(
+            F.col("weight_sum")
+            - F.when(F.col("portfolio_value_usd") == 0, F.lit(0.0)).otherwise(F.lit(1.0))
+        ).alias("error")
     ).agg(F.max("error")).first()[0]
     quality = {
         "manager_count": scaled.select("cik").distinct().count(),

@@ -180,7 +180,11 @@ def run_pipeline(manager_count: int) -> dict[str, object]:
     rank_window = Window.partitionBy("cik", "report_period").orderBy(F.desc("value_usd"), "security_key")
     normalized = (
         effective.withColumn("portfolio_value_usd", F.sum("value_usd").over(portfolio_window))
-        .withColumn("weight", F.col("value_usd") / F.col("portfolio_value_usd"))
+        .withColumn(
+            "weight",
+            F.when(F.col("portfolio_value_usd") != 0, F.col("value_usd") / F.col("portfolio_value_usd"))
+            .otherwise(F.lit(0.0)),
+        )
         .withColumn("rank", F.row_number().over(rank_window))
         .withColumn("report_year", F.year("report_period"))
         .withColumn("report_quarter", F.quarter("report_period"))
@@ -205,7 +209,12 @@ def run_pipeline(manager_count: int) -> dict[str, object]:
         "max_report_period": str(normalized.agg(F.max("report_period")).first()[0]),
         "prospective_rows": normalized.filter(F.col("report_period") > F.lit("2026-03-31").cast("date")).count(),
         "portfolio_weight_max_abs_error": normalized.groupBy("cik", "report_period").agg(
-            F.abs(F.sum("weight") - F.lit(1.0)).alias("error")
+            F.sum("weight").alias("weight_sum"), F.max("portfolio_value_usd").alias("portfolio_value_usd")
+        ).select(
+            F.abs(
+                F.col("weight_sum")
+                - F.when(F.col("portfolio_value_usd") == 0, F.lit(0.0)).otherwise(F.lit(1.0))
+            ).alias("error")
         ).agg(F.max("error")).first()[0],
         "invalid_cusip_rows": info.join(F.broadcast(valid_accessions), F.trim(info["ACCESSION_NUMBER"]) == valid_accessions["accession_number"]).filter(F.length(cleaned_cusip) != 9).count(),
         "duplicate_rows_resolved": holdings.count() - per_accession.count(),
