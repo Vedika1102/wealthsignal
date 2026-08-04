@@ -1,6 +1,10 @@
 import pytest
 
-from wealthsignal_pipeline.cloud2_spark import repository_root, security_key_expression
+from wealthsignal_pipeline.cloud2_spark import (
+    repository_root,
+    sec_date_expression,
+    security_key_expression,
+)
 
 
 def test_security_key_expression_uses_frozen_cusip_side_identity() -> None:
@@ -20,3 +24,10 @@ def test_repository_root_resolves_from_git_task_script_path() -> None:
         "services/pipeline_worker/src/wealthsignal_pipeline/cloud2_spark.py"
     )
     assert (root / "docs/ai-governance/forecast-protocol-v2-manager-cohort.json").is_file()
+
+
+def test_sec_date_expression_declares_production_and_fixture_formats() -> None:
+    assert sec_date_expression("raw_date") == (
+        "coalesce(to_date(try_to_timestamp(raw_date, 'dd-MMM-yyyy')), "
+        "to_date(try_to_timestamp(raw_date, 'yyyy-MM-dd')))"
+    )
