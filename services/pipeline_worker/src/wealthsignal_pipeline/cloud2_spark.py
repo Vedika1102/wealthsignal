@@ -159,6 +159,7 @@ def run_pipeline(manager_count: int) -> dict[str, object]:
         .filter(
             (F.col("filing_order") == F.col("replacement_order"))
             | (F.col("is_additive") & (F.col("filing_order") > F.col("replacement_order")))
+            | (F.col("replacement_order").isNull() & F.col("is_additive"))
         )
     )
     effective = selected.join(per_accession, "accession_number").groupBy(
