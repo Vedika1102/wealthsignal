@@ -1,0 +1,10 @@
+{
+  "completed_at": "2026-08-04T21:04:20.914141+00:00",
+  "inventory_path": "/Volumes/workspace/silver/cloud2_reports/cloud2-10-manager-mismatch-inventory",
+  "inventory_table": "workspace.silver.cloud2_reconciliation_mismatches_10",
+  "manager_count": 10,
+  "mismatch_rows": 118,
+  "reason_counts": {
+    "raw_security_key_differs_after_spark_normalization": 118
+  }
+}

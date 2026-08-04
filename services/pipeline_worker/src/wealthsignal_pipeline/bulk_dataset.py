@@ -16,6 +16,8 @@ from typing import Iterable, Mapping
 from urllib.request import Request, urlopen
 from zipfile import ZipFile
 
+from .identifiers import validated_cusip
+
 
 SEC_BULK_BASE_URL = "https://www.sec.gov/files/structureddata/data/form-13f-data-sets"
 VALUE_UNIT_CHANGE_DATE = date(2023, 1, 3)
@@ -802,10 +804,7 @@ def _normalize_cik(value: str) -> str:
 
 
 def _normalize_cusip(value: str) -> str:
-    normalized = "".join(character for character in value.upper() if character.isalnum() or character in "*@#")
-    if len(normalized) != 9:
-        raise ValueError(f"CUSIP must contain 9 valid characters: {value!r}")
-    return normalized
+    return validated_cusip(value)
 
 
 def _required(row: Mapping[str, str], field: str) -> str:

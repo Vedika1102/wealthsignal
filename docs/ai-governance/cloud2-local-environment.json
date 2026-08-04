@@ -1,0 +1,19 @@
+{
+  "environment": ".venv",
+  "python": "3.11.5",
+  "platform": "Windows CPython 64-bit",
+  "packages": {
+    "httpx2": "2.9.1",
+    "numpy": "2.4.6",
+    "pandas": "2.3.3",
+    "pyspark": "4.2.0",
+    "pytest": "9.1.1",
+    "scikit-learn": "1.9.0",
+    "scipy": "1.17.1"
+  },
+  "test_result": {
+    "passed": 78,
+    "failed": 0,
+    "warnings": 3
+  }
+}

@@ -2,7 +2,7 @@
 
 WealthSignal is evolving into an auditable temporal ML platform that ingests public SEC `13F-HR` filings, forecasts next-quarter institutional holdings, detects unusual observed changes, and explains their relevance to synthetic client portfolios.
 
-The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository implements the historical bulk-data, objective temporal-target, leakage-audit, Protocol V1 evaluation, forecast persistence, and forecast API paths. Protocol V2 cloud data construction and the attributed NAVIS research lane remain in progress; the legacy observed-change and weak-label workflow remains separate.
+The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository implements the historical bulk-data, objective temporal-target, leakage-audit, Protocol V1 evaluation, forecast persistence, and forecast API paths. Protocol V2 Cloud 1 bootstrap and the exact ten-manager Cloud 2 Bronze-to-Silver reconciliation are complete; 25/50-manager construction, Gold data, and the attributed NAVIS research lane remain in progress. The legacy observed-change and weak-label workflow remains separate.
 
 The historical bulk-data workflow and its amendment, checksum, and output contracts are documented in [docs/SEC_13F_Bulk_Dataset.md](docs/SEC_13F_Bulk_Dataset.md).
 
@@ -125,7 +125,7 @@ Implemented:
 Next:
 
 - use persistence as the V1 reference forecast without presenting it as a learned-model breakthrough
-- review the frozen Protocol V2 design, then acquire only its declared development packages
+- measure the nested 25-manager Cloud 2 subset on Databricks, then build the official 50-manager dataset if scaling evidence passes
 
 ### Legacy materiality path
 
