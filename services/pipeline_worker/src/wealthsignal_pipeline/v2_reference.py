@@ -6,18 +6,26 @@ import argparse
 import csv
 import hashlib
 import json
+import sys
 from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 from typing import Iterable
 
-from .bulk_dataset import (
-    BulkHolding,
-    BulkPackageSource,
-    BulkSubmission,
-    _read_package,
-    _submission_order,
-)
+if __package__:
+    from .bulk_dataset import BulkHolding, BulkPackageSource, BulkSubmission, _read_package, _submission_order
+else:
+    search_roots = [Path.cwd(), *Path.cwd().parents, Path(sys.argv[0]).resolve(), *Path(sys.argv[0]).resolve().parents]
+    source_root = next(
+        (
+            root / "services" / "pipeline_worker" / "src"
+            for root in search_roots
+            if (root / "services" / "pipeline_worker" / "src" / "wealthsignal_pipeline" / "bulk_dataset.py").is_file()
+        ),
+        Path(sys.argv[0]).resolve().parents[1],
+    )
+    sys.path.insert(0, str(source_root))
+    from wealthsignal_pipeline.bulk_dataset import BulkHolding, BulkPackageSource, BulkSubmission, _read_package, _submission_order
 
 
 V2_START = date(2019, 3, 31)
@@ -276,7 +284,17 @@ def main() -> None:
     parser.add_argument("--manager-count", type=int, default=10)
     parser.add_argument("--chunk-size", type=int, default=5)
     args = parser.parse_args()
-    cohort = json.loads(Path(args.cohort).read_text(encoding="utf-8"))
+    cohort_path = Path(args.cohort)
+    if not cohort_path.is_file():
+        cohort_path = next(
+            (
+                root / args.cohort
+                for root in [Path.cwd(), *Path.cwd().parents, Path(sys.argv[0]).resolve(), *Path(sys.argv[0]).resolve().parents]
+                if (root / args.cohort).is_file()
+            ),
+            cohort_path,
+        )
+    cohort = json.loads(cohort_path.read_text(encoding="utf-8"))
     source_dir = Path(args.source_dir)
     sources = [
         BulkPackageSource(path.name.split("_", 1)[0], path, "committed-manifest")
