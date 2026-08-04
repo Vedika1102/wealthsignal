@@ -70,7 +70,7 @@ def resolve_manager(
         ordinary = [row for row in ordered if row.submission_type == "13F-HR"]
         base = ordinary[-1] if ordinary else ordered[0]
         applicable = [row for row in ordered if _submission_order(row) >= _submission_order(base)]
-        effective: dict[str, BulkHolding] = {}
+        effective: dict[str, tuple[BulkHolding, set[str], date]] = {}
         accessions: list[str] = []
         for submission in applicable:
             rows, duplicates = _aggregate(holdings_by_accession.get(submission.accession_number, []))
@@ -83,23 +83,30 @@ def resolve_manager(
                 for key, row in rows.items():
                     previous = effective.get(key)
                     if previous is None:
-                        effective[key] = row
+                        effective[key] = (row, {submission.accession_number}, submission.filing_date)
                     else:
                         duplicate_count += 1
-                        effective[key] = replace(
-                            previous,
-                            value_usd=previous.value_usd + row.value_usd,
-                            shares_or_principal=previous.shares_or_principal + row.shares_or_principal,
+                        previous_row, previous_accessions, previous_available_at = previous
+                        effective[key] = (
+                            replace(
+                                previous_row,
+                                value_usd=previous_row.value_usd + row.value_usd,
+                                shares_or_principal=previous_row.shares_or_principal + row.shares_or_principal,
+                            ),
+                            previous_accessions | {submission.accession_number},
+                            max(previous_available_at, submission.filing_date),
                         )
                 accessions.append(submission.accession_number)
             else:
-                effective = rows
+                effective = {
+                    key: (row, {submission.accession_number}, submission.filing_date)
+                    for key, row in rows.items()
+                }
                 accessions = [submission.accession_number]
         selected_filing_count += len(accessions)
-        available_at = max(item.filing_date for item in applicable)
-        total = sum(item.value_usd for item in effective.values())
-        ranked = sorted(effective.items(), key=lambda item: (-item[1].value_usd, item[0]))
-        for rank, (security_key, holding) in enumerate(ranked, start=1):
+        total = sum(item[0].value_usd for item in effective.values())
+        ranked = sorted(effective.items(), key=lambda item: (-item[1][0].value_usd, item[0]))
+        for rank, (security_key, (holding, security_accessions, available_at)) in enumerate(ranked, start=1):
             output.append(
                 {
                     "cik": base.cik,
@@ -110,7 +117,7 @@ def resolve_manager(
                     "portfolio_weight": format(holding.value_usd / total if total else 0.0, ".17g"),
                     "holding_rank": rank,
                     "available_at": available_at.isoformat(),
-                    "source_accession_numbers": json.dumps(sorted(accessions), separators=(",", ":")),
+                    "source_accession_numbers": json.dumps(sorted(security_accessions), separators=(",", ":")),
                 }
             )
     return output, {"duplicates_resolved": duplicate_count, "selected_filing_rows": selected_filing_count}
