@@ -1,0 +1,35 @@
+{
+  "protocol_version": "v2-design-2",
+  "freeze_date": "2026-08-02",
+  "source": {
+    "authority": "SEC Form 13F Data Sets",
+    "inventory_url": "https://www.sec.gov/data-research/sec-markets-data/form-13f-data-sets",
+    "development_first_package": "2019 Q1 13F",
+    "development_latest_package": "2026 March April May 13F",
+    "latest_package_size_mb": 94.81,
+    "prospective_source": "first official SEC quarterly package published after the 2026 Q2 deadline covering June-August 2026 filings"
+  },
+  "target_windows": {
+    "selection_and_initial_training": ["2019-03-31", "2023-12-31"],
+    "validation": ["2024-03-31", "2026-03-31"],
+    "prospective_test": "2026-06-30"
+  },
+  "manager_policy": {
+    "target_count": 50,
+    "engineering_subset_counts": [10, 25],
+    "optional_scale_count": 99,
+    "nested_ordering_required": true,
+    "selection_quarters_required": 16,
+    "must_include_report_quarter": "2023-12-31",
+    "ranking": "median reported long-market value descending, CIK ascending",
+    "future_continuity_filter": false
+  },
+  "security_identity": "normalized CUSIP plus LONG/PUT/CALL instrument side",
+  "candidate_caps_validation_only": [100, 250, 500],
+  "candidate_selection_rule": "smallest cap within 0.25 percentage points of best mean validation target-weight-mass coverage",
+  "ema_alpha_grid": [0.4, 0.6, 0.8],
+  "ridge_alpha_grid": [0.1, 1.0, 10.0],
+  "primary_metrics": ["manager_macro_ndcg_at_10", "manager_macro_ndcg_at_20", "manager_macro_recall_at_10", "manager_macro_weight_mae", "manager_macro_weight_rmse"],
+  "test_accessed": false,
+  "download_authorized_by_protocol_design": false
+}

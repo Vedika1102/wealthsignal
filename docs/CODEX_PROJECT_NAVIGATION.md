@@ -120,6 +120,7 @@ This snapshot was re-established from the repository after Protocol V1 was froze
 - lineage-aware forecast-run and forecast-prediction persistence for SQLite and PostgreSQL;
 - idempotent persistence-reference forecast materialization with security, filing, dataset, protocol, model, and code lineage;
 - typed, paginated forecast-run and manager-forecast API endpoints with provenance, limitations, and concept separation;
+- pre-download Protocol V2 design with deterministic cohort policy and a prospective 2026 Q2 holdout;
 - synthetic client portfolios and portfolio-impact scoring;
 - FastAPI endpoints and Docker Compose services;
 - 60 passing tests after forecast persistence and API implementation.
@@ -158,7 +159,8 @@ Keep and harden:
 
 Implement next:
 
-- a current-data Protocol V2 and a research-reproduction lane for NAVIS;
+- Protocol V2 development-data acquisition and deterministic cohort materialization under the frozen design;
+- a research-reproduction lane for NAVIS after graph reconciliation;
 - downstream portfolio-impact workflow using only a model that passes its promotion policy;
 - analytical SQL and indexes;
 - sector and identifier enrichment.
@@ -174,8 +176,8 @@ The rule-based materiality score may remain as a clearly named observed-change s
 
 ### Confirmed risks and blockers
 
-1. Protocol V1 and forecast persistence were checkpointed locally in commits `14c5d01` and `1f2c4f9`; the newer forecast-API milestone remains uncommitted until reviewed.
-2. Forecast endpoints are implemented, but deployment authentication, rate limiting, and production connection pooling remain outside the current local product surface.
+1. Protocol V1, forecast persistence, and forecast APIs are checkpointed. Protocol V2 design revision 1 is checkpointed in commit `fe78dc7`; the revised 50-manager design revision 2 is frozen and checksum-verified, with its review checkpoint pending.
+2. Protocol V2 development packages have not been downloaded and the deterministic 50-manager CIK list has not yet been materialized. Its first 10 and 25 managers are nested engineering subsets; 99 managers remain an optional paper-scale study.
 3. The local V1 forecast database is ignored under `data/`; a clean checkout must rebuild it from checksum-verified source artifacts with the documented CLI.
 4. Protocol V1's final test is consumed. It cannot be reused for NAVIS development, feature selection, candidate changes, or threshold tuning.
 5. The failed action classifiers remain diagnostic and must not be introduced into alerts, portfolio impact, or the forecast API.
@@ -187,12 +189,13 @@ The rule-based materiality score may remain as a clearly named observed-change s
 
 Follow this dependency order from the actual stopping point:
 
-1. Review and checkpoint the typed forecast API milestone without reopening the consumed test.
-2. Build an immutable, newer-data Protocol V2 using later SEC packages and a newly declared untouched evaluation window.
-3. Create a framework-independent temporal bipartite graph adapter and prove that graph snapshots reconcile with the tabular portfolios and baseline metrics.
-4. Reproduce NAVIS against a frozen upstream revision, record every deviation, and compare it fairly with the same persistence and EMA baselines.
-5. Implement one clearly original WealthSignal extension and ablation after the reproduction is credible.
-6. Add PySpark/SQL scaling, monitoring, Excel, PowerPoint, dashboard, and verified resume metrics as measured engineering and communication layers.
+1. Review and checkpoint the Protocol V2 design without downloading data or reopening the consumed V1 test.
+2. Acquire the declared development packages, materialize and checksum the training-only manager cohort, and build leakage-audited validation data.
+3. Freeze the selected V2 candidate/model configuration before the prospective 2026 Q2 source becomes available.
+4. Create a framework-independent temporal bipartite graph adapter and prove that graph snapshots reconcile with the tabular portfolios and baseline metrics.
+5. Reproduce NAVIS against a frozen upstream revision, record every deviation, and compare it fairly with the same persistence and EMA baselines.
+6. Implement one clearly original WealthSignal extension and ablation after the reproduction is credible.
+7. Add PySpark/SQL scaling, monitoring, Excel, PowerPoint, dashboard, and verified resume metrics as measured engineering and communication layers.
 
 At the start of every milestone, Codex must verify that its prerequisite milestone is actually complete rather than relying on this document or the README.
 
@@ -1164,7 +1167,7 @@ Deliver a clean, reviewable V1 checkpoint proposal, including the exact files to
 
 ### Milestone 1 — Forecast Persistence and End-to-End Lineage
 
-Status: implemented locally; review and checkpoint pending.
+Status: completed and checkpointed in commit `1f2c4f9`.
 
 ```text
 Inspect the temporal dataset, forecasting baseline, persistence schemas, CLI, and API. Implement forecast-specific persistence for the honest V1 persistence model without reusing the consumed test for tuning.
@@ -1176,7 +1179,7 @@ Add migrations or compatibility logic, transaction safety, indexes justified by 
 
 ### Milestone 2 — Forecast API and Honest Product Surface
 
-Status: implemented locally; review and checkpoint pending.
+Status: completed and checkpointed in commit `a407aa8`.
 
 ```text
 Using the lineage-aware forecast tables, implement typed API endpoints to list forecast runs, retrieve one run with provenance, and retrieve a manager's ranked forecast for a target quarter with pagination. Clearly label observed holdings, observed changes, and predicted future weights as different concepts.
@@ -1185,6 +1188,8 @@ Return manager and security identifiers, predicted weight/rank, source cutoff, t
 ```
 
 ### Milestone 3 — Current-Data Protocol V2
+
+Status: design revision 2 frozen locally before download; protocol/config checksums verified, with review checkpoint pending.
 
 ```text
 Design Protocol V2 before downloading or evaluating new data. Inventory the latest complete official SEC 13F bulk packages available at execution time, then declare a larger manager cohort, historical coverage, security-universe policy, source cutoff, validation windows, and a brand-new untouched final or prospective window.
@@ -1271,7 +1276,7 @@ WealthSignal is portfolio-ready only when:
 Copy this into a new Codex task opened in the WealthSignal repository:
 
 ```text
-Read docs/CODEX_PROJECT_NAVIGATION.md completely and execute Milestone 3 — Current-Data Protocol V2.
+Read docs/CODEX_PROJECT_NAVIGATION.md and the three Protocol V2 governance files completely. Review the frozen Protocol V2 design and execute only its development-data acquisition and training-period cohort-selection stage.
 
-Treat the existing final test as consumed. Do not tune, rerun, or reinterpret it. Begin by reviewing and checkpointing the typed forecast API diff, then design Protocol V2 before downloading or evaluating newer SEC data. Declare the new manager universe, data policies, validation windows, and untouched evaluation window first.
+Treat Protocol V1's final test as consumed and Protocol V2's 2026 Q2 target as unavailable and untouched. Verify the protocol/config checksums before downloading. Acquire only the declared development packages through May 2026, derive the ordered 50-manager main cohort using only 2019 Q1–2023 Q4 report quarters, and persist its ordered CIK list and checksum. Define the first 10 and first 25 as nested engineering subsets; do not use them for the main validation claim. Preserve the same ordering so an optional first-99 scale study can be run later. Do not acquire or inspect the future 2026 Q2 truth source.
 ```
