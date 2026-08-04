@@ -37,6 +37,14 @@ def repository_root(script_path: str | Path | None = None) -> Path:
     raise RuntimeError(f"cannot locate WealthSignal repository from {path}")
 
 
+def sec_date_expression(column: str) -> str:
+    """Parse the two date encodings present in SEC bulk packages and fixtures."""
+    return (
+        f"coalesce(to_date(try_to_timestamp({column}, 'dd-MMM-yyyy')), "
+        f"to_date(try_to_timestamp({column}, 'yyyy-MM-dd')))"
+    )
+
+
 def _extract_packages(source_root: Path, extracted_root: Path, packages: list[str]) -> None:
     """Stream TSV members to managed storage without retaining row objects."""
     for package in packages:
@@ -82,8 +90,8 @@ def run_pipeline(manager_count: int) -> dict[str, object]:
         .select(
             F.trim(F.col("ACCESSION_NUMBER")).alias("accession_number"),
             F.lpad(F.trim(F.col("CIK")), 10, "0").alias("cik"),
-            F.to_date("FILING_DATE").alias("filing_date"),
-            F.to_date("PERIODOFREPORT").alias("report_period"),
+            F.expr(sec_date_expression("FILING_DATE")).alias("filing_date"),
+            F.expr(sec_date_expression("PERIODOFREPORT")).alias("report_period"),
             F.upper(F.trim(F.col("SUBMISSIONTYPE"))).alias("submission_type"),
             F.col("_metadata.file_path").alias("source_file"),
         )
