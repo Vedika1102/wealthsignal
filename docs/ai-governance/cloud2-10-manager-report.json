@@ -1,0 +1,62 @@
+{
+  "cloud_milestone": "Cloud 2",
+  "stage": "10-manager acceptance gate",
+  "status": "pipeline_passed_reconciliation_pending",
+  "git_commit": "044ef8da06e97dceb01882178b705c56ef73c83b",
+  "databricks_run_id": 437819843783846,
+  "databricks_task_run_id": 1117333751292607,
+  "completed_at": "2026-08-04T02:10:42.132640+00:00",
+  "runtime": {
+    "setup_seconds": 128,
+    "task_execution_seconds": 316,
+    "pipeline_elapsed_seconds": 301.722,
+    "performance_target": "STANDARD"
+  },
+  "inputs": {
+    "package_count": 30,
+    "manager_count": 10,
+    "min_report_period": "2019-03-31",
+    "max_report_period": "2026-03-31"
+  },
+  "outputs": {
+    "holdings_table": "workspace.silver.normalized_holdings_10",
+    "filings_table": "workspace.silver.effective_filings_10",
+    "submission_rows": 317,
+    "selected_filing_rows": 291,
+    "normalized_holding_rows": 1070385,
+    "distinct_managers": 10,
+    "distinct_report_periods": 29
+  },
+  "quality": {
+    "invalid_cusip_rows": 118,
+    "duplicate_rows_resolved": 3453575,
+    "portfolio_weight_max_abs_error": 7.438494264988549e-15,
+    "prospective_rows": 0
+  },
+  "acceptance": {
+    "distributed_pipeline_passed": true,
+    "frozen_window_passed": true,
+    "portfolio_reconciliation_passed": true,
+    "prospective_guard_passed": true,
+    "python_reference_reconciliation_passed": false,
+    "reason": "The existing Python bulk builder retains the Protocol V1 six-field security identity; Protocol V2 requires normalized CUSIP plus LONG/PUT/CALL side. A V2 Python adapter and exact 10-manager reconciliation report are required before 25/50-manager execution."
+  },
+  "failed_runs_retained": [
+    {
+      "run_id": 815034007907923,
+      "reason": "Unsupported serverless client channel; no code executed"
+    },
+    {
+      "run_id": 164817788648146,
+      "reason": "Databricks exec wrapper does not define __file__; no data processed"
+    },
+    {
+      "run_id": 316530188705806,
+      "reason": "Unity Catalog requires _metadata.file_path instead of input_file_name; extraction completed, no Silver tables written"
+    },
+    {
+      "run_id": 687977649112465,
+      "reason": "Production SEC dates use DD-MMM-YYYY; failed Delta transaction wrote no table"
+    }
+  ]
+}
