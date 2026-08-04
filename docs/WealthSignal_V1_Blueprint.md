@@ -1,5 +1,7 @@
 # WealthSignal V1 Blueprint
 
+> **Legacy architecture document.** This blueprint describes the original materiality-classification prototype. [WealthSignal Product and ML Specification](WealthSignal_Forecasting_Spec.md) is authoritative for current product direction, objective next-quarter targets, temporal evaluation, and legacy-component disposition. Materiality is now a secondary observed-change severity policy, not the primary ML target.
+
 ## Goal
 
 Build a credible applied AI/ML project for a role like JPMC Applied AI/ML by focusing on a real financial workflow:
@@ -29,7 +31,7 @@ That is much closer to `Applied AI/ML` than a single notebook, a Kaggle competit
 
 ---
 
-## The Core Product Thesis
+## Original Core Product Thesis
 
 WealthSignal is an `institutional holdings intelligence system` for wealth managers.
 
@@ -41,6 +43,8 @@ It answers:
 - What should an advisor review first?
 
 Important framing:
+
+The following framing documents the original prototype. The current primary ML target is objective next-quarter holdings forecasting as defined in `docs/WealthSignal_Forecasting_Spec.md`.
 
 - `13F data is delayed`, not real-time trading data.
 - The platform should position itself as `post-filing decision support`, not instant alpha generation.
@@ -185,7 +189,7 @@ Use realistic synthetic portfolios with:
 
 ---
 
-## Financial Problem Definition
+## Legacy Financial Problem Definition
 
 The platform is not trying to predict stock returns directly.
 
@@ -193,13 +197,13 @@ It is solving:
 
 `Given a newly published 13F filing, determine whether the reported changes are material enough to warrant advisor review, and rank the relevance to client portfolios.`
 
-That is a much more defensible applied ML problem.
+This remains a useful observed-change triage problem, but it is no longer WealthSignal's primary predictive task.
 
 ---
 
-## ML Problem Formulation
+## Legacy ML Problem Formulation
 
-### Task 1: Materiality Classification
+### Legacy Task: Materiality Classification
 
 Binary classification:
 
@@ -277,7 +281,7 @@ Rubric:
 - Is this change likely strategic rather than mechanical?
 - Does it affect concentrated or thematic exposure?
 
-This becomes your real evaluation set.
+This can evaluate the observed-change severity policy independently, but it is not the ground-truth dataset for next-quarter holdings forecasting.
 
 #### Layer 3: Secondary Outcome Signals
 

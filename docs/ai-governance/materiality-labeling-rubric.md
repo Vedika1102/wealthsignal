@@ -1,8 +1,10 @@
 # Materiality Gold-Set Labeling Rubric
 
+> **Secondary legacy evaluation artifact.** This rubric may be used to evaluate the observed-change severity policy with human judgments. It is not the primary target or evaluation dataset for next-quarter holdings forecasting. See `docs/WealthSignal_Forecasting_Spec.md`.
+
 ## Purpose
 
-The gold set measures whether WealthSignal prioritizes events that deserve an advisor's review. It must remain independent of the rule-generated `weak_label` used for model training.
+The gold set measures whether the legacy observed-change workflow prioritizes events that deserve an advisor's review. It must remain independent of the rule-generated `weak_label` used by the legacy classifier.
 
 Label the filing event using only information available at or before the filing date. Do not use subsequent price performance to decide the label.
 
@@ -67,4 +69,4 @@ A release-ready gold set has:
 
 Run the validator before any evaluation. The evaluation report identifies the dataset by the SHA-256 digest of the reviewed CSV so results remain tied to the exact labels used.
 
-Rule-engine metrics can be treated as holdout results because manual labels are independent of the rules. A trained model must exclude all gold-set event IDs from training before its metrics are described as holdout performance. Reports generated from existing stored predictions label those results `diagnostic_in_sample` until that exclusion is implemented and verified.
+Rule-engine metrics can be treated as holdout results for the secondary materiality-policy task because manual labels are independent of the rules. A legacy classifier must exclude all gold-set event IDs from training before its metrics are described as materiality-task holdout performance. Reports generated from existing stored predictions remain `diagnostic_in_sample` until that exclusion is implemented and verified. None of these results are forecasting holdout metrics.

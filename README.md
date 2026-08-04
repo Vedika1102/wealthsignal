@@ -1,6 +1,24 @@
 # WealthSignal
 
-WealthSignal is an applied AI/ML project that ingests real SEC `13F-HR` filings, computes institutional portfolio changes, scores advisor-worthy materiality, and ranks downstream client portfolio impact.
+WealthSignal is evolving into an auditable temporal ML platform that ingests public SEC `13F-HR` filings, forecasts next-quarter institutional holdings, detects unusual observed changes, and explains their relevance to synthetic client portfolios.
+
+The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository now implements the historical bulk-data, objective temporal-target, leakage-audit, and Protocol V1 baseline-evaluation path. Forecast persistence and serving remain to be implemented; the existing database and API still expose the legacy observed-change and weak-label workflow.
+
+The historical bulk-data workflow and its amendment, checksum, and output contracts are documented in [docs/SEC_13F_Bulk_Dataset.md](docs/SEC_13F_Bulk_Dataset.md).
+
+The objective manager-security-quarter table, expanding-window splits, and leakage audit are documented in [docs/WealthSignal_Temporal_Dataset.md](docs/WealthSignal_Temporal_Dataset.md).
+
+Leakage-safe persistence, EMA, popularity, ridge, and gradient-boosted forecasting baselines are documented in [docs/WealthSignal_Forecasting_Baselines.md](docs/WealthSignal_Forecasting_Baselines.md).
+
+The measured ten-manager, six-target-quarter validation expansion is recorded in [docs/WealthSignal_Expanded_Validation.md](docs/WealthSignal_Expanded_Validation.md). Its Protocol V1 final-test fold has been consumed and must not be reused for tuning.
+
+The [candidate-universe sensitivity study](docs/WealthSignal_Candidate_Universe_Sensitivity.md) selects the 100-negative cap. [Forecast Comparison Protocol V1](docs/ai-governance/forecast-comparison-protocol-v1.md) freezes the model set, metrics, promotion gate, and one-time final-test procedure.
+
+[Final-Test Report V1](docs/WealthSignal_Final_Test_Report_V1.md) preserves the one-time holdout result. Persistence wins the primary final-test ranking and MAE metrics; no learned model is promoted, and the Protocol V1 holdout is now consumed.
+
+[Forecast Persistence and Lineage](docs/WealthSignal_Forecast_Persistence.md) documents the separate forecast-run and prediction schemas, checksum-traced materialization CLI, idempotency contract, and measured V1 reconciliation.
+
+[Forecast API and Honest Product Surface](docs/WealthSignal_Forecast_API.md) documents typed run-provenance and paginated manager-forecast endpoints, concept separation, errors, traceability, and local latency measurements.
 
 This repository starts with the `13F ingestion foundation`, because a credible platform depends on:
 
@@ -9,17 +27,20 @@ This repository starts with the `13F ingestion foundation`, because a credible p
 3. quarter-over-quarter change computation,
 4. explainable downstream scoring.
 
-## V1 Focus
+## V1 Scope
 
-The initial build targets:
+The V1 build covers or targets:
 
 - SEC filing ingestion
 - XML holdings parsing
 - normalized holdings models
 - delta computation
-- materiality feature generation
+- manager-security-quarter feature generation
+- objective next-quarter weight, rank, and holding-action targets
+- leakage-safe expanding-window evaluation
+- persistence and EMA forecasting baselines
 - client impact scoring
-- alert APIs
+- observed-change and forecast APIs
 
 ## Repository Layout
 
@@ -57,6 +78,8 @@ wealthsignal/
             └── test_parser.py
 ```
 
+The abbreviated tree above shows the original runtime foundation. The forecasting path additionally includes `bulk_dataset.py`, `temporal_dataset.py`, and `forecasting_baselines.py`, with dedicated bulk, temporal, and baseline tests under `services/pipeline_worker/tests/`.
+
 ## Current State
 
 Implemented:
@@ -85,15 +108,23 @@ Implemented:
 - Dockerfiles for `pipeline-worker` and `decision-api`
 - `docker-compose.yml` with PostgreSQL, MinIO, Redis, MLflow, pipeline-worker, and decision-api
 - live SEC artifact resolution verified against a real 13F filing
-- unit tests for parser, SEC utilities, persistence, and decisioning
+- immutable official SEC bulk-package ingestion and normalized dataset manifests
+- manager-security-quarter features and objective next-quarter targets
+- expanding-window split manifests and automated temporal-leakage audits
+- persistence, EMA, popularity, ridge, gradient-boosting, and logistic action baselines
+- checksum-gated Protocol V1 validation and one-time final-test artifacts
+- lineage-aware SQLite/PostgreSQL forecast persistence and idempotent persistence-reference materialization
+- typed, paginated forecast-run and manager-forecast API endpoints with provenance and limitations
+- unit tests for parser, SEC utilities, historical/temporal datasets, baselines, persistence, and decisioning
 
 Next:
 
-- add richer sector and reference-data enrichment
-- build a manually labeled gold evaluation set
-- add prediction audit logging and model data-lineage metadata
-- add scheduled ingestion, retries, and monitoring metrics
-- expose feature rows and richer model explanations through the API
+- use persistence as the V1 reference forecast without presenting it as a learned-model breakthrough
+- design current-data Protocol V2 with a new untouched evaluation window
+
+### Legacy materiality path
+
+The existing materiality classifier, weak labels, manual gold-set workflow, and recommendation precedents are retained for reproducibility while the forecasting path is built. They are not the primary ML objective, and their metrics must not be presented as evidence of next-quarter forecasting performance. The deterministic materiality score remains useful as an observed-change severity policy.
 
 ## Local Ingest Example
 
@@ -153,6 +184,9 @@ uvicorn services.decision_api.app.main:app --reload
 Current endpoints:
 
 - `GET /health`
+- `GET /api/v1/forecast-runs`
+- `GET /api/v1/forecast-runs/{run_id}`
+- `GET /api/v1/forecast-runs/{run_id}/managers/{manager_cik}`
 - `GET /filings`
 - `GET /filings/{accession_number}/changes`
 - `GET /alerts`
