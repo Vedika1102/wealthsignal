@@ -28,7 +28,7 @@ def run_reconciliation(manager_count: int, reference_path: str) -> dict[str, obj
         T.StructField("source_accession_numbers", T.StringType(), False),
     ])
     python = (
-        spark.read.option("header", True).option("mode", "FAILFAST").schema(schema).csv(reference_path)
+        spark.read.option("header", True).option("mode", "FAILFAST").option("escape", '"').schema(schema).csv(reference_path)
         .withColumn("python_accessions", F.sort_array(F.from_json("source_accession_numbers", "array<string>")))
         .drop("source_accession_numbers")
     )
