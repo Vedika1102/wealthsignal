@@ -1,0 +1,45 @@
+{
+  "cloud_milestone": "Cloud 1",
+  "status": "accepted",
+  "verified_at": "2026-08-04T01:25:00Z",
+  "workspace_mode": "Databricks Free Edition low-cost mode",
+  "git": {
+    "repository": "Vedika1102/wealthsignal",
+    "branch": "master",
+    "commit": "47fb78273cf28b8977d385e1d24dcb4230e9c3ab"
+  },
+  "namespaces": [
+    "workspace.bronze",
+    "workspace.silver",
+    "workspace.gold",
+    "workspace.mlflow"
+  ],
+  "source_volume": "dbfs:/Volumes/workspace/bronze/sec_13f_development",
+  "source_verification": {
+    "declared_package_count": 30,
+    "stored_package_count": 30,
+    "verified_package_count": 30,
+    "total_size_bytes": 2025550362,
+    "method": "Download round-trip from the managed volume followed by local SHA-256 and size comparison with the committed source manifest",
+    "failure_count": 0
+  },
+  "cohort": {
+    "manager_count": 50,
+    "canonical_ordered_ciks_sha256": "23617b83308e9b073212f9eb493e57921877eacc887f2fcdd923cf3b9ebfc3ff",
+    "verified": true
+  },
+  "prospective_guard": {
+    "prohibited_package": "2026q3",
+    "stored_prospective_source_count": 0,
+    "passed": true
+  },
+  "compute": {
+    "clusters_created": 0,
+    "warehouses_started": 0,
+    "runpod_resources_created": 0
+  },
+  "limitations": [
+    "Cloud object hashes were verified by a full no-compute download round-trip; Cloud 2 must rerun the executable validator against /Volumes before parsing.",
+    "Databricks Free Edition quotas may require stopping and requesting a storage or compute decision without changing the frozen protocol."
+  ]
+}
