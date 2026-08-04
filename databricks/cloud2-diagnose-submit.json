@@ -1,0 +1,26 @@
+{
+  "run_name": "wealthsignal-cloud2-10-manager-diagnostics",
+  "timeout_seconds": 3600,
+  "git_source": {
+    "git_url": "https://github.com/Vedika1102/wealthsignal.git",
+    "git_provider": "gitHub",
+    "git_commit": "fa90fffecf1b472517e3b02d9d512c3f4ae338d9"
+  },
+  "tasks": [
+    {
+      "task_key": "diagnose_10",
+      "spark_python_task": {
+        "python_file": "services/pipeline_worker/src/wealthsignal_pipeline/cloud2_diagnose.py",
+        "parameters": ["--manager-count", "10"],
+        "source": "GIT"
+      },
+      "environment_key": "default"
+    }
+  ],
+  "environments": [
+    {
+      "environment_key": "default",
+      "spec": { "client": "2" }
+    }
+  ]
+}

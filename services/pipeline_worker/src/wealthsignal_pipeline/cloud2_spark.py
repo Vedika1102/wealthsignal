@@ -73,6 +73,10 @@ def run_pipeline(manager_count: int) -> dict[str, object]:
     started = time.monotonic()
     spark = SparkSession.builder.getOrCreate()
     repo_root = repository_root()
+    source_root = repo_root / "services" / "pipeline_worker" / "src"
+    if str(source_root) not in sys.path:
+        sys.path.insert(0, str(source_root))
+    from wealthsignal_pipeline.identifiers import cusip_normalization_sql
     cohort = json.loads((repo_root / COHORT_PATH).read_text(encoding="utf-8"))
     manifest = json.loads((repo_root / MANIFEST_PATH).read_text(encoding="utf-8"))
     managers = cohort["main_ordered_ciks"][:manager_count]
@@ -109,7 +113,7 @@ def run_pipeline(manager_count: int) -> dict[str, object]:
     filings = submissions.join(covers, "accession_number", "left")
     valid_accessions = filings.select("accession_number").distinct()
 
-    cleaned_cusip = F.upper(F.regexp_replace(F.trim(F.col("CUSIP")), r"[^A-Z0-9*@#]", ""))
+    cleaned_cusip = F.expr(cusip_normalization_sql("CUSIP"))
     holdings = (
         info.join(F.broadcast(valid_accessions), F.trim(info["ACCESSION_NUMBER"]) == valid_accessions["accession_number"])
         .drop(valid_accessions["accession_number"])
