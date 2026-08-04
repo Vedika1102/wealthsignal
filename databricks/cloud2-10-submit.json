@@ -1,0 +1,28 @@
+{
+  "run_name": "wealthsignal-cloud2-10-manager",
+  "timeout_seconds": 7200,
+  "git_source": {
+    "git_url": "https://github.com/Vedika1102/wealthsignal.git",
+    "git_provider": "gitHub",
+    "git_commit": "044ef8da06e97dceb01882178b705c56ef73c83b"
+  },
+  "tasks": [
+    {
+      "task_key": "bronze_to_silver_10",
+      "spark_python_task": {
+        "python_file": "services/pipeline_worker/src/wealthsignal_pipeline/cloud2_spark.py",
+        "parameters": ["--manager-count", "10"],
+        "source": "GIT"
+      },
+      "environment_key": "default"
+    }
+  ],
+  "environments": [
+    {
+      "environment_key": "default",
+      "spec": {
+        "client": "2"
+      }
+    }
+  ]
+}
