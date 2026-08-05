@@ -1,0 +1,15 @@
+{
+  "cloud_milestone": "Cloud 2 official 50-manager build",
+  "frozen_contract_commit": "77804177d4146e4f521dc027bd3a67af5ca41c84",
+  "python_reference": {
+    "path": "/Volumes/workspace/silver/cloud2_reports/protocol-v2-python-reference-50.csv",
+    "sha256": "babb7ca5fe402fa1f627d5b1c23e3576ae5a2b332b3fbff074e4c21ffbca016a"
+  },
+  "committed_artifact_sha256": {
+    "databricks/cloud2-50-handoff-submit.json": "502f645b789bb8b9e8d7c1c86dd25ff8e8f61b1e7d0f755ef9ff661c4f673f90",
+    "databricks/cloud2-50-scale-submit.json": "aecc0b76ee643139c627efc1a00f6e93680672ea32a48bed4db1272c74ee2469",
+    "docs/ai-governance/cloud2-50-manager-pipeline.json": "74ddf1044ec385a6a4a34e374371c8f2fd10da1d3df650acf46ed5f7d10246ce",
+    "docs/ai-governance/cloud2-50-manager-reconciliation.json": "6f2b862a00175ba6d0f023682f94f87dc12ef1e1560ecc5913a8cb4e01071150",
+    "docs/ai-governance/cloud2-50-manager-scale.json": "802bfed79282fd9698e67e437aabf2dd490dcdb7b476635bafcc6fce17812bff"
+  }
+}

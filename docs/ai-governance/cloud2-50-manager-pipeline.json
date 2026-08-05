@@ -1,0 +1,20 @@
+{
+  "cloud_milestone": "Cloud 2",
+  "completed_at": "2026-08-05T01:36:53.742986+00:00",
+  "distinct_managers": 50,
+  "distinct_report_periods": 29,
+  "duplicate_rows_resolved": 9874915,
+  "elapsed_seconds": 353.001,
+  "filings_table": "workspace.silver.effective_filings_50",
+  "holdings_table": "workspace.silver.normalized_holdings_50",
+  "invalid_cusip_rows": 0,
+  "manager_count": 50,
+  "max_report_period": "2026-03-31",
+  "min_report_period": "2019-03-31",
+  "normalized_holding_rows": 4974339,
+  "package_count": 30,
+  "portfolio_weight_max_abs_error": 2.631228568361621e-14,
+  "prospective_rows": 0,
+  "selected_filing_rows": 1510,
+  "submission_rows": 1612
+}

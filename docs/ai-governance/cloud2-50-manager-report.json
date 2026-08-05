@@ -1,0 +1,94 @@
+{
+  "cloud_milestone": "Cloud 2",
+  "stage": "official 50-manager build",
+  "status": "passed",
+  "decision": "go_for_cloud3_gold",
+  "frozen_contract_commit": "77804177d4146e4f521dc027bd3a67af5ca41c84",
+  "runs": {
+    "handoff_parent_run_id": 832861137264839,
+    "spark_task_run_id": 793435764461251,
+    "python_reference_task_run_id": 738493573126832,
+    "reconciliation_task_run_id": 700444532785680,
+    "scale_gate_parent_run_id": 748735325381936,
+    "scale_gate_task_run_id": 808864894333461
+  },
+  "runtime": {
+    "spark_setup_seconds": 249,
+    "spark_execution_seconds": 367,
+    "spark_pipeline_elapsed_seconds": 353.001,
+    "python_reference_setup_seconds": 249,
+    "python_reference_execution_seconds": 3026,
+    "reconciliation_setup_seconds": 2,
+    "reconciliation_execution_seconds": 40,
+    "scale_gate_setup_seconds": 285,
+    "scale_gate_execution_seconds": 25
+  },
+  "inputs": {
+    "package_count": 30,
+    "manager_count": 50,
+    "min_report_period": "2019-03-31",
+    "max_report_period": "2026-03-31"
+  },
+  "outputs": {
+    "holdings_table": "workspace.silver.normalized_holdings_50",
+    "filings_table": "workspace.silver.effective_filings_50",
+    "normalized_holding_rows": 4974339,
+    "selected_filing_rows": 1510,
+    "submission_rows": 1612,
+    "distinct_managers": 50,
+    "distinct_report_periods": 29,
+    "holdings_delta_files": 29,
+    "holdings_partition_columns": ["report_year", "report_quarter"],
+    "holdings_size_bytes": 115206660,
+    "holdings_scan_partitions": 6,
+    "filings_delta_files": 1,
+    "filings_size_bytes": 17068
+  },
+  "quality": {
+    "invalid_cusip_rows": 0,
+    "duplicate_rows_resolved_spark": 9874915,
+    "prospective_rows": 0,
+    "portfolio_weight_max_abs_error_pipeline": 2.631228568361621e-14,
+    "portfolio_weight_max_abs_error_reload": 4.1522341120980855e-14
+  },
+  "python_reference": {
+    "row_count": 4974339,
+    "selected_filing_rows": 1510,
+    "duplicates_resolved": 10014431,
+    "sha256": "babb7ca5fe402fa1f627d5b1c23e3576ae5a2b332b3fbff074e4c21ffbca016a"
+  },
+  "reconciliation": {
+    "passed": true,
+    "joined_rows": 4974339,
+    "missing_in_python": 0,
+    "missing_in_spark": 0,
+    "value_mismatches": 0,
+    "shares_mismatches": 0,
+    "accession_mismatches": 0,
+    "availability_mismatches": 0,
+    "rank_mismatches": 0,
+    "weight_mismatches": 0,
+    "max_shares_delta": 0.0,
+    "max_weight_delta": 0.0
+  },
+  "prefix_stability": {
+    "accepted_10_manager_prefix_passed": true,
+    "accepted_25_manager_prefix_passed": true,
+    "missing_or_mismatched_fields_for_10": 0,
+    "missing_or_mismatched_fields_for_25": 0
+  },
+  "capacity_and_cost": {
+    "observed_peak_memory_bytes": null,
+    "memory_note": "Databricks serverless Jobs API did not expose peak driver or executor memory.",
+    "projected_incremental_usd_if_free_edition_quota_suffices": 0.0,
+    "paid_mode_cost_usd": null,
+    "cost_note": "Free Edition exposes neither DBU usage nor a paid rate; paid cost cannot be responsibly inferred."
+  },
+  "guards": {
+    "prospective_q2_2026_truth_accessed": false,
+    "gold_or_graph_artifacts_created": false,
+    "runpod_started": false,
+    "aws_resources_created": false
+  },
+  "blocking_reasons": []
+}

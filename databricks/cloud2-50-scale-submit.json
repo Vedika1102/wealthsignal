@@ -1,0 +1,26 @@
+{
+  "run_name": "wealthsignal-cloud2-50-manager-scale-gate",
+  "timeout_seconds": 3600,
+  "git_source": {
+    "git_url": "https://github.com/Vedika1102/wealthsignal.git",
+    "git_provider": "gitHub",
+    "git_commit": "77804177d4146e4f521dc027bd3a67af5ca41c84"
+  },
+  "tasks": [
+    {
+      "task_key": "scale_gate_50",
+      "spark_python_task": {
+        "python_file": "services/pipeline_worker/src/wealthsignal_pipeline/cloud2_scale.py",
+        "parameters": ["--manager-count", "50", "--baseline-manager-count", "10", "--baseline-manager-count", "25"],
+        "source": "GIT"
+      },
+      "environment_key": "default"
+    }
+  ],
+  "environments": [
+    {
+      "environment_key": "default",
+      "spec": { "client": "2" }
+    }
+  ]
+}
