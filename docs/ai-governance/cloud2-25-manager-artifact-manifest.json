@@ -1,0 +1,17 @@
+{
+  "cloud_milestone": "Cloud 2 25-manager scaling",
+  "frozen_contract_commit": "a0bbe52a7cdbcdc059631c13590b21562a43b183",
+  "python_reference": {
+    "path": "/Volumes/workspace/silver/cloud2_reports/protocol-v2-python-reference-25.csv",
+    "sha256": "33ad6a35584c90e73f68355125b2f74297526108773f23e52e28b33c4811bbfb"
+  },
+  "committed_artifact_sha256": {
+    "databricks/cloud2-25-handoff-submit.json": "e4d01b7f71f62da3e0308c5bb4799df2724633c71ff2b4a530431593624621e2",
+    "databricks/cloud2-25-reconcile-submit.json": "84fe9b020f328e643621d98878c4656acd57c0feb4c63e26acee6bde0c170819",
+    "databricks/cloud2-25-scale-submit.json": "30854797ab7f72e5b2ee58deb6c8e2be65d47236ca7d1153405d8532603275f0",
+    "databricks/cloud2-25-submit.json": "915898204ef5f4a58955c1ecd58699045ee74cffeb9919649afdccc1240072b7",
+    "docs/ai-governance/cloud2-25-manager-pipeline.json": "9e62d5a8c178363f23d06f3f6a5f9abc205e7fb19b5e650630698ba376c5f515",
+    "docs/ai-governance/cloud2-25-manager-reconciliation.json": "e9955177ae7fb19ba80058f0625b676c0a8199e8481c2c7f63c406a23ac71620",
+    "docs/ai-governance/cloud2-25-manager-scale.json": "1daa01e6b4009c90693b07f543ab1ad025eca2ea5f6baf1a236af8f2f4921513"
+  }
+}

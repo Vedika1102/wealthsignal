@@ -1,0 +1,18 @@
+{
+  "accession_mismatches": 0,
+  "availability_mismatches": 0,
+  "cloud_milestone": "Cloud 2 reconciliation",
+  "completed_at": "2026-08-04T22:15:24.614467+00:00",
+  "joined_rows": 2986111,
+  "manager_count": 25,
+  "max_shares_delta": 0.0,
+  "max_weight_delta": 0.0,
+  "missing_in_python": 0,
+  "missing_in_spark": 0,
+  "passed": true,
+  "rank_mismatches": 0,
+  "reference_path": "/Volumes/workspace/silver/cloud2_reports/protocol-v2-python-reference-25.csv",
+  "shares_mismatches": 0,
+  "value_mismatches": 0,
+  "weight_mismatches": 0
+}
