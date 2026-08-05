@@ -38,17 +38,13 @@ def _detail(spark, table: str) -> dict[str, object]:
     }
 
 
-def run_scale_validation(manager_count: int, baseline_manager_count: int = 10) -> dict[str, object]:
-    from pyspark.sql import SparkSession, functions as F
+def _prefix_metrics(spark, scaled, baseline_manager_count: int) -> dict[str, object]:
+    from pyspark.sql import functions as F
 
-    if manager_count != 25 or baseline_manager_count != 10:
-        raise ValueError("the current scale gate is frozen to 10 -> 25 managers")
-    spark = SparkSession.builder.getOrCreate()
     baseline_table = f"workspace.silver.normalized_holdings_{baseline_manager_count}"
-    scaled_table = f"workspace.silver.normalized_holdings_{manager_count}"
     baseline = spark.table(baseline_table)
     baseline_ciks = baseline.select("cik").distinct()
-    scaled_prefix = spark.table(scaled_table).join(F.broadcast(baseline_ciks), "cik")
+    scaled_prefix = scaled.join(F.broadcast(baseline_ciks), "cik")
     keys = ["cik", "report_period", "security_key"]
     left = baseline.select(
         *keys, F.col("value_usd").alias("b_value"), F.col("shares_or_principal").alias("b_shares"),
@@ -62,7 +58,7 @@ def run_scale_validation(manager_count: int, baseline_manager_count: int = 10) -
     )
     joined = left.join(right, keys, "full_outer")
     present = F.col("b_value").isNotNull() & F.col("s_value").isNotNull()
-    prefix = joined.agg(
+    return joined.agg(
         F.sum(F.col("b_value").isNull().cast("long")).alias("missing_in_baseline"),
         F.sum(F.col("s_value").isNull().cast("long")).alias("missing_in_scaled"),
         F.sum((present & (F.col("b_value") != F.col("s_value"))).cast("long")).alias("value_mismatches"),
@@ -72,7 +68,21 @@ def run_scale_validation(manager_count: int, baseline_manager_count: int = 10) -
         F.sum((present & (F.col("b_available") != F.col("s_available"))).cast("long")).alias("availability_mismatches"),
         F.sum((present & ~F.col("b_accessions").eqNullSafe(F.col("s_accessions"))).cast("long")).alias("accession_mismatches"),
     ).first().asDict()
+
+
+def run_scale_validation(
+    manager_count: int, baseline_manager_counts: tuple[int, ...] | None = None
+) -> dict[str, object]:
+    from pyspark.sql import SparkSession, functions as F
+
+    expected = {25: (10,), 50: (10, 25)}
+    baselines = baseline_manager_counts or expected.get(manager_count)
+    if baselines != expected.get(manager_count):
+        raise ValueError("scale gates are frozen to 10 -> 25 and (10, 25) -> 50")
+    spark = SparkSession.builder.getOrCreate()
+    scaled_table = f"workspace.silver.normalized_holdings_{manager_count}"
     scaled = spark.table(scaled_table)
+    prefixes = {str(baseline): _prefix_metrics(spark, scaled, baseline) for baseline in baselines}
     weight_error = scaled.groupBy("cik", "report_period").agg(
         F.sum("weight").alias("weight_sum"), F.max("portfolio_value_usd").alias("portfolio_value_usd")
     ).select(
@@ -91,11 +101,20 @@ def run_scale_validation(manager_count: int, baseline_manager_count: int = 10) -
         "portfolio_weight_max_abs_error": weight_error,
         "scan_partitions": scaled.select(F.spark_partition_id().alias("partition_id")).distinct().count(),
     }
-    decision, reasons = scale_go_no_go({**prefix, **quality})
+    reasons = [
+        f"prefix_{baseline}.{field}"
+        for baseline, prefix in prefixes.items()
+        for field in PREFIX_MISMATCH_FIELDS
+        if int(prefix.get(field, 0) or 0) != 0
+    ]
+    _, quality_reasons = scale_go_no_go(quality)
+    reasons.extend(quality_reasons)
+    decision = not reasons
     metrics = {
-        "cloud_milestone": "Cloud 2 25-manager scaling",
-        "baseline_manager_count": baseline_manager_count,
-        **prefix, **quality,
+        "cloud_milestone": f"Cloud 2 {manager_count}-manager scaling",
+        "baseline_manager_counts": list(baselines),
+        "prefix_stability": prefixes,
+        **quality,
         "holdings_detail": _detail(spark, scaled_table),
         "filings_detail": _detail(spark, f"workspace.silver.effective_filings_{manager_count}"),
         "observed_peak_memory_bytes": None,
@@ -105,25 +124,27 @@ def run_scale_validation(manager_count: int, baseline_manager_count: int = 10) -
             "paid_mode_projection_usd": None,
             "note": "No DBU usage or paid rate is exposed for this Free Edition serverless run; do not infer paid cost.",
         },
-        "go_for_50_manager_build": decision,
+        "acceptance_passed": decision,
+        "next_stage": "official_50_manager_build" if manager_count == 25 else "cloud3_gold",
         "blocking_reasons": reasons,
         "completed_at": datetime.now(timezone.utc).isoformat(),
     }
     Path(REPORT_ROOT).mkdir(parents=True, exist_ok=True)
-    report = Path(REPORT_ROOT) / "cloud2-25-manager-scale.json"
+    report = Path(REPORT_ROOT) / f"cloud2-{manager_count}-manager-scale.json"
     report.write_text(json.dumps(metrics, indent=2, sort_keys=True), encoding="utf-8")
     print(json.dumps(metrics, sort_keys=True))
     if not decision:
-        raise RuntimeError("25-manager scale gate failed; 50-manager build remains unauthorized")
+        raise RuntimeError(f"{manager_count}-manager scale gate failed; downstream work remains unauthorized")
     return metrics
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manager-count", type=int, default=25)
-    parser.add_argument("--baseline-manager-count", type=int, default=10)
+    parser.add_argument("--baseline-manager-count", type=int, action="append")
     args = parser.parse_args()
-    run_scale_validation(args.manager_count, args.baseline_manager_count)
+    baselines = tuple(args.baseline_manager_count) if args.baseline_manager_count else None
+    run_scale_validation(args.manager_count, baselines)
 
 
 if __name__ == "__main__":
