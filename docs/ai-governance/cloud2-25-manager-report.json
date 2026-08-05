@@ -1,0 +1,110 @@
+{
+  "cloud_milestone": "Cloud 2",
+  "stage": "25-manager scaling checkpoint",
+  "status": "passed",
+  "decision": "go_for_official_50_manager_build",
+  "frozen_contract_commit": "a0bbe52a7cdbcdc059631c13590b21562a43b183",
+  "runs": {
+    "initial_handoff_parent_run_id": 528835603753534,
+    "python_reference_task_run_id": 1059418383136773,
+    "corrected_spark_parent_run_id": 347413076935137,
+    "corrected_spark_task_run_id": 1088695219349756,
+    "scale_gate_parent_run_id": 386810141782052,
+    "scale_gate_task_run_id": 172248797416348,
+    "reconciliation_parent_run_id": 1073438503220308,
+    "reconciliation_task_run_id": 53948797125452
+  },
+  "runtime": {
+    "spark_setup_seconds": 278,
+    "spark_execution_seconds": 327,
+    "spark_pipeline_elapsed_seconds": 313.498,
+    "python_reference_setup_seconds": 249,
+    "python_reference_execution_seconds": 1594,
+    "scale_gate_setup_seconds": 295,
+    "scale_gate_execution_seconds": 25,
+    "reconciliation_setup_seconds": 225,
+    "reconciliation_execution_seconds": 41
+  },
+  "inputs": {
+    "package_count": 30,
+    "manager_count": 25,
+    "min_report_period": "2019-03-31",
+    "max_report_period": "2026-03-31"
+  },
+  "outputs": {
+    "holdings_table": "workspace.silver.normalized_holdings_25",
+    "filings_table": "workspace.silver.effective_filings_25",
+    "normalized_holding_rows": 2986111,
+    "selected_filing_rows": 777,
+    "submission_rows": 829,
+    "distinct_managers": 25,
+    "distinct_report_periods": 29,
+    "holdings_delta_files": 29,
+    "holdings_partition_columns": ["report_year", "report_quarter"],
+    "holdings_size_bytes": 69617442,
+    "holdings_scan_partitions": 7,
+    "filings_delta_files": 1,
+    "filings_size_bytes": 11720
+  },
+  "quality": {
+    "invalid_cusip_rows": 0,
+    "duplicate_rows_resolved_spark": 6718747,
+    "prospective_rows": 0,
+    "portfolio_weight_max_abs_error_pipeline": 8.215650382226158e-15,
+    "portfolio_weight_max_abs_error_reload": 1.3988810110276972e-14
+  },
+  "python_reference": {
+    "row_count": 2986111,
+    "selected_filing_rows": 777,
+    "duplicates_resolved": 6845568,
+    "sha256": "33ad6a35584c90e73f68355125b2f74297526108773f23e52e28b33c4811bbfb"
+  },
+  "reconciliation": {
+    "passed": true,
+    "missing_in_python": 0,
+    "missing_in_spark": 0,
+    "value_mismatches": 0,
+    "shares_mismatches": 0,
+    "accession_mismatches": 0,
+    "availability_mismatches": 0,
+    "rank_mismatches": 0,
+    "weight_mismatches": 0,
+    "max_weight_delta": 0.0
+  },
+  "first_10_prefix_stability": {
+    "passed": true,
+    "missing_in_accepted_10_manager_baseline": 0,
+    "missing_in_25_manager_prefix": 0,
+    "value_mismatches": 0,
+    "shares_mismatches": 0,
+    "weight_mismatches": 0,
+    "rank_mismatches": 0,
+    "accession_mismatches": 0,
+    "availability_mismatches": 0
+  },
+  "capacity_and_cost": {
+    "observed_peak_memory_bytes": null,
+    "memory_note": "Databricks Free Edition serverless Jobs API did not expose peak driver or executor memory.",
+    "projected_50_manager_holdings_size_bytes_linear": 139234884,
+    "projected_50_manager_spark_execution_seconds_conservative_linear": 654,
+    "projected_50_manager_reference_execution_seconds_linear": 3188,
+    "projected_50_manager_reconciliation_seconds_linear": 82,
+    "projected_50_manager_end_to_end_minutes_before_queueing": 63,
+    "projected_incremental_usd_if_free_edition_quota_suffices": 0.0,
+    "paid_mode_projection_usd": null,
+    "cost_note": "Free Edition exposes neither DBU usage nor a paid rate; paid cost cannot be responsibly inferred."
+  },
+  "retained_failure": {
+    "run_id": 528835603753534,
+    "reason": "Spark ANSI divide-by-zero for a zero-value manager-quarter; Python's frozen behavior is weight 0.0.",
+    "fix": "Assign weight 0.0 when portfolio_value_usd is zero and reconcile its expected weight sum to 0.0.",
+    "data_impact": "Failed writes did not replace the accepted table; corrected run 347413076935137 succeeded."
+  },
+  "guards": {
+    "prospective_q2_2026_truth_accessed": false,
+    "gold_or_graph_artifacts_created": false,
+    "runpod_started": false,
+    "fifty_manager_job_submitted": false
+  },
+  "blocking_reasons": []
+}
