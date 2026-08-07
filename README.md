@@ -2,7 +2,7 @@
 
 WealthSignal is evolving into an auditable temporal ML platform that ingests public SEC `13F-HR` filings, forecasts next-quarter institutional holdings, detects unusual observed changes, and explains their relevance to synthetic client portfolios.
 
-The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository implements the historical bulk-data, objective temporal-target, leakage-audit, Protocol V1 evaluation, forecast persistence, and forecast API paths. Protocol V2 Cloud 1 and the exact 10-, 25-, and official 50-manager Cloud 2 Bronze-to-Silver checkpoints are complete; Cloud 3 Gold data and the attributed NAVIS research lane remain in progress. The legacy observed-change and weak-label workflow remains separate.
+The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository implements the historical bulk-data, objective temporal-target, leakage-audit, Protocol V1 evaluation, forecast persistence, and forecast API paths. Protocol V2 Cloud 1, the exact 10/25/50-manager Cloud 2 checkpoints, and the official 50-manager Cloud 3 Gold dataset are complete; Cloud 4 baselines/graph contract and the attributed NAVIS research lane remain in progress. The legacy observed-change and weak-label workflow remains separate.
 
 The historical bulk-data workflow and its amendment, checksum, and output contracts are documented in [docs/SEC_13F_Bulk_Dataset.md](docs/SEC_13F_Bulk_Dataset.md).
 
@@ -125,7 +125,7 @@ Implemented:
 Next:
 
 - use persistence as the V1 reference forecast without presenting it as a learned-model breakthrough
-- construct leakage-audited Cloud 3 Gold partitions from the accepted official 50-manager Cloud 2 tables, preserving the prospective Q2 2026 guard
+- run Cloud 4 baselines on the frozen cap-500 Gold table and build the framework-independent graph contract, preserving the prospective Q2 2026 guard
 
 ### Legacy materiality path
 

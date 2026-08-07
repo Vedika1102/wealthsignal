@@ -1,0 +1,1233 @@
+{
+  "candidate_cap_selection_tolerance": 0.0025,
+  "candidate_caps_validation_only": [
+    100,
+    250,
+    500
+  ],
+  "cap_reports": {
+    "100": {
+      "coverage_by_target_quarter": [
+        {
+          "mean_target_weight_mass_coverage": 0.9765142995671237,
+          "target_candidate_coverage": 0.8844005184291341,
+          "target_report_period": "2019-06-30",
+          "zero_target_share": 0.5933763656977943
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9748841645023338,
+          "target_candidate_coverage": 0.9278330984101002,
+          "target_report_period": "2019-09-30",
+          "zero_target_share": 0.5859446436087606
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9845301105949327,
+          "target_candidate_coverage": 0.916000463445719,
+          "target_report_period": "2019-12-31",
+          "zero_target_share": 0.5701912001842893
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9794312291801395,
+          "target_candidate_coverage": 0.9073231787807697,
+          "target_report_period": "2020-03-31",
+          "zero_target_share": 0.6821030298664816
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9739508673485736,
+          "target_candidate_coverage": 0.8875290244441024,
+          "target_report_period": "2020-06-30",
+          "zero_target_share": 0.5557595075112487
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9845778929712902,
+          "target_candidate_coverage": 0.9031316646088225,
+          "target_report_period": "2020-09-30",
+          "zero_target_share": 0.6709236921676367
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9823278202711482,
+          "target_candidate_coverage": 0.8895042160247443,
+          "target_report_period": "2020-12-31",
+          "zero_target_share": 0.47562547530967636
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.986582578223393,
+          "target_candidate_coverage": 0.8606657998971972,
+          "target_report_period": "2021-03-31",
+          "zero_target_share": 0.5090036391015184
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.983000341057107,
+          "target_candidate_coverage": 0.8788261117544375,
+          "target_report_period": "2021-06-30",
+          "zero_target_share": 0.6206490251977193
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9672762006946894,
+          "target_candidate_coverage": 0.8917108767913355,
+          "target_report_period": "2021-09-30",
+          "zero_target_share": 0.6361653868226164
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9644287449279667,
+          "target_candidate_coverage": 0.8941001427139951,
+          "target_report_period": "2021-12-31",
+          "zero_target_share": 0.6559645489836208
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9795742036670463,
+          "target_candidate_coverage": 0.9058937249953011,
+          "target_report_period": "2022-03-31",
+          "zero_target_share": 0.5739823650199299
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9710370100182125,
+          "target_candidate_coverage": 0.8848040929538727,
+          "target_report_period": "2022-06-30",
+          "zero_target_share": 0.6024030523450399
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9808960822129477,
+          "target_candidate_coverage": 0.9039682680848793,
+          "target_report_period": "2022-09-30",
+          "zero_target_share": 0.5992753121465992
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9813262082536877,
+          "target_candidate_coverage": 0.9072731320741093,
+          "target_report_period": "2022-12-31",
+          "zero_target_share": 0.5798753308056761
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.979390714250883,
+          "target_candidate_coverage": 0.9207944352919641,
+          "target_report_period": "2023-03-31",
+          "zero_target_share": 0.6129823557240227
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9866077272013767,
+          "target_candidate_coverage": 0.9267632130501755,
+          "target_report_period": "2023-06-30",
+          "zero_target_share": 0.6418030312179217
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9893999569758828,
+          "target_candidate_coverage": 0.9193032513403437,
+          "target_report_period": "2023-09-30",
+          "zero_target_share": 0.6078039917226992
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9881951331211906,
+          "target_candidate_coverage": 0.916343377184027,
+          "target_report_period": "2023-12-31",
+          "zero_target_share": 0.5648169362599093
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9885193457472701,
+          "target_candidate_coverage": 0.9187124151453927,
+          "target_report_period": "2024-03-31",
+          "zero_target_share": 0.6578415767082453
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9884970148964747,
+          "target_candidate_coverage": 0.9165025501186689,
+          "target_report_period": "2024-06-30",
+          "zero_target_share": 0.636996100825888
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9678682047898137,
+          "target_candidate_coverage": 0.9026292864496713,
+          "target_report_period": "2024-09-30",
+          "zero_target_share": 0.5647520217013
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9797749787515765,
+          "target_candidate_coverage": 0.9148625488024452,
+          "target_report_period": "2024-12-31",
+          "zero_target_share": 0.5997405714701354
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9825995943123863,
+          "target_candidate_coverage": 0.9198514496145804,
+          "target_report_period": "2025-03-31",
+          "zero_target_share": 0.5865047806950978
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9808393890153299,
+          "target_candidate_coverage": 0.9132411129752145,
+          "target_report_period": "2025-06-30",
+          "zero_target_share": 0.6329951100244499
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9650185915816563,
+          "target_candidate_coverage": 0.9043291867431251,
+          "target_report_period": "2025-09-30",
+          "zero_target_share": 0.6095996948693958
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9830121920887285,
+          "target_candidate_coverage": 0.8929707560842138,
+          "target_report_period": "2025-12-31",
+          "zero_target_share": 0.5915438485841955
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9544513300052495,
+          "target_candidate_coverage": 0.8865939634280678,
+          "target_report_period": "2026-03-31",
+          "zero_target_share": 0.5728497496427757
+        }
+      ],
+      "leakage": {
+        "duplicate_examples": 0,
+        "future_candidates": 0,
+        "invalid_target_horizon": 0,
+        "prospective_rows": 0,
+        "target_available_too_early": 0
+      },
+      "manager_quarter_count": 1311,
+      "mean_target_weight_mass_coverage": 0.9787325689075547,
+      "new_position_coverage": 0.07425218634532187,
+      "num_files": 28,
+      "partition_checksums": [
+        {
+          "distributed_xxhash64_sum": "-6030611877328626081281",
+          "row_count": 155232,
+          "target_report_period": "2019-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-1770316925194667048340",
+          "row_count": 137798,
+          "target_report_period": "2019-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "497246106767449917581",
+          "row_count": 151935,
+          "target_report_period": "2019-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-84972533428656079715",
+          "row_count": 152713,
+          "target_report_period": "2020-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "94551425078464274374",
+          "row_count": 150907,
+          "target_report_period": "2020-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-2875354576069626395701",
+          "row_count": 153785,
+          "target_report_period": "2020-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "682023079688981600374",
+          "row_count": 155162,
+          "target_report_period": "2020-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-2225703904436183541503",
+          "row_count": 159380,
+          "target_report_period": "2021-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-2852313103133334052032",
+          "row_count": 173984,
+          "target_report_period": "2021-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-2248822714456082252260",
+          "row_count": 182965,
+          "target_report_period": "2021-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "3419740203542855009218",
+          "row_count": 165637,
+          "target_report_period": "2021-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "3815706199824305118583",
+          "row_count": 190417,
+          "target_report_period": "2022-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-301582576624598567196",
+          "row_count": 179272,
+          "target_report_period": "2022-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "780091894019731461926",
+          "row_count": 173316,
+          "target_report_period": "2022-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "1714007212391185729517",
+          "row_count": 171173,
+          "target_report_period": "2022-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-631287840668743028286",
+          "row_count": 171217,
+          "target_report_period": "2023-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "944409539581169047361",
+          "row_count": 165610,
+          "target_report_period": "2023-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "885954430045437694708",
+          "row_count": 178319,
+          "target_report_period": "2023-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-194948592786436622260",
+          "row_count": 174584,
+          "target_report_period": "2023-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-929664701803633494253",
+          "row_count": 172765,
+          "target_report_period": "2024-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-846607793861548291691",
+          "row_count": 162855,
+          "target_report_period": "2024-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-526907294372617349826",
+          "row_count": 156304,
+          "target_report_period": "2024-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "733364807384253072178",
+          "row_count": 164978,
+          "target_report_period": "2024-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "4251282833632155795159",
+          "row_count": 164725,
+          "target_report_period": "2025-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-1720268200951612023589",
+          "row_count": 163600,
+          "target_report_period": "2025-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-5414118068658951282847",
+          "row_count": 167797,
+          "target_report_period": "2025-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-1077170213043608564507",
+          "row_count": 168067,
+          "target_report_period": "2025-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "996817710291070067184",
+          "row_count": 166562,
+          "target_report_period": "2026-03-31"
+        }
+      ],
+      "partition_columns": [
+        "target_year",
+        "target_quarter"
+      ],
+      "partition_manifest_sha256": "1d947dabdcd35946b1dc99d011c51db7de03e93966de4444a98f362f3a04a0bb",
+      "reload_row_count": 4631059,
+      "row_count": 4631059,
+      "size_in_bytes": 366122355,
+      "table": "workspace.gold.temporal_examples_50_cap_100",
+      "target_candidate_coverage": 0.9031564212054629,
+      "target_quarters": [
+        "2019-06-30",
+        "2019-09-30",
+        "2019-12-31",
+        "2020-03-31",
+        "2020-06-30",
+        "2020-09-30",
+        "2020-12-31",
+        "2021-03-31",
+        "2021-06-30",
+        "2021-09-30",
+        "2021-12-31",
+        "2022-03-31",
+        "2022-06-30",
+        "2022-09-30",
+        "2022-12-31",
+        "2023-03-31",
+        "2023-06-30",
+        "2023-09-30",
+        "2023-12-31",
+        "2024-03-31",
+        "2024-06-30",
+        "2024-09-30",
+        "2024-12-31",
+        "2025-03-31",
+        "2025-06-30",
+        "2025-09-30",
+        "2025-12-31",
+        "2026-03-31"
+      ],
+      "validation_manager_quarter_count": 412,
+      "validation_mean_target_weight_mass_coverage": 0.9767666375258991,
+      "zero_target_share": 0.6001214840925153
+    },
+    "250": {
+      "coverage_by_target_quarter": [
+        {
+          "mean_target_weight_mass_coverage": 0.9782345311174884,
+          "target_candidate_coverage": 0.8906254987965038,
+          "target_report_period": "2019-06-30",
+          "zero_target_share": 0.6046678015444206
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9767482469991883,
+          "target_candidate_coverage": 0.9324178905409297,
+          "target_report_period": "2019-09-30",
+          "zero_target_share": 0.6015079683202256
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9857325222407427,
+          "target_candidate_coverage": 0.9214391352648115,
+          "target_report_period": "2019-12-31",
+          "zero_target_share": 0.5838385746214625
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9823094713217491,
+          "target_candidate_coverage": 0.9131026558235926,
+          "target_report_period": "2020-03-31",
+          "zero_target_share": 0.6908420598010804
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9760159326513246,
+          "target_candidate_coverage": 0.8941402407606913,
+          "target_report_period": "2020-06-30",
+          "zero_target_share": 0.5693321600182328
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9860234335094238,
+          "target_candidate_coverage": 0.9080704905152094,
+          "target_report_period": "2020-09-30",
+          "zero_target_share": 0.6803995394716371
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9839342188473593,
+          "target_candidate_coverage": 0.8952988436413106,
+          "target_report_period": "2020-12-31",
+          "zero_target_share": 0.4923794597129494
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9877141260444418,
+          "target_candidate_coverage": 0.8664711396002782,
+          "target_report_period": "2021-03-31",
+          "zero_target_share": 0.5240341284624166
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9836892796932282,
+          "target_candidate_coverage": 0.8845238712502232,
+          "target_report_period": "2021-06-30",
+          "zero_target_share": 0.6305712111352532
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9681511830708972,
+          "target_candidate_coverage": 0.8967409250005504,
+          "target_report_period": "2021-09-30",
+          "zero_target_share": 0.6456934344892762
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9654787760431478,
+          "target_candidate_coverage": 0.8992742841526736,
+          "target_report_period": "2021-12-31",
+          "zero_target_share": 0.6650761203796465
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9814051672932922,
+          "target_candidate_coverage": 0.9109362833284107,
+          "target_report_period": "2022-03-31",
+          "zero_target_share": 0.5853817509359984
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9716590166618698,
+          "target_candidate_coverage": 0.890252429900007,
+          "target_report_period": "2022-06-30",
+          "zero_target_share": 0.6127407868205414
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.982567971461439,
+          "target_candidate_coverage": 0.9092035597611806,
+          "target_report_period": "2022-09-30",
+          "zero_target_share": 0.610042912744087
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9830904002701268,
+          "target_candidate_coverage": 0.9129835667049769,
+          "target_report_period": "2022-12-31",
+          "zero_target_share": 0.5908251110499627
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9804442087719183,
+          "target_candidate_coverage": 0.9272682897065104,
+          "target_report_period": "2023-03-31",
+          "zero_target_share": 0.6220181116906303
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9886962401788625,
+          "target_candidate_coverage": 0.931737834903159,
+          "target_report_period": "2023-06-30",
+          "zero_target_share": 0.6515622282766216
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9908200709900705,
+          "target_candidate_coverage": 0.9238592696564578,
+          "target_report_period": "2023-09-30",
+          "zero_target_share": 0.6190640333065832
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.990184012310847,
+          "target_candidate_coverage": 0.9220721640463203,
+          "target_report_period": "2023-12-31",
+          "zero_target_share": 0.5763017937170354
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9895870311258571,
+          "target_candidate_coverage": 0.9232538873691049,
+          "target_report_period": "2024-03-31",
+          "zero_target_share": 0.6670188805160859
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9894588336520654,
+          "target_candidate_coverage": 0.9229662172398122,
+          "target_report_period": "2024-06-30",
+          "zero_target_share": 0.6457188300786427
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9691963939824565,
+          "target_candidate_coverage": 0.9072292178136797,
+          "target_report_period": "2024-09-30",
+          "zero_target_share": 0.5784954677591473
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9807421127680699,
+          "target_candidate_coverage": 0.9200970170955507,
+          "target_report_period": "2024-12-31",
+          "zero_target_share": 0.6108867917941796
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9833524383100426,
+          "target_candidate_coverage": 0.9249258808476111,
+          "target_report_period": "2025-03-31",
+          "zero_target_share": 0.5983918426802621
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9842632770144789,
+          "target_candidate_coverage": 0.9184451267766136,
+          "target_report_period": "2025-06-30",
+          "zero_target_share": 0.6420817406645105
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9662856619279192,
+          "target_candidate_coverage": 0.9094101338023438,
+          "target_report_period": "2025-09-30",
+          "zero_target_share": 0.6202567874662988
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9864766766932672,
+          "target_candidate_coverage": 0.8993691781274994,
+          "target_report_period": "2025-12-31",
+          "zero_target_share": 0.6019118646390699
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9568229145449192,
+          "target_candidate_coverage": 0.8923343369807348,
+          "target_report_period": "2026-03-31",
+          "zero_target_share": 0.5844334782257785
+        }
+      ],
+      "leakage": {
+        "duplicate_examples": 0,
+        "future_candidates": 0,
+        "invalid_target_horizon": 0,
+        "prospective_rows": 0,
+        "target_available_too_early": 0
+      },
+      "manager_quarter_count": 1311,
+      "mean_target_weight_mass_coverage": 0.9803173102438195,
+      "new_position_coverage": 0.1315892084594389,
+      "num_files": 28,
+      "partition_checksums": [
+        {
+          "distributed_xxhash64_sum": "-6307154176494705051734",
+          "row_count": 162132,
+          "target_report_period": "2019-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-1482737940070026869343",
+          "row_count": 144698,
+          "target_report_period": "2019-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-286059497628177945457",
+          "row_count": 158835,
+          "target_report_period": "2019-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "47280658924970329622",
+          "row_count": 159763,
+          "target_report_period": "2020-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-111675008819334716265",
+          "row_count": 157957,
+          "target_report_period": "2020-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-2192481616927497907042",
+          "row_count": 160685,
+          "target_report_period": "2020-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-8336872317862799092",
+          "row_count": 162062,
+          "target_report_period": "2020-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-2429191107719807182416",
+          "row_count": 166430,
+          "target_report_period": "2021-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-2716615195281598406039",
+          "row_count": 181334,
+          "target_report_period": "2021-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-2892770612101390251049",
+          "row_count": 190465,
+          "target_report_period": "2021-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "3192490374684628106674",
+          "row_count": 172687,
+          "target_report_period": "2021-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "4162644465909859045187",
+          "row_count": 197917,
+          "target_report_period": "2022-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-157161754518803209839",
+          "row_count": 186472,
+          "target_report_period": "2022-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "1324772394954681101195",
+          "row_count": 180366,
+          "target_report_period": "2022-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "2171409780433040829846",
+          "row_count": 178073,
+          "target_report_period": "2022-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-345200825646485404197",
+          "row_count": 178117,
+          "target_report_period": "2023-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "388613859629681260700",
+          "row_count": 172510,
+          "target_report_period": "2023-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "299317439607337917265",
+          "row_count": 185669,
+          "target_report_period": "2023-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "493441755654956073809",
+          "row_count": 181634,
+          "target_report_period": "2023-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-833738061588217646933",
+          "row_count": 179815,
+          "target_report_period": "2024-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-993464617346460008805",
+          "row_count": 169755,
+          "target_report_period": "2024-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-1466550459388129309909",
+          "row_count": 163054,
+          "target_report_period": "2024-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "808390457106186134032",
+          "row_count": 171878,
+          "target_report_period": "2024-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "4945860369824591321133",
+          "row_count": 171625,
+          "target_report_period": "2025-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-1769421708390333140363",
+          "row_count": 170050,
+          "target_report_period": "2025-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-5791168345336699999757",
+          "row_count": 174697,
+          "target_report_period": "2025-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-748851089215385179789",
+          "row_count": 175117,
+          "target_report_period": "2025-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "905345913394306931918",
+          "row_count": 173462,
+          "target_report_period": "2026-03-31"
+        }
+      ],
+      "partition_columns": [
+        "target_year",
+        "target_quarter"
+      ],
+      "partition_manifest_sha256": "319070b054fd6bf0f68ba12fdf1f2ae1c73a06ffa32b47f845bebc76f9c5a39e",
+      "reload_row_count": 4827259,
+      "row_count": 4827259,
+      "size_in_bytes": 376981949,
+      "table": "workspace.gold.temporal_examples_50_cap_250",
+      "target_candidate_coverage": 0.9086041233530536,
+      "target_quarters": [
+        "2019-06-30",
+        "2019-09-30",
+        "2019-12-31",
+        "2020-03-31",
+        "2020-06-30",
+        "2020-09-30",
+        "2020-12-31",
+        "2021-03-31",
+        "2021-06-30",
+        "2021-09-30",
+        "2021-12-31",
+        "2022-03-31",
+        "2022-06-30",
+        "2022-09-30",
+        "2022-12-31",
+        "2023-03-31",
+        "2023-06-30",
+        "2023-09-30",
+        "2023-12-31",
+        "2024-03-31",
+        "2024-06-30",
+        "2024-09-30",
+        "2024-12-31",
+        "2025-03-31",
+        "2025-06-30",
+        "2025-09-30",
+        "2025-12-31",
+        "2026-03-31"
+      ],
+      "validation_manager_quarter_count": 412,
+      "validation_mean_target_weight_mass_coverage": 0.9784917551545395,
+      "zero_target_share": 0.6112566158144819
+    },
+    "500": {
+      "coverage_by_target_quarter": [
+        {
+          "mean_target_weight_mass_coverage": 0.9790692879599977,
+          "target_candidate_coverage": 0.8985360123094996,
+          "target_report_period": "2019-06-30",
+          "zero_target_share": 0.6237156745300405
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9778759129588279,
+          "target_candidate_coverage": 0.9378590157474348,
+          "target_report_period": "2019-09-30",
+          "zero_target_share": 0.6262500160053266
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9860940134644153,
+          "target_candidate_coverage": 0.927204945238436,
+          "target_report_period": "2019-12-31",
+          "zero_target_share": 0.606968620659289
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9840891614064002,
+          "target_candidate_coverage": 0.9196139719712463,
+          "target_report_period": "2020-03-31",
+          "zero_target_share": 0.7064712295860955
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.980154054396374,
+          "target_candidate_coverage": 0.9023908781274466,
+          "target_report_period": "2020-06-30",
+          "zero_target_share": 0.5918848368069674
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9873120540557412,
+          "target_candidate_coverage": 0.913504519553921,
+          "target_report_period": "2020-09-30",
+          "zero_target_share": 0.6969654731829138
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9861037160254608,
+          "target_candidate_coverage": 0.9021202048333483,
+          "target_report_period": "2020-12-31",
+          "zero_target_share": 0.5198891462416888
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9894108948834616,
+          "target_candidate_coverage": 0.8728570132736674,
+          "target_report_period": "2021-03-31",
+          "zero_target_share": 0.5494948928050286
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9841263688280019,
+          "target_candidate_coverage": 0.8917656141078599,
+          "target_report_period": "2021-06-30",
+          "zero_target_share": 0.647455368212249
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9692436837223307,
+          "target_candidate_coverage": 0.9030642569397055,
+          "target_report_period": "2021-09-30",
+          "zero_target_share": 0.6618530288473382
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9671824149098773,
+          "target_candidate_coverage": 0.9051346673549328,
+          "target_report_period": "2021-12-31",
+          "zero_target_share": 0.6811811079121868
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9837143001666491,
+          "target_candidate_coverage": 0.9171280509088956,
+          "target_report_period": "2022-03-31",
+          "zero_target_share": 0.6045329037102516
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9725990116594958,
+          "target_candidate_coverage": 0.8970118639722164,
+          "target_report_period": "2022-06-30",
+          "zero_target_share": 0.6303105727760088
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9871884767438873,
+          "target_candidate_coverage": 0.915150329354986,
+          "target_report_period": "2022-09-30",
+          "zero_target_share": 0.6286722605092756
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9862348934568071,
+          "target_candidate_coverage": 0.9193799755696895,
+          "target_report_period": "2022-12-31",
+          "zero_target_share": 0.6100394043455555
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9817536628439661,
+          "target_candidate_coverage": 0.9343279028616756,
+          "target_report_period": "2023-03-31",
+          "zero_target_share": 0.6388403993312837
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9893909023037704,
+          "target_candidate_coverage": 0.9383159516173833,
+          "target_report_period": "2023-06-30",
+          "zero_target_share": 0.6676756698005544
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9916833359444021,
+          "target_candidate_coverage": 0.929761384293242,
+          "target_report_period": "2023-09-30",
+          "zero_target_share": 0.6374577478665515
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9908723729355319,
+          "target_candidate_coverage": 0.9288101974739666,
+          "target_report_period": "2023-12-31",
+          "zero_target_share": 0.5960730980846398
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9911845631748194,
+          "target_candidate_coverage": 0.9291601852348513,
+          "target_report_period": "2024-03-31",
+          "zero_target_share": 0.6822697256805784
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.990237303841014,
+          "target_candidate_coverage": 0.9306165732464778,
+          "target_report_period": "2024-06-30",
+          "zero_target_share": 0.6615100273095915
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.971002867736345,
+          "target_candidate_coverage": 0.9129510836567144,
+          "target_report_period": "2024-09-30",
+          "zero_target_share": 0.6007263172388471
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9847429771661795,
+          "target_candidate_coverage": 0.9269030633395413,
+          "target_report_period": "2024-12-31",
+          "zero_target_share": 0.6292903183587999
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9887729914240728,
+          "target_candidate_coverage": 0.9313797085166807,
+          "target_report_period": "2025-03-31",
+          "zero_target_share": 0.6179658703071672
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9864645467190051,
+          "target_candidate_coverage": 0.9250862587445792,
+          "target_report_period": "2025-06-30",
+          "zero_target_share": 0.6575608407079646
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9688655501011993,
+          "target_candidate_coverage": 0.9157918521639827,
+          "target_report_period": "2025-09-30",
+          "zero_target_share": 0.6380983581905186
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9891205657362087,
+          "target_candidate_coverage": 0.9075836936454769,
+          "target_report_period": "2025-12-31",
+          "zero_target_share": 0.6196332150674009
+        },
+        {
+          "mean_target_weight_mass_coverage": 0.9596424551838316,
+          "target_candidate_coverage": 0.9002044013610437,
+          "target_report_period": "2026-03-31",
+          "zero_target_share": 0.6033185194796769
+        }
+      ],
+      "leakage": {
+        "duplicate_examples": 0,
+        "future_candidates": 0,
+        "invalid_target_horizon": 0,
+        "prospective_rows": 0,
+        "target_available_too_early": 0
+      },
+      "manager_quarter_count": 1311,
+      "mean_target_weight_mass_coverage": 0.9822735015726749,
+      "new_position_coverage": 0.20124124997679038,
+      "num_files": 28,
+      "partition_checksums": [
+        {
+          "distributed_xxhash64_sum": "-6109597222049816674423",
+          "row_count": 173632,
+          "target_report_period": "2019-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-2358884209882005896511",
+          "row_count": 156198,
+          "target_report_period": "2019-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "552477279372452722835",
+          "row_count": 170335,
+          "target_report_period": "2019-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "233523910963434038492",
+          "row_count": 171513,
+          "target_report_period": "2020-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "452395710364689380745",
+          "row_count": 169707,
+          "target_report_period": "2020-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-1823596159623942572496",
+          "row_count": 172185,
+          "target_report_period": "2020-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-885728531637734616777",
+          "row_count": 173562,
+          "target_report_period": "2020-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-1863895043126823214032",
+          "row_count": 178180,
+          "target_report_period": "2021-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-2874386039703304902954",
+          "row_count": 193584,
+          "target_report_period": "2021-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-3199717714088545571756",
+          "row_count": 202965,
+          "target_report_period": "2021-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "3233028196473357202320",
+          "row_count": 184437,
+          "target_report_period": "2021-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "3881310016415324111599",
+          "row_count": 210417,
+          "target_report_period": "2022-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "34288593887427076805",
+          "row_count": 198472,
+          "target_report_period": "2022-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "1121618501579535539927",
+          "row_count": 192116,
+          "target_report_period": "2022-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "2303606537177117480209",
+          "row_count": 189573,
+          "target_report_period": "2022-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-503653624179003066094",
+          "row_count": 189617,
+          "target_report_period": "2023-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "82102043564387231951",
+          "row_count": 184010,
+          "target_report_period": "2023-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "616475923687747672046",
+          "row_count": 197919,
+          "target_report_period": "2023-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-790126226825994870386",
+          "row_count": 193384,
+          "target_report_period": "2023-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-966515408271004679186",
+          "row_count": 191565,
+          "target_report_period": "2024-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-2118557214267294841974",
+          "row_count": 181255,
+          "target_report_period": "2024-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-2017865370984083777258",
+          "row_count": 174304,
+          "target_report_period": "2024-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "926734312651363203243",
+          "row_count": 183378,
+          "target_report_period": "2024-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "5097262765121562934459",
+          "row_count": 183125,
+          "target_report_period": "2025-03-31"
+        },
+        {
+          "distributed_xxhash64_sum": "-1743389092459637258256",
+          "row_count": 180800,
+          "target_report_period": "2025-06-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-4515196764661152098020",
+          "row_count": 186197,
+          "target_report_period": "2025-09-30"
+        },
+        {
+          "distributed_xxhash64_sum": "-1345832369107824135970",
+          "row_count": 186867,
+          "target_report_period": "2025-12-31"
+        },
+        {
+          "distributed_xxhash64_sum": "1673681609721487902124",
+          "row_count": 184962,
+          "target_report_period": "2026-03-31"
+        }
+      ],
+      "partition_columns": [
+        "target_year",
+        "target_quarter"
+      ],
+      "partition_manifest_sha256": "3293861c5483d22b96ec8d707e5c69eaf48e5384ffe967ee06ea4306ff81f8c7",
+      "reload_row_count": 5154259,
+      "row_count": 5154259,
+      "size_in_bytes": 393131957,
+      "table": "workspace.gold.temporal_examples_50_cap_500",
+      "target_candidate_coverage": 0.9152218994803689,
+      "target_quarters": [
+        "2019-06-30",
+        "2019-09-30",
+        "2019-12-31",
+        "2020-03-31",
+        "2020-06-30",
+        "2020-09-30",
+        "2020-12-31",
+        "2021-03-31",
+        "2021-06-30",
+        "2021-09-30",
+        "2021-12-31",
+        "2022-03-31",
+        "2022-06-30",
+        "2022-09-30",
+        "2022-12-31",
+        "2023-03-31",
+        "2023-06-30",
+        "2023-09-30",
+        "2023-12-31",
+        "2024-03-31",
+        "2024-06-30",
+        "2024-09-30",
+        "2024-12-31",
+        "2025-03-31",
+        "2025-06-30",
+        "2025-09-30",
+        "2025-12-31",
+        "2026-03-31"
+      ],
+      "validation_manager_quarter_count": 412,
+      "validation_mean_target_weight_mass_coverage": 0.9811443310456817,
+      "zero_target_share": 0.6300971681865424
+    }
+  },
+  "cloud_milestone": "Cloud 3 Gold temporal validation dataset",
+  "completed_at": "2026-08-07T15:36:47.057492+00:00",
+  "elapsed_seconds": 158.425,
+  "manager_count": 50,
+  "manifest_sha256": "e0b1a03124257374a75530ef626a694dfa960856f39658ae1f4081eee855c3dc",
+  "memory_note": "Databricks serverless Jobs API does not expose peak driver or executor memory.",
+  "observed_peak_memory_bytes": null,
+  "prospective_q2_2026_truth_accessed": false,
+  "selected_candidate_cap": 500,
+  "split_manifest": {
+    "all_target_quarters": [
+      "2019-06-30",
+      "2019-09-30",
+      "2019-12-31",
+      "2020-03-31",
+      "2020-06-30",
+      "2020-09-30",
+      "2020-12-31",
+      "2021-03-31",
+      "2021-06-30",
+      "2021-09-30",
+      "2021-12-31",
+      "2022-03-31",
+      "2022-06-30",
+      "2022-09-30",
+      "2022-12-31",
+      "2023-03-31",
+      "2023-06-30",
+      "2023-09-30",
+      "2023-12-31",
+      "2024-03-31",
+      "2024-06-30",
+      "2024-09-30",
+      "2024-12-31",
+      "2025-03-31",
+      "2025-06-30",
+      "2025-09-30",
+      "2025-12-31",
+      "2026-03-31"
+    ],
+    "folds": [
+      {
+        "evaluation_predicate": "target_report_period = DATE '2024-03-31'",
+        "evaluation_target_quarter": "2024-03-31",
+        "fold_id": "validation-1",
+        "role": "validation",
+        "train_predicate": "target_report_period < DATE '2024-03-31'"
+      },
+      {
+        "evaluation_predicate": "target_report_period = DATE '2024-06-30'",
+        "evaluation_target_quarter": "2024-06-30",
+        "fold_id": "validation-2",
+        "role": "validation",
+        "train_predicate": "target_report_period < DATE '2024-06-30'"
+      },
+      {
+        "evaluation_predicate": "target_report_period = DATE '2024-09-30'",
+        "evaluation_target_quarter": "2024-09-30",
+        "fold_id": "validation-3",
+        "role": "validation",
+        "train_predicate": "target_report_period < DATE '2024-09-30'"
+      },
+      {
+        "evaluation_predicate": "target_report_period = DATE '2024-12-31'",
+        "evaluation_target_quarter": "2024-12-31",
+        "fold_id": "validation-4",
+        "role": "validation",
+        "train_predicate": "target_report_period < DATE '2024-12-31'"
+      },
+      {
+        "evaluation_predicate": "target_report_period = DATE '2025-03-31'",
+        "evaluation_target_quarter": "2025-03-31",
+        "fold_id": "validation-5",
+        "role": "validation",
+        "train_predicate": "target_report_period < DATE '2025-03-31'"
+      },
+      {
+        "evaluation_predicate": "target_report_period = DATE '2025-06-30'",
+        "evaluation_target_quarter": "2025-06-30",
+        "fold_id": "validation-6",
+        "role": "validation",
+        "train_predicate": "target_report_period < DATE '2025-06-30'"
+      },
+      {
+        "evaluation_predicate": "target_report_period = DATE '2025-09-30'",
+        "evaluation_target_quarter": "2025-09-30",
+        "fold_id": "validation-7",
+        "role": "validation",
+        "train_predicate": "target_report_period < DATE '2025-09-30'"
+      },
+      {
+        "evaluation_predicate": "target_report_period = DATE '2025-12-31'",
+        "evaluation_target_quarter": "2025-12-31",
+        "fold_id": "validation-8",
+        "role": "validation",
+        "train_predicate": "target_report_period < DATE '2025-12-31'"
+      },
+      {
+        "evaluation_predicate": "target_report_period = DATE '2026-03-31'",
+        "evaluation_target_quarter": "2026-03-31",
+        "fold_id": "validation-9",
+        "role": "validation",
+        "train_predicate": "target_report_period < DATE '2026-03-31'"
+      }
+    ],
+    "protocol_version": "v2-design-2",
+    "status": "ready",
+    "strategy": "protocol_v2_expanding_window_by_target_report_quarter",
+    "validation_window": [
+      "2024-03-31",
+      "2026-03-31"
+    ]
+  },
+  "status": "passed",
+  "validation_coverage_by_cap": {
+    "100": 0.9767666375258991,
+    "250": 0.9784917551545395,
+    "500": 0.9811443310456817
+  }
+}
