@@ -142,16 +142,12 @@ def _build_base(spark):
         .unionByName(negatives.select("cik", "report_period", "security_key", "negative_rank"))
     )
 
-    reference_window = Window.partitionBy("security_key").orderBy("available_at", "report_period", "cik")
     security_reference = (
-        holdings.select("security_key", "cusip", "issuer_name", "report_period", "available_at", "cik")
-        .withColumn("reference_order", F.row_number().over(reference_window))
-        .filter(F.col("reference_order") == 1)
-        .select(
-            "security_key", F.col("cusip").alias("reference_cusip"),
-            F.col("issuer_name").alias("reference_issuer_name"),
-            F.col("report_period").alias("security_first_seen_period"),
-            F.col("available_at").alias("security_first_seen_available_at"),
+        holdings.groupBy("security_key").agg(
+            F.first("cusip", ignorenulls=True).alias("reference_cusip"),
+            F.first("issuer_name", ignorenulls=True).alias("reference_issuer_name"),
+            F.min("report_period").alias("security_first_seen_period"),
+            F.min("available_at").alias("security_first_seen_available_at"),
         )
     )
     previous = current.select(

@@ -28,3 +28,11 @@ def test_cloud3_source_avoids_serverless_unsupported_persist() -> None:
     source = open(cloud3_gold.__file__, encoding="utf-8").read()
     assert ".persist(" not in source
     assert ".cache(" not in source
+
+
+def test_first_seen_lineage_uses_conservative_independent_bounds() -> None:
+    from wealthsignal_pipeline import cloud3_gold
+
+    source = open(cloud3_gold.__file__, encoding="utf-8").read()
+    assert 'F.min("report_period").alias("security_first_seen_period")' in source
+    assert 'F.min("available_at").alias("security_first_seen_available_at")' in source
