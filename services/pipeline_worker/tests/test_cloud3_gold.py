@@ -52,3 +52,12 @@ def test_report_storage_uses_unity_catalog_volume() -> None:
     source = open(cloud3_gold.__file__, encoding="utf-8").read()
     assert "CREATE VOLUME IF NOT EXISTS workspace.gold.cloud3_reports" in source
     assert "Path(REPORT_ROOT).mkdir" not in source
+
+
+def test_candidate_cap_selection_uses_validation_quarters_only() -> None:
+    from wealthsignal_pipeline import cloud3_gold
+
+    source = open(cloud3_gold.__file__, encoding="utf-8").read()
+    assert "validation_manager_quarter" in source
+    assert "validation_coverage_by_cap" in source
+    assert "coverage_by_cap[cap] = validation_mean_coverage" in source

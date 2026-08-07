@@ -299,7 +299,15 @@ def run_pipeline() -> dict[str, object]:
             F.count("*").alias("candidate_rows"),
         )
         mean_coverage = float(manager_quarter.agg(F.avg("covered_weight")).first()[0] or 0.0)
-        coverage_by_cap[cap] = mean_coverage
+        validation_manager_quarter = manager_quarter.filter(
+            F.col("target_report_period").between(
+                F.lit(VALIDATION_START).cast("date"), F.lit(VALIDATION_END).cast("date")
+            )
+        )
+        validation_mean_coverage = float(
+            validation_manager_quarter.agg(F.avg("covered_weight")).first()[0] or 0.0
+        )
+        coverage_by_cap[cap] = validation_mean_coverage
         aggregate_coverage = manager_quarter.agg(
             (F.sum("covered_target_positions") / F.sum("target_positions")).alias("target_candidate_coverage"),
             F.avg("covered_weight").alias("mean_target_weight_mass_coverage"),
@@ -333,6 +341,8 @@ def run_pipeline() -> dict[str, object]:
             "row_count": row_count,
             "manager_quarter_count": manager_quarter.count(),
             "mean_target_weight_mass_coverage": mean_coverage,
+            "validation_mean_target_weight_mass_coverage": validation_mean_coverage,
+            "validation_manager_quarter_count": validation_manager_quarter.count(),
             "target_candidate_coverage": float(aggregate_coverage["target_candidate_coverage"] or 0.0),
             "new_position_coverage": float(aggregate_coverage["new_position_coverage"] or 0.0),
             "zero_target_share": float(aggregate_coverage["zero_target_share"] or 0.0),
@@ -358,7 +368,7 @@ def run_pipeline() -> dict[str, object]:
         "candidate_caps_validation_only": list(CAPS),
         "candidate_cap_selection_tolerance": 0.0025,
         "selected_candidate_cap": selected_cap,
-        "coverage_by_cap": {str(key): value for key, value in coverage_by_cap.items()},
+        "validation_coverage_by_cap": {str(key): value for key, value in coverage_by_cap.items()},
         "split_manifest": split_manifest,
         "cap_reports": cap_reports,
         "prospective_q2_2026_truth_accessed": False,
