@@ -20,3 +20,11 @@ def test_split_manifest_uses_predicates_and_excludes_prospective_quarter() -> No
     ]
     assert "example_ids" not in str(manifest)
     assert manifest["folds"][0]["train_predicate"] == "target_report_period < DATE '2024-03-31'"
+
+
+def test_cloud3_source_avoids_serverless_unsupported_persist() -> None:
+    from wealthsignal_pipeline import cloud3_gold
+
+    source = open(cloud3_gold.__file__, encoding="utf-8").read()
+    assert ".persist(" not in source
+    assert ".cache(" not in source

@@ -273,13 +273,16 @@ def run_pipeline() -> dict[str, object]:
 
     started = time.monotonic()
     spark = SparkSession.builder.appName("wealthsignal-cloud3-gold").getOrCreate()
-    base = _build_base(spark).persist()
+    base = _build_base(spark)
     cap_reports: dict[str, object] = {}
     coverage_by_cap: dict[int, float] = {}
     all_target_quarters: list[str] = []
 
-    for cap in CAPS:
-        rows = base.filter((F.col("negative_rank") == 0) | (F.col("negative_rank") <= cap)).persist()
+    # Materialize the cap-500 superset first. Smaller frozen caps are filtered
+    # from that accepted Delta table because serverless compute does not support
+    # DataFrame.persist/cache operations.
+    for cap in reversed(CAPS):
+        rows = base.filter((F.col("negative_rank") == 0) | (F.col("negative_rank") <= cap))
         leakage = _leakage_counts(rows, F)
         if any(leakage.values()):
             raise ValueError(f"Cloud 3 cap {cap} leakage audit failed: {leakage}")
@@ -347,7 +350,8 @@ def run_pipeline() -> dict[str, object]:
             "partition_manifest_sha256": _canonical_sha256(partition_checksums),
             "reload_row_count": row_count,
         }
-        rows.unpersist()
+        if cap == max(CAPS):
+            base = reloaded
 
     selected_cap = select_candidate_cap(coverage_by_cap)
     split_manifest = predicate_split_manifest(all_target_quarters)
@@ -372,7 +376,6 @@ def run_pipeline() -> dict[str, object]:
     output = Path(REPORT_ROOT) / "cloud3-gold-50-manager.json"
     output.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     print(json.dumps(report, sort_keys=True))
-    base.unpersist()
     return report
 
 
