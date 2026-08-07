@@ -44,3 +44,11 @@ def test_manifest_hash_serializes_spark_date_values_canonically() -> None:
     assert _canonical_sha256({"quarter": date(2024, 3, 31)}) == _canonical_sha256(
         {"quarter": "2024-03-31"}
     )
+
+
+def test_report_storage_uses_unity_catalog_volume() -> None:
+    from wealthsignal_pipeline import cloud3_gold
+
+    source = open(cloud3_gold.__file__, encoding="utf-8").read()
+    assert "CREATE VOLUME IF NOT EXISTS workspace.gold.cloud3_reports" in source
+    assert "Path(REPORT_ROOT).mkdir" not in source

@@ -368,7 +368,7 @@ def run_pipeline() -> dict[str, object]:
         "completed_at": datetime.now(timezone.utc).isoformat(),
     }
     report["manifest_sha256"] = _canonical_sha256(report)
-    Path(REPORT_ROOT).mkdir(parents=True, exist_ok=True)
+    spark.sql("CREATE VOLUME IF NOT EXISTS workspace.gold.cloud3_reports")
     output = Path(REPORT_ROOT) / "cloud3-gold-50-manager.json"
     output.write_text(json.dumps(report, indent=2, sort_keys=True, default=str), encoding="utf-8")
     print(json.dumps(report, sort_keys=True, default=str))
