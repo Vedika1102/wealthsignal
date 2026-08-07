@@ -159,7 +159,7 @@ Keep and harden:
 
 Implement next:
 
-- construct Cloud 3 Gold partitions from the accepted official 50-manager Cloud 2 dataset;
+- run Cloud 4 tabular baselines and construct the framework-independent graph contract from the accepted cap-500 Gold dataset;
 - a research-reproduction lane for NAVIS after graph reconciliation;
 - downstream portfolio-impact workflow using only a model that passes its promotion policy;
 - analytical SQL and indexes;
@@ -194,7 +194,7 @@ Follow this dependency order from the actual stopping point:
 1. Review and checkpoint the Protocol V2 design without downloading data or reopening the consumed V1 test. Completed in commits `fe78dc7` and `0205710`.
 2. Acquire the declared development packages and materialize and checksum the training-only manager cohort. Completed in commit `ce1171e`.
 3. Complete Cloud 0/1: completed; all 30 source checksums and the cohort checksum were verified in Databricks.
-4. Complete Cloud 3: Cloud 2 passed for the exact 10/25/50-manager Bronze-to-Silver datasets; construct Gold from the official 50-manager tables without driver collection.
+4. Complete Cloud 4: Cloud 3 passed with 5,154,259 cap-500 examples and zero leakage/reconciliation violations; run the frozen tabular baselines and construct the graph contract without prospective access.
 5. Freeze the selected V2 candidate/model configuration before the prospective 2026 Q2 source becomes available.
 6. Create a framework-independent temporal bipartite graph bundle and prove graph persistence/EMA reconcile with tabular metrics.
 7. Complete Cloud 5/6: reproduce NAVIS on RunPod against a frozen upstream revision and compare it fairly with persistence and EMA.
@@ -1193,7 +1193,7 @@ Return manager and security identifiers, predicted weight/rank, source cutoff, t
 
 ### Milestone 3 — Current-Data Protocol V2
 
-Status: design revision 2, development packages, and ordered cohort are frozen; Cloud 1 passed; exact 10-, 25-, and official 50-manager Cloud 2 reconciliation passed. The official output contains 4,974,339 holdings, exactly matches the independent Python reference, and preserves both accepted prefixes. Cloud 3 Gold construction is authorized next.
+Status: design revision 2, development packages, and ordered cohort are frozen; Cloud 1/2 passed; official Cloud 3 Gold construction and nested reconciliation passed. Validation-only candidate selection chose cap 500, producing 5,154,259 examples across 28 target quarters with zero leakage violations. Cloud 4 baselines and graph-contract work are authorized next.
 
 ```text
 Design Protocol V2 before downloading or evaluating new data. Inventory the latest complete official SEC 13F bulk packages available at execution time, then declare a larger manager cohort, historical coverage, security-universe policy, source cutoff, validation windows, and a brand-new untouched final or prospective window.

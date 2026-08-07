@@ -1,0 +1,30 @@
+{
+  "blocking_reasons": [],
+  "cloud_milestone": "Cloud 3 Gold reconciliation",
+  "completed_at": "2026-08-07T15:41:11.466722+00:00",
+  "duplicate_examples": 0,
+  "missing_required_columns": [],
+  "nested_reconciliation": {
+    "100": {
+      "actual_rows": 4631059,
+      "expected_rows": 4631059,
+      "missing_in_cap_table": 0,
+      "passed": true,
+      "unexpected_in_cap_table": 0
+    },
+    "250": {
+      "actual_rows": 4827259,
+      "expected_rows": 4827259,
+      "missing_in_cap_table": 0,
+      "passed": true,
+      "unexpected_in_cap_table": 0
+    }
+  },
+  "null_required_rows": 0,
+  "passed": true,
+  "prospective_rows": 0,
+  "selected_candidate_cap": 500,
+  "selected_reload_row_count": 5154259,
+  "selected_row_count": 5154259,
+  "selected_table": "workspace.gold.temporal_examples_50_cap_500"
+}
