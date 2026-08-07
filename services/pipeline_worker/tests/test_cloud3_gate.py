@@ -32,3 +32,11 @@ def test_gate_rejects_non_validation_selected_cap() -> None:
     report = _report()
     report["selected_candidate_cap"] = 250
     assert "selected_candidate_cap_mismatch" in validate_report_contract(report)
+
+
+def test_gate_declares_databricks_standalone_import_fallback() -> None:
+    from wealthsignal_pipeline import cloud3_gate
+
+    source = open(cloud3_gate.__file__, encoding="utf-8").read()
+    assert "except ImportError" in source
+    assert "from cloud3_gold import" in source

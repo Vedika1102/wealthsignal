@@ -6,7 +6,10 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .cloud3_gold import CAPS, REPORT_ROOT, select_candidate_cap
+try:
+    from .cloud3_gold import CAPS, REPORT_ROOT, select_candidate_cap
+except ImportError:  # Databricks Git-sourced Spark Python tasks execute this file directly.
+    from cloud3_gold import CAPS, REPORT_ROOT, select_candidate_cap
 
 
 REQUIRED_COLUMNS = {
