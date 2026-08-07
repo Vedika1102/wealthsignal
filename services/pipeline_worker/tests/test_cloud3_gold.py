@@ -1,6 +1,8 @@
+from datetime import date
+
 import pytest
 
-from wealthsignal_pipeline.cloud3_gold import predicate_split_manifest, select_candidate_cap
+from wealthsignal_pipeline.cloud3_gold import _canonical_sha256, predicate_split_manifest, select_candidate_cap
 
 
 def test_select_candidate_cap_applies_frozen_tolerance() -> None:
@@ -36,3 +38,9 @@ def test_first_seen_lineage_uses_conservative_independent_bounds() -> None:
     source = open(cloud3_gold.__file__, encoding="utf-8").read()
     assert 'F.min("report_period").alias("security_first_seen_period")' in source
     assert 'F.min("available_at").alias("security_first_seen_available_at")' in source
+
+
+def test_manifest_hash_serializes_spark_date_values_canonically() -> None:
+    assert _canonical_sha256({"quarter": date(2024, 3, 31)}) == _canonical_sha256(
+        {"quarter": "2024-03-31"}
+    )

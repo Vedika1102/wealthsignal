@@ -51,7 +51,7 @@ def predicate_split_manifest(target_quarters: list[str]) -> dict[str, object]:
 
 
 def _canonical_sha256(payload: object) -> str:
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 
@@ -370,8 +370,8 @@ def run_pipeline() -> dict[str, object]:
     report["manifest_sha256"] = _canonical_sha256(report)
     Path(REPORT_ROOT).mkdir(parents=True, exist_ok=True)
     output = Path(REPORT_ROOT) / "cloud3-gold-50-manager.json"
-    output.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps(report, sort_keys=True))
+    output.write_text(json.dumps(report, indent=2, sort_keys=True, default=str), encoding="utf-8")
+    print(json.dumps(report, sort_keys=True, default=str))
     return report
 
 
