@@ -1,0 +1,65 @@
+{
+  "acceptance_passed": true,
+  "baseline_manager_counts": [
+    10,
+    25
+  ],
+  "blocking_reasons": [],
+  "cloud_milestone": "Cloud 2 50-manager scaling",
+  "completed_at": "2026-08-05T01:43:27.376778+00:00",
+  "cost_projection": {
+    "note": "No DBU usage or paid rate is exposed for this Free Edition serverless run; do not infer paid cost.",
+    "paid_mode_projection_usd": null,
+    "projected_incremental_usd_if_free_edition_quota_suffices": 0.0
+  },
+  "filings_detail": {
+    "format": "delta",
+    "num_files": 1,
+    "partition_columns": [],
+    "size_in_bytes": 17068,
+    "table": "workspace.silver.effective_filings_50"
+  },
+  "holding_rows": 4974339,
+  "holdings_detail": {
+    "format": "delta",
+    "num_files": 29,
+    "partition_columns": [
+      "report_year",
+      "report_quarter"
+    ],
+    "size_in_bytes": 115206660,
+    "table": "workspace.silver.normalized_holdings_50"
+  },
+  "manager_count": 50,
+  "max_report_period": "2026-03-31",
+  "memory_measurement_note": "Databricks serverless Jobs API does not expose peak driver/executor memory for this run.",
+  "min_report_period": "2019-03-31",
+  "next_stage": "cloud3_gold",
+  "observed_peak_memory_bytes": null,
+  "portfolio_weight_max_abs_error": 4.1522341120980855e-14,
+  "prefix_stability": {
+    "10": {
+      "accession_mismatches": 0,
+      "availability_mismatches": 0,
+      "missing_in_baseline": 0,
+      "missing_in_scaled": 0,
+      "rank_mismatches": 0,
+      "shares_mismatches": 0,
+      "value_mismatches": 0,
+      "weight_mismatches": 0
+    },
+    "25": {
+      "accession_mismatches": 0,
+      "availability_mismatches": 0,
+      "missing_in_baseline": 0,
+      "missing_in_scaled": 0,
+      "rank_mismatches": 0,
+      "shares_mismatches": 0,
+      "value_mismatches": 0,
+      "weight_mismatches": 0
+    }
+  },
+  "prospective_rows": 0,
+  "report_period_count": 29,
+  "scan_partitions": 6
+}

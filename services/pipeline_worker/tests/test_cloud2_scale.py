@@ -1,4 +1,6 @@
-from wealthsignal_pipeline.cloud2_scale import scale_go_no_go
+import pytest
+
+from wealthsignal_pipeline.cloud2_scale import run_scale_validation, scale_go_no_go
 
 
 def test_scale_gate_passes_only_clean_prefix_and_quality() -> None:
@@ -13,3 +15,8 @@ def test_scale_gate_blocks_prefix_or_leakage_failures() -> None:
     )
     assert not passed
     assert reasons == ["missing_in_scaled", "prospective_rows", "portfolio_weight_max_abs_error"]
+
+
+def test_scale_gate_rejects_non_frozen_prefix_configuration() -> None:
+    with pytest.raises(ValueError, match="frozen"):
+        run_scale_validation(50, (25,))
