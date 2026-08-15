@@ -1,0 +1,65 @@
+{
+  "cloud_milestone": "Cloud 4 Free Edition nine-fold capacity gate",
+  "measured_at": "2026-08-15",
+  "status": "blocked",
+  "decision": "do_not_restart_complete_nine_fold_run_until_full_volume_one_fold_gate_passes",
+  "environment_client": 4,
+  "bounded_smoke_evidence": "docs/ai-governance/cloud4-free-edition-smoke.json",
+  "attempts": [
+    {
+      "parent_run_id": 375617300150592,
+      "commit": "43e87ac7ba78c7ffd48b05734b9f1f0444b2854b",
+      "duration_seconds": 115.755,
+      "automatic_task_attempts": 2,
+      "result": "failed",
+      "reason": "Existing graph Delta tables had integer node IDs and rejected deterministic long hash IDs.",
+      "remediation_commit": "8467a4a961ff5e7c6266d82b7ddda9c50f7061a3"
+    },
+    {
+      "parent_run_id": 925903614885570,
+      "commit": "8467a4a961ff5e7c6266d82b7ddda9c50f7061a3",
+      "duration_seconds": 950.386,
+      "automatic_task_attempts": 2,
+      "result": "failed",
+      "reason": "Combined preprocessing PipelineModel exceeded Spark Connect's 268435456-byte model limit (measured model sizes 301331888 and 291651456 bytes).",
+      "remediation_commit": "f9f6bc90c4312310c5df879fde66811fcb55fe43"
+    },
+    {
+      "parent_run_id": 1003442119166795,
+      "commit": "f9f6bc90c4312310c5df879fde66811fcb55fe43",
+      "duration_seconds": 526.767,
+      "automatic_task_attempts": 2,
+      "result": "failed",
+      "reason": "Standalone ImputerModel exceeded Spark Connect's 268435456-byte model limit (measured model sizes 313619848 and 316534656 bytes).",
+      "remediation_commit": "403319b14120acd1a9ac6d29301f0213b26defd6"
+    },
+    {
+      "parent_run_id": 691864712251586,
+      "commit": "403319b14120acd1a9ac6d29301f0213b26defd6",
+      "duration_seconds": 540.686,
+      "automatic_task_attempts": 2,
+      "result": "failed",
+      "reason": "Standalone StandardScalerModel exceeded Spark Connect's 268435456-byte model limit (measured model sizes 294071464 and 347248992 bytes).",
+      "remediation_commit": "77d86c01a5a86c899c568ebf5f0132059a9839d5"
+    }
+  ],
+  "restartability": {
+    "completed_fold_checkpoints": 0,
+    "reason": "Every attempt failed during graph-table preparation or first-fold preprocessing before the atomic fold checkpoint writes.",
+    "checkpoint_reuse_implementation_retained": true
+  },
+  "free_edition_viability": {
+    "bounded_20000_row_smoke": "passed",
+    "complete_nine_fold_run": "not_yet_viable",
+    "remaining_risk": "Full-volume Spark ML estimator model responses may also exceed the fixed Spark Connect model-size ceiling.",
+    "paid_compute_justified": false
+  },
+  "guards": {
+    "prospective_q2_2026_truth_accessed": false,
+    "paid_compute_created": false,
+    "runpod_resources_created": false,
+    "aws_resources_created": false,
+    "additional_complete_run_authorized": false
+  },
+  "exact_next_action": "Add and run one bounded full-volume, first-fold-only environment-client-4 compatibility job at commit 77d86c01a5a86c899c568ebf5f0132059a9839d5; resume the nine-fold job only if that gate fits the Spark Connect limit and writes one complete restart checkpoint."
+}
