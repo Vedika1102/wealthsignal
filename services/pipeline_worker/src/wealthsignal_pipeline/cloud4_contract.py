@@ -218,7 +218,7 @@ def run_cloud4() -> dict[str, Any]:
     fingerprints: dict[str, Any] = {}
     for name, frame in tables.items():
         table_name = f"{OUTPUT_SCHEMA}.graph_50_cap_500_{name}"
-        writer = frame.write.format("delta").mode("overwrite")
+        writer = frame.write.format("delta").mode("overwrite").option("overwriteSchema", "true")
         if name in {"chronological_edges", "forecast_examples"}:
             partition_column = "report_period" if name == "chronological_edges" else "target_report_period"
             writer = writer.partitionBy(partition_column)

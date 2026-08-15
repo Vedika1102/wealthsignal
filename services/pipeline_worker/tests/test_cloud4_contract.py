@@ -78,6 +78,7 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     assert 'F.xxhash64("security_key")' in source
     assert "threshold_expressions" in source
     assert "probabilities.agg(*threshold_expressions)" in source
+    assert '.option("overwriteSchema", "true")' in source
 
 
 def test_cloud4_submissions_use_environment_client_four() -> None:
