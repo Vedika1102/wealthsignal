@@ -59,6 +59,8 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     assert ".toPandas(" not in source
     assert "LogisticRegression" in source
     assert "mlflow.start_run" in source
+    assert 'mlflow.set_tracking_uri("databricks")' in source
+    assert 'mlflow.set_registry_uri("databricks")' in source
     assert '"split_manifest_sha256"' in source
     assert '"graph_statistics"' in source
     assert '"manager_concentration_hhi"' in source

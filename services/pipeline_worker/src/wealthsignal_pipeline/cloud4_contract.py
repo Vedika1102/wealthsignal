@@ -152,6 +152,10 @@ def run_cloud4() -> dict[str, Any]:
     if blockers:
         raise ValueError(f"Cloud 4 prerequisite gate failed: {blockers}")
 
+    # Serverless Spark Connect blocks MLflow's implicit lookup of
+    # spark.mlflow.modelRegistryUri, so both URIs must be explicit.
+    mlflow.set_tracking_uri("databricks")
+    mlflow.set_registry_uri("databricks")
     mlflow.set_experiment("/Shared/wealthsignal-protocol-v2-cloud4")
     mlflow_run = mlflow.start_run(run_name="cloud4-50-manager-cap-500")
     mlflow.log_params({
