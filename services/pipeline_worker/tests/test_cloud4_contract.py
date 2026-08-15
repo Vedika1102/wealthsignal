@@ -79,6 +79,9 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     assert "threshold_expressions" in source
     assert "probabilities.agg(*threshold_expressions)" in source
     assert '.option("overwriteSchema", "true")' in source
+    assert "imputer_model = Imputer" in source
+    assert "scaler_model = StandardScaler" in source
+    assert "Pipeline(stages=preprocessing)" not in source
 
 
 def test_cloud4_submissions_use_environment_client_four() -> None:

@@ -142,7 +142,6 @@ def _table_fingerprint(frame, columns: list[str], F) -> dict[str, Any]:
 
 def run_cloud4() -> dict[str, Any]:
     import mlflow
-    from pyspark.ml import Pipeline
     from pyspark.ml.classification import LogisticRegression
     from pyspark.ml.feature import Imputer, StandardScaler, VectorAssembler
     from pyspark.ml.functions import vector_to_array
@@ -276,12 +275,19 @@ def run_cloud4() -> dict[str, Any]:
             )))
 
         imputed = [f"{name}_imputed" for name in FEATURE_COLUMNS]
+        # Fit preprocessing stages separately.  Returning a combined PipelineModel
+        # exceeded Spark Connect's 256 MiB model-response ceiling on the full fold.
+        imputer_model = Imputer(inputCols=list(FEATURE_COLUMNS), outputCols=imputed).fit(train)
         assembler = VectorAssembler(inputCols=imputed, outputCol="raw_features")
-        preprocessing = [Imputer(inputCols=list(FEATURE_COLUMNS), outputCols=imputed), assembler,
-                         StandardScaler(inputCol="raw_features", outputCol="features", withMean=True, withStd=True)]
-        preprocessing_model = Pipeline(stages=preprocessing).fit(train)
-        prepared_train = preprocessing_model.transform(train)
-        prepared_evaluate = preprocessing_model.transform(evaluate)
+        imputed_train = imputer_model.transform(train)
+        imputed_evaluate = imputer_model.transform(evaluate)
+        assembled_train = assembler.transform(imputed_train)
+        assembled_evaluate = assembler.transform(imputed_evaluate)
+        scaler_model = StandardScaler(
+            inputCol="raw_features", outputCol="features", withMean=True, withStd=True
+        ).fit(assembled_train)
+        prepared_train = scaler_model.transform(assembled_train)
+        prepared_evaluate = scaler_model.transform(assembled_evaluate)
         for alpha in RIDGE_ALPHAS:
             estimator = LinearRegression(
                 featuresCol="features", labelCol="target_weight", predictionCol="score",
