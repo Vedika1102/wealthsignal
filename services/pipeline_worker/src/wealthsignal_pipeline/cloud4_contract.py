@@ -143,7 +143,7 @@ def _table_fingerprint(frame, columns: list[str], F) -> dict[str, Any]:
 def run_cloud4() -> dict[str, Any]:
     import mlflow
     from pyspark.ml.classification import LogisticRegression
-    from pyspark.ml.feature import Imputer, StandardScaler, VectorAssembler
+    from pyspark.ml.feature import StandardScaler, VectorAssembler
     from pyspark.ml.functions import vector_to_array
     from pyspark.ml.regression import GBTRegressor, LinearRegression
     from pyspark.sql import SparkSession, functions as F, Window
@@ -275,12 +275,31 @@ def run_cloud4() -> dict[str, Any]:
             )))
 
         imputed = [f"{name}_imputed" for name in FEATURE_COLUMNS]
-        # Fit preprocessing stages separately.  Returning a combined PipelineModel
-        # exceeded Spark Connect's 256 MiB model-response ceiling on the full fold.
-        imputer_model = Imputer(inputCols=list(FEATURE_COLUMNS), outputCols=imputed).fit(train)
+        # Compute train-fold medians as a single small aggregation. Spark Connect
+        # serializes ImputerModel's surrogate frame with its input plan; on the
+        # full fold that object exceeds Free Edition's fixed 256 MiB ceiling.
+        median_row = train.agg(*[
+            F.percentile_approx(F.col(name), 0.5, 10_000).alias(name)
+            for name in FEATURE_COLUMNS
+        ]).first().asDict()
+        missing_medians = [name for name, value in median_row.items() if value is None]
+        if missing_medians:
+            raise ValueError(f"Fold {fold_id} has all-missing features: {missing_medians}")
+
+        def impute_frame(frame: Any) -> Any:
+            return frame.select(
+                "*",
+                *[
+                    F.when(F.col(name).isNull() | F.isnan(name), F.lit(median_row[name]))
+                    .otherwise(F.col(name))
+                    .alias(f"{name}_imputed")
+                    for name in FEATURE_COLUMNS
+                ],
+            )
+
         assembler = VectorAssembler(inputCols=imputed, outputCol="raw_features")
-        imputed_train = imputer_model.transform(train)
-        imputed_evaluate = imputer_model.transform(evaluate)
+        imputed_train = impute_frame(train)
+        imputed_evaluate = impute_frame(evaluate)
         assembled_train = assembler.transform(imputed_train)
         assembled_evaluate = assembler.transform(imputed_evaluate)
         scaler_model = StandardScaler(
