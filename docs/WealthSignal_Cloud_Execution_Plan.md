@@ -1,15 +1,45 @@
 # WealthSignal Cloud Execution Plan
 
+## August 2026 execution checkpoint and next Codex steps
+
+Cloud 2 exact reconciliation and the Cloud 3 Gold gate are complete. The accepted 50-manager cap-500 table contains 5,154,259 examples across 28 target quarters. The nine-quarter validation window selected cap 500, and the saved gate reports zero leakage, duplicate, null-key, prospective, and nested-cap reconciliation violations. The next milestone is Cloud 4. Prospective Q2 2026 truth remains unopened, and RunPod is not authorized until graph/tabular reconciliation passes.
+
+Execute the following milestones in order:
+
+1. **Run the locally verified Cloud 4 job on Databricks.** Evaluate persistence, EMA, popularity, Ridge, histogram gradient boosting, and logistic action diagnostics on identical expanding validation folds, with MLflow lineage.
+2. **Build and gate the graph contract.** Persist deterministic manager/security node maps, chronological availability-timestamped weighted edges, forecast examples, checksums, and distributed fingerprints. Require persistence and EMA to reconcile exactly with tabular metrics.
+3. **Freeze the V2 configuration.** Save the selected candidates, preprocessing, hyperparameters, action thresholds, seeds, metrics, bootstrap settings, environment, and promotion decision before prospective access.
+4. **Begin Cloud 5 only after acceptance.** Pin and attribute NAVIS, transfer only the checksum-frozen graph bundle, run a bounded 10-manager smoke test, preserve measured failures and costs, and terminate rented compute after artifact capture.
+5. **Keep AWS optional and bounded.** If added later, use a cost-capped sandbox for one isolated deployment or MLOps capability; do not make it the default data or GPU platform.
+
+Cloud allocation for the remaining work:
+
+| Workload | Default platform | Reason |
+|---|---|---|
+| SEC packages, PySpark, Delta tables, reconciliation, SQL, lineage | Databricks | Already connected and proven on the ten-manager run |
+| Graph extraction and baseline reconciliation | Databricks CPU | Data-local work; no GPU required |
+| NAVIS smoke tests, multi-seed training, ablations | RunPod GPU | Short-lived GPU rental with explicit manual lifecycle |
+| Local laptop | Git, small unit tests, documentation, API development | Avoid large-data materialization and model training |
+| AWS | Optional S3/container/API/MLOps demonstration | Useful portfolio signal only when bounded by budgets and cleanup controls |
+
+### Exact prompt for the next Codex task
+
+```text
+Read docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, the Protocol V2 governance files, cloud3_gold.py, cloud3_gate.py, their tests, and the accepted Cloud 3 reports completely. Execute only Cloud 4 from a committed revision.
+
+Verify the accepted cap-500 table and upstream checksums at runtime. Evaluate the frozen tabular baselines and logistic action diagnostics on the nine expanding validation folds with MLflow lineage. Build the framework-independent graph bundle with deterministic node maps, chronological availability-timestamped edges, forecast examples, split/protocol lineage, distributed fingerprints, and statistics. Recompute persistence and EMA through the graph adapter and require exact reconciliation with tabular metrics. Do not access prospective Q2 2026 truth, start RunPod, create AWS resources, or introduce a graph-learning dependency. Save measured evidence and stop at the Cloud 5 authorization boundary.
+```
+
 ## Decision
 
 Use Databricks for Protocol V2 data engineering, SQL, PySpark, Delta/Parquet artifacts, leakage audits, tabular baselines, and MLflow lineage. Use RunPod only after graph reconciliation for PyTorch/NAVIS GPU training. GitHub remains the source of truth for code, tests, protocols, checksums, and verified reports.
 
 This replaces the failed full in-memory local build. The local machine has 15.85 GB RAM and a 4-core/8-thread Intel i5; the attempted builder exceeded 28 GB private memory without finalizing. No future 50- or 99-manager production build may use that unbounded Python-object path.
 
-## Current connection state
+## Last verified connection state
 
-- Databricks CLI v1.10.0 is installed and the `wealthsignal` browser/OAuth profile is valid for workspace `dbc-df5ef74b-9c89.cloud.databricks.com`.
-- The workspace has no clusters or jobs. Its built-in `Serverless Starter Warehouse` is stopped with zero running clusters.
+- Databricks CLI v1.10.0 and the `wealthsignal` browser/OAuth profile were used for the accepted Cloud 1–3 jobs in workspace `dbc-df5ef74b-9c89.cloud.databricks.com`; authentication and workspace identity must be reverified immediately before Cloud 4 submission.
+- Cloud 1–3 job history exists in the workspace. Do not infer current compute state or remaining Free Edition quota from the earlier checkpoint; inspect both before submitting Cloud 4.
 - RunPod CLI and account verification are deferred by the project owner until the graph/NAVIS stages; no RunPod resource is authorized before that verification is completed.
 - `DATABRICKS_TOKEN` and `RUNPOD_API_KEY` are not configured in the project environment; the Databricks connection uses OAuth.
 - Credentials must never be committed, printed, stored in notebooks, or placed in repository files.
