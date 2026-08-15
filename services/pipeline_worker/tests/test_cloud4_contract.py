@@ -61,3 +61,9 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     assert "mlflow.start_run" in source
     assert '"split_manifest_sha256"' in source
     assert '"graph_statistics"' in source
+    assert '"manager_concentration_hhi"' in source
+    assert '"nonzero_target_mae"' in source
+    assert '"nonzero_target_rmse"' in source
+    assert '"rank_correlation"' in source
+    assert '"full_outer"' in source
+    assert '"missing_graph_groups"' in source

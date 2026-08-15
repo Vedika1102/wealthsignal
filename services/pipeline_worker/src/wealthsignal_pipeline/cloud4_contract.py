@@ -30,8 +30,8 @@ ACTION_CLASS_WEIGHT_MODES = ("none", "balanced")
 FEATURE_COLUMNS = (
     "current_weight", "previous_weight", "lag2_weight", "current_rank",
     "previous_rank", "weight_momentum", "rank_momentum", "manager_turnover",
-    "peer_owner_count", "peer_aggregate_weight", "holding_history_quarters",
-    "quarters_since_last_held",
+    "manager_concentration_hhi", "peer_owner_count", "peer_aggregate_weight",
+    "holding_history_quarters", "quarters_since_last_held",
 )
 
 
@@ -102,6 +102,15 @@ def _metric_rows(frame, score_column: str, model_name: str, fold_id: str, F, Win
         F.least(F.lit(10), F.sum("relevant")).alias("top10_denominator"),
         F.avg(F.abs(F.col(score_column) - F.col("target_weight"))).alias("mae"),
         F.sqrt(F.avg(F.pow(F.col(score_column) - F.col("target_weight"), 2))).alias("rmse"),
+        F.avg(F.when(
+            F.col("target_weight") > 0,
+            F.abs(F.col(score_column) - F.col("target_weight")),
+        )).alias("nonzero_target_mae"),
+        F.sqrt(F.avg(F.when(
+            F.col("target_weight") > 0,
+            F.pow(F.col(score_column) - F.col("target_weight"), 2),
+        ))).alias("nonzero_target_rmse"),
+        F.corr("predicted_rank", "ideal_rank").alias("rank_correlation"),
         F.count("*").alias("candidate_count"),
     ).select(
         F.lit(fold_id).alias("fold_id"), F.lit(model_name).alias("model_name"),
@@ -109,7 +118,9 @@ def _metric_rows(frame, score_column: str, model_name: str, fold_id: str, F, Win
         F.when(F.col("idcg10") > 0, F.col("dcg10") / F.col("idcg10")).otherwise(0.0).alias("ndcg_at_10"),
         F.when(F.col("idcg20") > 0, F.col("dcg20") / F.col("idcg20")).otherwise(0.0).alias("ndcg_at_20"),
         F.when(F.col("top10_denominator") > 0, F.col("top10_hits") / F.col("top10_denominator")).otherwise(0.0).alias("recall_at_10"),
-        "mae", "rmse", "candidate_count",
+        "mae", "rmse", "nonzero_target_mae", "nonzero_target_rmse",
+        F.coalesce("rank_correlation", F.lit(0.0)).alias("rank_correlation"),
+        "candidate_count",
     )
 
 
@@ -328,12 +339,35 @@ def run_cloud4() -> dict[str, Any]:
             item = _metric_rows(part, "score", model_name, fold["fold_id"], F, Window)
             graph_metrics = item if graph_metrics is None else graph_metrics.unionByName(item)
         tabular = scored_metrics.filter(F.col("model_name") == model_name)
-        delta = tabular.alias("t").join(graph_metrics.alias("g"), ["fold_id", "model_name", "cik", "target_report_period"]).agg(
+        reconciliation_keys = ["fold_id", "model_name", "cik", "target_report_period"]
+        compared = tabular.withColumn("_tabular_present", F.lit(1)).alias("t").join(
+            graph_metrics.withColumn("_graph_present", F.lit(1)).alias("g"),
+            reconciliation_keys,
+            "full_outer",
+        )
+        delta = compared.agg(
+            F.sum(F.when(F.col("_tabular_present").isNull(), 1).otherwise(0)).alias("missing_tabular_groups"),
+            F.sum(F.when(F.col("_graph_present").isNull(), 1).otherwise(0)).alias("missing_graph_groups"),
             F.max(F.abs(F.col("t.ndcg_at_10") - F.col("g.ndcg_at_10"))).alias("ndcg10_max_abs_delta"),
+            F.max(F.abs(F.col("t.ndcg_at_20") - F.col("g.ndcg_at_20"))).alias("ndcg20_max_abs_delta"),
+            F.max(F.abs(F.col("t.recall_at_10") - F.col("g.recall_at_10"))).alias("recall10_max_abs_delta"),
             F.max(F.abs(F.col("t.mae") - F.col("g.mae"))).alias("mae_max_abs_delta"),
+            F.max(F.abs(F.col("t.rmse") - F.col("g.rmse"))).alias("rmse_max_abs_delta"),
+            F.max(F.abs(F.col("t.nonzero_target_mae") - F.col("g.nonzero_target_mae"))).alias("nonzero_mae_max_abs_delta"),
+            F.max(F.abs(F.col("t.nonzero_target_rmse") - F.col("g.nonzero_target_rmse"))).alias("nonzero_rmse_max_abs_delta"),
+            F.max(F.abs(F.col("t.rank_correlation") - F.col("g.rank_correlation"))).alias("rank_correlation_max_abs_delta"),
             F.count("*").alias("groups"),
         ).first().asDict()
-        passed = float(delta["ndcg10_max_abs_delta"] or 0.0) <= 1e-12 and float(delta["mae_max_abs_delta"] or 0.0) <= 1e-12
+        mismatch_counts = ("missing_tabular_groups", "missing_graph_groups")
+        metric_deltas = (
+            "ndcg10_max_abs_delta", "ndcg20_max_abs_delta", "recall10_max_abs_delta",
+            "mae_max_abs_delta", "rmse_max_abs_delta", "nonzero_mae_max_abs_delta",
+            "nonzero_rmse_max_abs_delta", "rank_correlation_max_abs_delta",
+        )
+        passed = (
+            all(int(delta[name] or 0) == 0 for name in mismatch_counts)
+            and all(float(delta[name] or 0.0) <= 1e-12 for name in metric_deltas)
+        )
         reconciliation[model_name] = {**delta, "passed": passed}
         if not passed:
             raise ValueError(f"Graph/tabular reconciliation failed for {model_name}: {delta}")
