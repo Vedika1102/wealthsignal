@@ -177,7 +177,7 @@ The rule-based materiality score may remain as a clearly named observed-change s
 ### Confirmed risks and blockers
 
 1. Protocol V1, forecast persistence, and forecast APIs are checkpointed. Protocol V2 design revision 2 is frozen and checksum-verified.
-2. Protocol V2 development packages through May 2026 are checksum-manifested, and the deterministic 50-manager CIK list has hash `23617b83308e9b073212f9eb493e57921877eacc887f2fcdd923cf3b9ebfc3ff`. Cloud 1 and the exact 10/25/50-manager Cloud 2 checkpoints are complete. The official 50-manager build contains 4,974,339 normalized holdings and reconciles exactly with the independent Python reference; Gold validation data is not yet built.
+2. Protocol V2 development packages through May 2026 are checksum-manifested, and the deterministic 50-manager CIK list has hash `23617b83308e9b073212f9eb493e57921877eacc887f2fcdd923cf3b9ebfc3ff`. Cloud 1 and the exact 10/25/50-manager Cloud 2 checkpoints are complete. The official 50-manager build contains 4,974,339 normalized holdings and reconciles exactly with the independent Python reference. Cloud 3 Gold also passed with 5,154,259 cap-500 examples and zero leakage or nested-cap reconciliation violations.
 3. The local V1 forecast database is ignored under `data/`; a clean checkout must rebuild it from checksum-verified source artifacts with the documented CLI.
 4. Protocol V1's final test is consumed. It cannot be reused for NAVIS development, feature selection, candidate changes, or threshold tuning.
 5. The failed action classifiers remain diagnostic and must not be introduced into alerts, portfolio impact, or the forecast API.
@@ -185,7 +185,7 @@ The rule-based materiality score may remain as a clearly named observed-change s
 7. Long-term security identity, corporate actions, and historical index-membership policies still need explicit treatment.
 8. PySpark and isolated test dependencies are declared; a graph-learning framework remains intentionally undeclared until the graph/NAVIS milestone.
 9. The attempted local 50-manager build exceeded 28 GB private memory on a 15.85 GB RAM machine without finalizing. The cloud path in `docs/WealthSignal_Cloud_Execution_Plan.md` replaces further unbounded local builds.
-10. Databricks CLI is OAuth-connected and serverless Cloud 1/2 jobs have executed successfully. RunPod connection is owner-deferred until the graph/NAVIS stages. Any billable resource creation still requires explicit user approval.
+10. Databricks CLI is OAuth-connected and serverless Cloud 1-3 jobs have executed successfully. Two Cloud 4 submissions failed on serverless compatibility rather than quota or memory: the MLflow URI issue is fixed in `ce4c14e`, while client-2 Spark ML rejected `VectorAssembler`. The next attempt must use serverless environment client 4 and an optimized compatibility smoke gate. Free Edition remains the default; paid classic compute requires measured necessity and explicit user approval. RunPod remains owner-deferred until the graph/NAVIS stages.
 
 ### Required implementation order
 
@@ -194,7 +194,7 @@ Follow this dependency order from the actual stopping point:
 1. Review and checkpoint the Protocol V2 design without downloading data or reopening the consumed V1 test. Completed in commits `fe78dc7` and `0205710`.
 2. Acquire the declared development packages and materialize and checksum the training-only manager cohort. Completed in commit `ce1171e`.
 3. Complete Cloud 0/1: completed; all 30 source checksums and the cohort checksum were verified in Databricks.
-4. Complete Cloud 4: Cloud 3 passed with 5,154,259 cap-500 examples and zero leakage/reconciliation violations; run the frozen tabular baselines and construct the graph contract without prospective access.
+4. Complete the Cloud 4 compatibility and efficiency gate: switch the Free Edition job to serverless environment client 4, prove Spark ML and MLflow on a bounded historical slice, combine repeated threshold actions, and checkpoint restartable fold results. Then run the frozen nine-fold baselines and construct the graph contract without prospective access. Use paid classic compute only after a measured quota, capacity, or unsupported-API blocker and explicit approval.
 5. Freeze the selected V2 candidate/model configuration before the prospective 2026 Q2 source becomes available.
 6. Create a framework-independent temporal bipartite graph bundle and prove graph persistence/EMA reconcile with tabular metrics.
 7. Complete Cloud 5/6: reproduce NAVIS on RunPod against a frozen upstream revision and compare it fairly with persistence and EMA.
@@ -1193,7 +1193,7 @@ Return manager and security identifiers, predicted weight/rank, source cutoff, t
 
 ### Milestone 3 — Current-Data Protocol V2
 
-Status: design revision 2, development packages, and ordered cohort are frozen; Cloud 1/2 passed; official Cloud 3 Gold construction and nested reconciliation passed. Validation-only candidate selection chose cap 500, producing 5,154,259 examples across 28 target quarters with zero leakage violations. Cloud 4 baselines and graph-contract work are authorized next.
+Status: design revision 2, development packages, and ordered cohort are frozen; Cloud 1/2 passed; official Cloud 3 Gold construction and nested reconciliation passed. Validation-only candidate selection chose cap 500, producing 5,154,259 examples across 28 target quarters with zero leakage violations. Two Cloud 4 Free Edition submissions exposed MLflow and client-2 Spark ML compatibility issues; the MLflow fix is committed, and the authorized next step is an environment-client-4 compatibility/efficiency gate. Paid classic compute is not yet justified.
 
 ```text
 Design Protocol V2 before downloading or evaluating new data. Inventory the latest complete official SEC 13F bulk packages available at execution time, then declare a larger manager cohort, historical coverage, security-universe policy, source cutoff, validation windows, and a brand-new untouched final or prospective window.
