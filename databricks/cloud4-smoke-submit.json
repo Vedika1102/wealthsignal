@@ -1,6 +1,6 @@
 {
-  "run_name": "wealthsignal-cloud4-baselines-graph-contract",
-  "timeout_seconds": 14400,
+  "run_name": "wealthsignal-cloud4-environment4-smoke",
+  "timeout_seconds": 1200,
   "git_source": {
     "git_url": "https://github.com/Vedika1102/wealthsignal.git",
     "git_provider": "gitHub",
@@ -8,9 +8,9 @@
   },
   "tasks": [
     {
-      "task_key": "cloud4_baselines_graph_contract",
+      "task_key": "environment4_compatibility_smoke",
       "spark_python_task": {
-        "python_file": "services/pipeline_worker/src/wealthsignal_pipeline/cloud4_contract.py",
+        "python_file": "services/pipeline_worker/src/wealthsignal_pipeline/cloud4_smoke.py",
         "source": "GIT"
       },
       "environment_key": "default"
@@ -19,7 +19,7 @@
   "environments": [
     {
       "environment_key": "default",
-      "spec": { "client": "4", "dependencies": ["scikit-learn>=1.5.1,<2"] }
+      "spec": { "client": "4" }
     }
   ]
 }

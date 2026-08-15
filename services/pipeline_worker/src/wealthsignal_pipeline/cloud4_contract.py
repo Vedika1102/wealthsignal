@@ -33,6 +33,10 @@ FEATURE_COLUMNS = (
     "manager_concentration_hhi", "peer_owner_count", "peer_aggregate_weight",
     "holding_history_quarters", "quarters_since_last_held",
 )
+FOLD_METRICS_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_baseline_metrics_50_cap_500"
+FOLD_ACTION_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_action_diagnostics_50_cap_500"
+FOLD_TRIAL_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_hyperparameter_trials_50_cap_500"
+FOLD_CHECKPOINT_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_checkpoints_50_cap_500"
 
 
 def canonical_sha256(value: Any) -> str:
@@ -75,6 +79,11 @@ def binary_metrics(true_positive: int, false_positive: int, false_negative: int)
     recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else 0.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
     return {"precision": precision, "recall": recall, "f1": f1}
+
+
+def checkpoint_tables_ready(table_names: set[str]) -> bool:
+    required = {FOLD_METRICS_TABLE, FOLD_ACTION_TABLE, FOLD_TRIAL_TABLE, FOLD_CHECKPOINT_TABLE}
+    return required.issubset(table_names)
 
 
 def _metric_rows(frame, score_column: str, model_name: str, fold_id: str, F, Window):
@@ -172,12 +181,20 @@ def run_cloud4() -> dict[str, Any]:
     validation = gold.filter(F.col("target_report_period").between(
         F.lit(VALIDATION_START).cast("date"), F.lit(VALIDATION_END).cast("date")
     ))
+    # Stable hash IDs avoid the global single-partition row_number window.  A
+    # collision gate below makes the extremely unlikely failure explicit.
     manager_nodes = gold.select("cik").distinct().withColumn(
-        "manager_node_id", F.row_number().over(Window.orderBy("cik")) - 1
+        "manager_node_id", F.xxhash64("cik")
     ).select("manager_node_id", "cik")
     security_nodes = gold.select("security_key", "cusip").distinct().withColumn(
-        "security_node_id", F.row_number().over(Window.orderBy("security_key")) - 1
+        "security_node_id", F.xxhash64("security_key")
     ).select("security_node_id", "security_key", "cusip")
+    manager_id_collisions = manager_nodes.groupBy("manager_node_id").count().filter("count > 1").count()
+    security_id_collisions = security_nodes.groupBy("security_node_id").count().filter("count > 1").count()
+    if manager_id_collisions or security_id_collisions:
+        raise ValueError(
+            f"Graph node hash collision: managers={manager_id_collisions}, securities={security_id_collisions}"
+        )
     edges = (
         gold.filter(F.col("current_weight") > 0)
         .select("cik", "security_key", "cusip", "report_period", "feature_available_at", F.col("current_weight").alias("weight"))
@@ -230,8 +247,20 @@ def run_cloud4() -> dict[str, Any]:
     hyperparameter_trials: list[dict[str, Any]] = []
     action_trials: list[dict[str, Any]] = []
     folds = upstream["split_manifest"]["folds"]
+    checkpoint_table_names = {
+        FOLD_METRICS_TABLE, FOLD_ACTION_TABLE, FOLD_TRIAL_TABLE, FOLD_CHECKPOINT_TABLE,
+    }
+    existing_tables = {name for name in checkpoint_table_names if spark.catalog.tableExists(name)}
+    completed_folds: set[str] = set()
+    if checkpoint_tables_ready(existing_tables):
+        completed_folds = {
+            str(row["fold_id"])
+            for row in spark.table(FOLD_CHECKPOINT_TABLE).select("fold_id").distinct().toLocalIterator()
+        }
     for fold in folds:
         fold_id = fold["fold_id"]
+        if fold_id in completed_folds:
+            continue
         quarter = fold["evaluation_target_quarter"]
         train = gold.filter(F.col("target_report_period") < F.lit(quarter).cast("date"))
         evaluate = validation.filter(F.col("target_report_period") == F.lit(quarter).cast("date"))
@@ -291,33 +320,62 @@ def run_cloud4() -> dict[str, Any]:
                 probabilities = classifier.fit(weighted_train).transform(prepared_evaluate).withColumn(
                     "positive_probability", vector_to_array("action_probability")[1]
                 )
-                for threshold in ACTION_THRESHOLDS:
-                    summary = probabilities.agg(
+                threshold_expressions = []
+                for index, threshold in enumerate(ACTION_THRESHOLDS):
+                    threshold_expressions.extend([
                         F.sum(F.when(
                             (F.col("positive_probability") >= threshold) & (F.col(label_column) == 1), 1
-                        ).otherwise(0)).alias("true_positive"),
+                        ).otherwise(0)).alias(f"tp_{index}"),
                         F.sum(F.when(
                             (F.col("positive_probability") >= threshold) & (F.col(label_column) == 0), 1
-                        ).otherwise(0)).alias("false_positive"),
+                        ).otherwise(0)).alias(f"fp_{index}"),
                         F.sum(F.when(
                             (F.col("positive_probability") < threshold) & (F.col(label_column) == 1), 1
-                        ).otherwise(0)).alias("false_negative"),
-                    ).first().asDict()
-                    counts_for_metric = {name: int(summary[name] or 0) for name in summary}
+                        ).otherwise(0)).alias(f"fn_{index}"),
+                    ])
+                threshold_summary = probabilities.agg(*threshold_expressions).first().asDict()
+                for index, threshold in enumerate(ACTION_THRESHOLDS):
+                    counts_for_metric = {
+                        "true_positive": int(threshold_summary[f"tp_{index}"] or 0),
+                        "false_positive": int(threshold_summary[f"fp_{index}"] or 0),
+                        "false_negative": int(threshold_summary[f"fn_{index}"] or 0),
+                    }
                     action_trials.append({
                         "fold_id": fold_id, "target_report_period": quarter, "action": action_name,
                         "class_weight_mode": weight_mode, "positive_class_weight": positive_weight,
                         "threshold": threshold, **counts_for_metric, **binary_metrics(**counts_for_metric),
                     })
 
+        fold_metrics = None
+        fold_hyperparameter_trials: list[dict[str, Any]] = []
         for model_name, scored in score_frames:
             metrics = _metric_rows(scored, "score", model_name, fold_id, F, Window)
             summary = metrics.agg(F.avg("ndcg_at_10").alias("ndcg_at_10"), F.avg("mae").alias("mae")).first()
-            hyperparameter_trials.append({"fold_id": fold_id, "model_name": model_name,
-                                          "ndcg_at_10": float(summary["ndcg_at_10"]), "mae": float(summary["mae"])})
-            scored_metrics = metrics if scored_metrics is None else scored_metrics.unionByName(metrics)
+            fold_hyperparameter_trials.append({"fold_id": fold_id, "model_name": model_name,
+                                               "ndcg_at_10": float(summary["ndcg_at_10"]),
+                                               "mae": float(summary["mae"])})
+            fold_metrics = metrics if fold_metrics is None else fold_metrics.unionByName(metrics)
+
+        replace_fold = f"fold_id = '{fold_id}'"
+        fold_metrics.write.format("delta").mode("overwrite").option("replaceWhere", replace_fold).saveAsTable(
+            FOLD_METRICS_TABLE
+        )
+        fold_action_trials = [item for item in action_trials if item["fold_id"] == fold_id]
+        spark.createDataFrame(fold_action_trials).write.format("delta").mode("overwrite").option(
+            "replaceWhere", replace_fold
+        ).saveAsTable(FOLD_ACTION_TABLE)
+        spark.createDataFrame(fold_hyperparameter_trials).write.format("delta").mode("overwrite").option(
+            "replaceWhere", replace_fold
+        ).saveAsTable(FOLD_TRIAL_TABLE)
+        spark.createDataFrame([{
+            "fold_id": fold_id, "evaluation_target_quarter": quarter,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }]).write.format("delta").mode("append").saveAsTable(FOLD_CHECKPOINT_TABLE)
 
     metrics_table = f"{OUTPUT_SCHEMA}.cloud4_baseline_metrics_50_cap_500"
+    scored_metrics = spark.table(FOLD_METRICS_TABLE)
+    hyperparameter_trials = [row.asDict() for row in spark.table(FOLD_TRIAL_TABLE).toLocalIterator()]
+    action_trials = [row.asDict() for row in spark.table(FOLD_ACTION_TABLE).toLocalIterator()]
     scored_metrics.write.format("delta").mode("overwrite").saveAsTable(metrics_table)
     action_metrics_table = f"{OUTPUT_SCHEMA}.cloud4_action_diagnostics_50_cap_500"
     spark.createDataFrame(action_trials).write.format("delta").mode("overwrite").saveAsTable(action_metrics_table)
@@ -417,6 +475,11 @@ def run_cloud4() -> dict[str, Any]:
         "action_diagnostics_table": action_metrics_table,
         "hyperparameter_trials": hyperparameter_trials,
         "action_diagnostic_trials": action_trials,
+        "restartability": {
+            "fold_checkpoint_table": FOLD_CHECKPOINT_TABLE,
+            "completed_fold_count": len(folds),
+            "reused_fold_count": len(completed_folds),
+        },
         "graph_tabular_reconciliation": reconciliation,
         "selected_hyperparameters": selected_hyperparameters,
         "selected_action_diagnostics": selected_action_diagnostics,

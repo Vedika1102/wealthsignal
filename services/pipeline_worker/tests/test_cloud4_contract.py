@@ -5,6 +5,11 @@ from wealthsignal_pipeline.cloud4_contract import (
     canonical_sha256,
     select_smallest_best,
     validate_upstream_report,
+    checkpoint_tables_ready,
+    FOLD_ACTION_TABLE,
+    FOLD_CHECKPOINT_TABLE,
+    FOLD_METRICS_TABLE,
+    FOLD_TRIAL_TABLE,
 )
 
 
@@ -69,3 +74,22 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     assert '"rank_correlation"' in source
     assert '"full_outer"' in source
     assert '"missing_graph_groups"' in source
+    assert 'F.xxhash64("cik")' in source
+    assert 'F.xxhash64("security_key")' in source
+    assert "threshold_expressions" in source
+    assert "probabilities.agg(*threshold_expressions)" in source
+
+
+def test_cloud4_submissions_use_environment_client_four() -> None:
+    import json
+    from pathlib import Path
+
+    for name in ("cloud4-submit.json", "cloud4-smoke-submit.json"):
+        payload = json.loads(Path("databricks", name).read_text(encoding="utf-8"))
+        assert payload["environments"][0]["spec"]["client"] == "4"
+
+
+def test_restart_requires_the_complete_checkpoint_set() -> None:
+    tables = {FOLD_METRICS_TABLE, FOLD_ACTION_TABLE, FOLD_TRIAL_TABLE, FOLD_CHECKPOINT_TABLE}
+    assert checkpoint_tables_ready(tables)
+    assert not checkpoint_tables_ready(tables - {FOLD_ACTION_TABLE})
