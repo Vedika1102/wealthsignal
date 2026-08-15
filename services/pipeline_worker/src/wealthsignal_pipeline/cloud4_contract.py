@@ -143,7 +143,7 @@ def _table_fingerprint(frame, columns: list[str], F) -> dict[str, Any]:
 def run_cloud4() -> dict[str, Any]:
     import mlflow
     from pyspark.ml.classification import LogisticRegression
-    from pyspark.ml.feature import StandardScaler, VectorAssembler
+    from pyspark.ml.feature import VectorAssembler
     from pyspark.ml.functions import vector_to_array
     from pyspark.ml.regression import GBTRegressor, LinearRegression
     from pyspark.sql import SparkSession, functions as F, Window
@@ -297,16 +297,32 @@ def run_cloud4() -> dict[str, Any]:
                 ],
             )
 
-        assembler = VectorAssembler(inputCols=imputed, outputCol="raw_features")
         imputed_train = impute_frame(train)
         imputed_evaluate = impute_frame(evaluate)
-        assembled_train = assembler.transform(imputed_train)
-        assembled_evaluate = assembler.transform(imputed_evaluate)
-        scaler_model = StandardScaler(
-            inputCol="raw_features", outputCol="features", withMean=True, withStd=True
-        ).fit(assembled_train)
-        prepared_train = scaler_model.transform(assembled_train)
-        prepared_evaluate = scaler_model.transform(assembled_evaluate)
+        scaling_row = imputed_train.agg(*[
+            expression
+            for name in imputed
+            for expression in (
+                F.avg(name).alias(f"{name}_mean"),
+                F.stddev_samp(name).alias(f"{name}_std"),
+            )
+        ]).first().asDict()
+
+        def scale_frame(frame: Any) -> Any:
+            scaled_columns = []
+            for name in imputed:
+                mean = scaling_row[f"{name}_mean"]
+                std = scaling_row[f"{name}_std"]
+                scaled_columns.append(
+                    (F.lit(0.0) if std in (None, 0.0) else (F.col(name) - F.lit(mean)) / F.lit(std))
+                    .alias(f"{name}_scaled")
+                )
+            return frame.select("*", *scaled_columns)
+
+        scaled = [f"{name}_scaled" for name in imputed]
+        assembler = VectorAssembler(inputCols=scaled, outputCol="features")
+        prepared_train = assembler.transform(scale_frame(imputed_train))
+        prepared_evaluate = assembler.transform(scale_frame(imputed_evaluate))
         for alpha in RIDGE_ALPHAS:
             estimator = LinearRegression(
                 featuresCol="features", labelCol="target_weight", predictionCol="score",

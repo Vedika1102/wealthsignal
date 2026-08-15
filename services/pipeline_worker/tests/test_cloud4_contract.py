@@ -82,7 +82,9 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     assert "F.percentile_approx" in source
     assert "def impute_frame" in source
     assert "Imputer(" not in source
-    assert "scaler_model = StandardScaler" in source
+    assert "F.stddev_samp" in source
+    assert "def scale_frame" in source
+    assert "StandardScaler(" not in source
     assert "Pipeline(stages=preprocessing)" not in source
 
 
