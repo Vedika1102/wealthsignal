@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,6 +38,8 @@ FOLD_METRICS_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_baseline_metrics_50_cap_500"
 FOLD_ACTION_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_action_diagnostics_50_cap_500"
 FOLD_TRIAL_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_hyperparameter_trials_50_cap_500"
 FOLD_CHECKPOINT_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_checkpoints_50_cap_500"
+FIRST_FOLD_GATE_SUFFIX = "_first_fold_gate"
+SPARK_CONNECT_MODEL_LIMIT_BYTES = 268_435_456
 
 
 def canonical_sha256(value: Any) -> str:
@@ -81,9 +84,25 @@ def binary_metrics(true_positive: int, false_positive: int, false_negative: int)
     return {"precision": precision, "recall": recall, "f1": f1}
 
 
-def checkpoint_tables_ready(table_names: set[str]) -> bool:
-    required = {FOLD_METRICS_TABLE, FOLD_ACTION_TABLE, FOLD_TRIAL_TABLE, FOLD_CHECKPOINT_TABLE}
+def execution_checkpoint_tables(first_fold_gate: bool = False) -> dict[str, str]:
+    suffix = FIRST_FOLD_GATE_SUFFIX if first_fold_gate else ""
+    return {
+        "metrics": f"{FOLD_METRICS_TABLE}{suffix}",
+        "actions": f"{FOLD_ACTION_TABLE}{suffix}",
+        "trials": f"{FOLD_TRIAL_TABLE}{suffix}",
+        "checkpoints": f"{FOLD_CHECKPOINT_TABLE}{suffix}",
+    }
+
+
+def checkpoint_tables_ready(table_names: set[str], *, first_fold_gate: bool = False) -> bool:
+    required = set(execution_checkpoint_tables(first_fold_gate).values())
     return required.issubset(table_names)
+
+
+def select_execution_folds(folds: list[dict[str, Any]], *, first_fold_gate: bool) -> list[dict[str, Any]]:
+    if not folds:
+        raise ValueError("Cloud 4 requires at least one validation fold")
+    return folds[:1] if first_fold_gate else folds
 
 
 def _metric_rows(frame, score_column: str, model_name: str, fold_id: str, F, Window):
@@ -140,7 +159,7 @@ def _table_fingerprint(frame, columns: list[str], F) -> dict[str, Any]:
     return {"row_count": int(row["row_count"]), "distributed_xxhash64_sum": str(row["hash_sum"])}
 
 
-def run_cloud4() -> dict[str, Any]:
+def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
     import mlflow
     from pyspark.ml.classification import LogisticRegression
     from pyspark.ml.feature import VectorAssembler
@@ -149,7 +168,11 @@ def run_cloud4() -> dict[str, Any]:
     from pyspark.sql import SparkSession, functions as F, Window
 
     started = time.monotonic()
-    spark = SparkSession.builder.appName("wealthsignal-cloud4-contract").getOrCreate()
+    application_name = (
+        "wealthsignal-cloud4-full-volume-first-fold-gate"
+        if first_fold_gate else "wealthsignal-cloud4-contract"
+    )
+    spark = SparkSession.builder.appName(application_name).getOrCreate()
     upstream_path = Path("/Volumes/workspace/gold/cloud3_reports/cloud3-gold-50-manager.json")
     upstream = json.loads(upstream_path.read_text(encoding="utf-8"))
     blockers = validate_upstream_report(upstream)
@@ -165,7 +188,9 @@ def run_cloud4() -> dict[str, Any]:
     mlflow.set_tracking_uri("databricks")
     mlflow.set_registry_uri("databricks")
     mlflow.set_experiment("/Shared/wealthsignal-protocol-v2-cloud4")
-    mlflow_run = mlflow.start_run(run_name="cloud4-50-manager-cap-500")
+    mlflow_run = mlflow.start_run(run_name=(
+        "cloud4-full-volume-first-fold-gate" if first_fold_gate else "cloud4-50-manager-cap-500"
+    ))
     mlflow.log_params({
         "candidate_cap": 500,
         "validation_start": VALIDATION_START,
@@ -175,6 +200,8 @@ def run_cloud4() -> dict[str, Any]:
         "ridge_grid": json.dumps(RIDGE_ALPHAS),
         "action_threshold_grid": json.dumps(ACTION_THRESHOLDS),
         "action_class_weight_modes": json.dumps(ACTION_CLASS_WEIGHT_MODES),
+        "first_fold_gate": first_fold_gate,
+        "spark_connect_model_limit_bytes": SPARK_CONNECT_MODEL_LIMIT_BYTES,
     })
 
     validation = gold.filter(F.col("target_report_period").between(
@@ -216,7 +243,8 @@ def run_cloud4() -> dict[str, Any]:
     table_names: dict[str, str] = {}
     fingerprints: dict[str, Any] = {}
     for name, frame in tables.items():
-        table_name = f"{OUTPUT_SCHEMA}.graph_50_cap_500_{name}"
+        gate_suffix = FIRST_FOLD_GATE_SUFFIX if first_fold_gate else ""
+        table_name = f"{OUTPUT_SCHEMA}.graph_50_cap_500_{name}{gate_suffix}"
         writer = frame.write.format("delta").mode("overwrite").option("overwriteSchema", "true")
         if name in {"chronological_edges", "forecast_examples"}:
             partition_column = "report_period" if name == "chronological_edges" else "target_report_period"
@@ -245,17 +273,48 @@ def run_cloud4() -> dict[str, Any]:
     scored_metrics = None
     hyperparameter_trials: list[dict[str, Any]] = []
     action_trials: list[dict[str, Any]] = []
-    folds = upstream["split_manifest"]["folds"]
-    checkpoint_table_names = {
-        FOLD_METRICS_TABLE, FOLD_ACTION_TABLE, FOLD_TRIAL_TABLE, FOLD_CHECKPOINT_TABLE,
-    }
+    all_folds = upstream["split_manifest"]["folds"]
+    folds = select_execution_folds(all_folds, first_fold_gate=first_fold_gate)
+    checkpoint_tables = execution_checkpoint_tables(first_fold_gate)
+    checkpoint_table_names = set(checkpoint_tables.values())
     existing_tables = {name for name in checkpoint_table_names if spark.catalog.tableExists(name)}
     completed_folds: set[str] = set()
-    if checkpoint_tables_ready(existing_tables):
+    if checkpoint_tables_ready(existing_tables, first_fold_gate=first_fold_gate):
         completed_folds = {
             str(row["fold_id"])
-            for row in spark.table(FOLD_CHECKPOINT_TABLE).select("fold_id").distinct().toLocalIterator()
+            for row in spark.table(checkpoint_tables["checkpoints"]).select("fold_id").distinct().toLocalIterator()
         }
+    model_fit_evidence: list[dict[str, Any]] = []
+
+    def fit_model(estimator: Any, dataset: Any, model_name: str) -> Any:
+        fit_started = time.monotonic()
+        try:
+            model = estimator.fit(dataset)
+        except Exception as error:
+            match = re.search(r"model size is about (\d+) bytes", str(error), re.IGNORECASE)
+            failure = {
+                "model_name": model_name,
+                "status": "failed",
+                "elapsed_seconds": round(time.monotonic() - fit_started, 3),
+                "response_size_bytes": int(match.group(1)) if match else None,
+                "spark_connect_limit_bytes": SPARK_CONNECT_MODEL_LIMIT_BYTES,
+                "error_type": type(error).__name__,
+            }
+            model_fit_evidence.append(failure)
+            mlflow.log_dict(
+                {"first_fold_gate": first_fold_gate, "model_fit_evidence": model_fit_evidence},
+                "cloud4-model-fit-failure.json",
+            )
+            raise
+        model_fit_evidence.append({
+            "model_name": model_name,
+            "status": "passed",
+            "elapsed_seconds": round(time.monotonic() - fit_started, 3),
+            "response_size_bytes": None,
+            "response_size_measurement": "Spark Connect exposes the size only when its limit is exceeded.",
+            "spark_connect_limit_bytes": SPARK_CONNECT_MODEL_LIMIT_BYTES,
+        })
+        return model
     for fold in folds:
         fold_id = fold["fold_id"]
         if fold_id in completed_folds:
@@ -328,7 +387,7 @@ def run_cloud4() -> dict[str, Any]:
                 featuresCol="features", labelCol="target_weight", predictionCol="score",
                 regParam=alpha, elasticNetParam=0.0, maxIter=50,
             )
-            prediction = estimator.fit(prepared_train).transform(prepared_evaluate).withColumn(
+            prediction = fit_model(estimator, prepared_train, f"ridge_{alpha}").transform(prepared_evaluate).withColumn(
                 "score", F.greatest(F.col("score"), F.lit(0.0))
             )
             score_frames.append((f"ridge_{alpha}", prediction))
@@ -336,7 +395,10 @@ def run_cloud4() -> dict[str, Any]:
             featuresCol="features", labelCol="target_weight", predictionCol="score",
             maxDepth=5, maxIter=40, seed=20260802,
         )
-        score_frames.append(("histogram_gradient_boosting", gbt.fit(prepared_train).transform(prepared_evaluate)))
+        score_frames.append((
+            "histogram_gradient_boosting",
+            fit_model(gbt, prepared_train, "histogram_gradient_boosting").transform(prepared_evaluate),
+        ))
 
         for action_name, label_column in (("new_position", "target_is_new"), ("exit", "target_is_exit")):
             counts = prepared_train.agg(
@@ -358,7 +420,9 @@ def run_cloud4() -> dict[str, Any]:
                     rawPredictionCol="action_raw_prediction", regParam=1.0, elasticNetParam=0.0,
                     maxIter=50, standardization=False,
                 )
-                probabilities = classifier.fit(weighted_train).transform(prepared_evaluate).withColumn(
+                probabilities = fit_model(
+                    classifier, weighted_train, f"logistic_{action_name}_{weight_mode}"
+                ).transform(prepared_evaluate).withColumn(
                     "positive_probability", vector_to_array("action_probability")[1]
                 )
                 threshold_expressions = []
@@ -399,24 +463,72 @@ def run_cloud4() -> dict[str, Any]:
 
         replace_fold = f"fold_id = '{fold_id}'"
         fold_metrics.write.format("delta").mode("overwrite").option("replaceWhere", replace_fold).saveAsTable(
-            FOLD_METRICS_TABLE
+            checkpoint_tables["metrics"]
         )
         fold_action_trials = [item for item in action_trials if item["fold_id"] == fold_id]
         spark.createDataFrame(fold_action_trials).write.format("delta").mode("overwrite").option(
             "replaceWhere", replace_fold
-        ).saveAsTable(FOLD_ACTION_TABLE)
+        ).saveAsTable(checkpoint_tables["actions"])
         spark.createDataFrame(fold_hyperparameter_trials).write.format("delta").mode("overwrite").option(
             "replaceWhere", replace_fold
-        ).saveAsTable(FOLD_TRIAL_TABLE)
+        ).saveAsTable(checkpoint_tables["trials"])
         spark.createDataFrame([{
             "fold_id": fold_id, "evaluation_target_quarter": quarter,
             "completed_at": datetime.now(timezone.utc).isoformat(),
-        }]).write.format("delta").mode("append").saveAsTable(FOLD_CHECKPOINT_TABLE)
+        }]).write.format("delta").mode("append").saveAsTable(checkpoint_tables["checkpoints"])
+
+    if first_fold_gate:
+        first_fold_id = str(folds[0]["fold_id"])
+        reload_counts = {
+            name: spark.table(table_name).filter(F.col("fold_id") == first_fold_id).count()
+            for name, table_name in checkpoint_tables.items()
+        }
+        blocking_reasons = [
+            f"empty_{name}_reload" for name, count in reload_counts.items() if count <= 0
+        ]
+        if reload_counts["checkpoints"] != 1:
+            blocking_reasons.append("checkpoint_marker_count_mismatch")
+        gate_report = {
+            "cloud_milestone": "Cloud 4 full-volume first-fold Free Edition gate",
+            "status": "passed" if not blocking_reasons else "failed",
+            "engineering_gate_only": True,
+            "environment_client": 4,
+            "source_table": GOLD_TABLE,
+            "full_training_volume": True,
+            "executed_fold_count": 1,
+            "fold_id": first_fold_id,
+            "evaluation_target_quarter": folds[0]["evaluation_target_quarter"],
+            "graph_tables": table_names,
+            "graph_fingerprints": fingerprints,
+            "graph_statistics": graph_statistics,
+            "checkpoint_tables": checkpoint_tables,
+            "checkpoint_reload_counts": reload_counts,
+            "reused_fold_count": int(first_fold_id in completed_folds),
+            "model_fit_evidence": model_fit_evidence,
+            "spark_connect_model_limit_bytes": SPARK_CONNECT_MODEL_LIMIT_BYTES,
+            "model_selection_performed": False,
+            "prospective_q2_2026_truth_accessed": False,
+            "blocking_reasons": blocking_reasons,
+            "mlflow_run_id": mlflow_run.info.run_id,
+            "elapsed_seconds": round(time.monotonic() - started, 3),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }
+        gate_report["manifest_sha256"] = canonical_sha256(gate_report)
+        mlflow.log_dict(gate_report, "cloud4-full-volume-first-fold-gate.json")
+        spark.sql("CREATE VOLUME IF NOT EXISTS workspace.gold.cloud4_reports")
+        Path(REPORT_ROOT, "cloud4-full-volume-first-fold-gate.json").write_text(
+            json.dumps(gate_report, indent=2, sort_keys=True, default=str), encoding="utf-8"
+        )
+        print(json.dumps(gate_report, sort_keys=True, default=str))
+        mlflow.end_run(status="FINISHED" if not blocking_reasons else "FAILED")
+        if blocking_reasons:
+            raise ValueError(f"Cloud 4 first-fold checkpoint reload failed: {blocking_reasons}")
+        return gate_report
 
     metrics_table = f"{OUTPUT_SCHEMA}.cloud4_baseline_metrics_50_cap_500"
-    scored_metrics = spark.table(FOLD_METRICS_TABLE)
-    hyperparameter_trials = [row.asDict() for row in spark.table(FOLD_TRIAL_TABLE).toLocalIterator()]
-    action_trials = [row.asDict() for row in spark.table(FOLD_ACTION_TABLE).toLocalIterator()]
+    scored_metrics = spark.table(checkpoint_tables["metrics"])
+    hyperparameter_trials = [row.asDict() for row in spark.table(checkpoint_tables["trials"]).toLocalIterator()]
+    action_trials = [row.asDict() for row in spark.table(checkpoint_tables["actions"]).toLocalIterator()]
     scored_metrics.write.format("delta").mode("overwrite").saveAsTable(metrics_table)
     action_metrics_table = f"{OUTPUT_SCHEMA}.cloud4_action_diagnostics_50_cap_500"
     spark.createDataFrame(action_trials).write.format("delta").mode("overwrite").saveAsTable(action_metrics_table)
@@ -517,7 +629,7 @@ def run_cloud4() -> dict[str, Any]:
         "hyperparameter_trials": hyperparameter_trials,
         "action_diagnostic_trials": action_trials,
         "restartability": {
-            "fold_checkpoint_table": FOLD_CHECKPOINT_TABLE,
+            "fold_checkpoint_table": checkpoint_tables["checkpoints"],
             "completed_fold_count": len(folds),
             "reused_fold_count": len(completed_folds),
         },
@@ -546,8 +658,13 @@ def run_cloud4() -> dict[str, Any]:
 
 
 def main() -> None:
-    argparse.ArgumentParser(description=__doc__).parse_args()
-    run_cloud4()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--first-fold-gate", action="store_true",
+        help="Run exactly the first frozen validation fold with isolated checkpoint tables.",
+    )
+    args = parser.parse_args()
+    run_cloud4(first_fold_gate=args.first_fold_gate)
 
 
 if __name__ == "__main__":

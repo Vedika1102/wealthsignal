@@ -6,6 +6,8 @@ from wealthsignal_pipeline.cloud4_contract import (
     select_smallest_best,
     validate_upstream_report,
     checkpoint_tables_ready,
+    execution_checkpoint_tables,
+    select_execution_folds,
     FOLD_ACTION_TABLE,
     FOLD_CHECKPOINT_TABLE,
     FOLD_METRICS_TABLE,
@@ -86,15 +88,48 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     assert "def scale_frame" in source
     assert "StandardScaler(" not in source
     assert "Pipeline(stages=preprocessing)" not in source
+    assert '"executed_fold_count": 1' in source
+    assert '"model_selection_performed": False' in source
+    assert '"prospective_q2_2026_truth_accessed": False' in source
+    assert "cloud4-model-fit-failure.json" in source
+    assert "checkpoint_reload_counts" in source
 
 
 def test_cloud4_submissions_use_environment_client_four() -> None:
     import json
     from pathlib import Path
 
-    for name in ("cloud4-submit.json", "cloud4-smoke-submit.json"):
+    for name in ("cloud4-submit.json", "cloud4-smoke-submit.json", "cloud4-first-fold-submit.json"):
         payload = json.loads(Path("databricks", name).read_text(encoding="utf-8"))
         assert payload["environments"][0]["spec"]["client"] == "4"
+
+
+def test_first_fold_submission_is_bounded_and_uses_the_full_volume_runner() -> None:
+    import json
+    from pathlib import Path
+
+    payload = json.loads(Path("databricks/cloud4-first-fold-submit.json").read_text(encoding="utf-8"))
+    task = payload["tasks"][0]["spark_python_task"]
+    assert task["python_file"].endswith("cloud4_contract.py")
+    assert task["parameters"] == ["--first-fold-gate"]
+    assert payload["timeout_seconds"] == 7200
+
+
+def test_first_fold_gate_selects_only_the_first_frozen_fold() -> None:
+    folds = [{"fold_id": "fold-1"}, {"fold_id": "fold-2"}]
+    assert select_execution_folds(folds, first_fold_gate=True) == [folds[0]]
+    assert select_execution_folds(folds, first_fold_gate=False) == folds
+    with pytest.raises(ValueError, match="at least one validation fold"):
+        select_execution_folds([], first_fold_gate=True)
+
+
+def test_first_fold_gate_uses_isolated_restart_tables() -> None:
+    official = execution_checkpoint_tables()
+    gate = execution_checkpoint_tables(first_fold_gate=True)
+    assert set(official.values()).isdisjoint(set(gate.values()))
+    assert all(name.endswith("_first_fold_gate") for name in gate.values())
+    assert checkpoint_tables_ready(set(gate.values()), first_fold_gate=True)
+    assert not checkpoint_tables_ready(set(official.values()), first_fold_gate=True)
 
 
 def test_restart_requires_the_complete_checkpoint_set() -> None:

@@ -24,6 +24,8 @@ The [candidate-universe sensitivity study](docs/WealthSignal_Candidate_Universe_
 
 [Cloud Execution Plan](docs/WealthSignal_Cloud_Execution_Plan.md) moves Protocol V2 PySpark/Delta construction to Databricks and reserves RunPod for checksum-frozen NAVIS GPU experiments after graph reconciliation.
 
+[AWS and Databricks Architecture Execution Plan](docs/WealthSignal_AWS_Databricks_Architecture_Plan.md) defines the target S3, Unity Catalog, Databricks, ECS, RDS, Step Functions, security, CI/CD, observability, cost, and phased implementation contracts. It does not authorize deployment or spending.
+
 This repository starts with the `13F ingestion foundation`, because a credible platform depends on:
 
 1. reliable parsing of real filings,
@@ -125,7 +127,7 @@ Implemented:
 Next:
 
 - use persistence as the V1 reference forecast without presenting it as a learned-model breakthrough
-- run Cloud 4 baselines on the frozen cap-500 Gold table and build the framework-independent graph contract, preserving the prospective Q2 2026 guard
+- run only the approved full-volume, first-fold Cloud 4 gate on the frozen cap-500 Gold table; resume nine folds and graph reconciliation only after its isolated checkpoint reload passes
 
 ### Legacy materiality path
 

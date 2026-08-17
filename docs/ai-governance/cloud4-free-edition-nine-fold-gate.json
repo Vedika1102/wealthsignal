@@ -61,5 +61,5 @@
     "aws_resources_created": false,
     "additional_complete_run_authorized": false
   },
-  "exact_next_action": "Add and run one bounded full-volume, first-fold-only environment-client-4 compatibility job at commit 77d86c01a5a86c899c568ebf5f0132059a9839d5; resume the nine-fold job only if that gate fits the Spark Connect limit and writes one complete restart checkpoint."
+  "exact_next_action": "After review and explicit cloud-run approval, submit databricks/cloud4-first-fold-submit.json from the committed agent/cloud3-gold branch; resume the nine-fold job only if that gate fits the Spark Connect limit and reloads one complete restart checkpoint."
 }
