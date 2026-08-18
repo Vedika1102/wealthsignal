@@ -5,7 +5,7 @@
 
 ## Decision
 
-Databricks Free Edition remains the default for Cloud 4. A full-volume, first-fold-only gate must pass before restarting nine folds. If it proves a fixed serverless limitation, compare a contract-preserving rewrite with bounded CPU-only classic compute before requesting paid-resource approval.
+Databricks Free Edition remains the default for the Cloud 4 portfolio demonstration. The next run uses the deterministic `portfolio-demo` sample across all nine frozen folds; the retained full-volume failures are sufficient capacity evidence and do not need to be reproduced. If the sample cannot complete on serverless compute, compare a contract-preserving rewrite with one bounded CPU-only job-compute run before requesting paid-resource approval. The complete portfolio exercise has a USD 75 stop limit.
 
 ## Consequences
 

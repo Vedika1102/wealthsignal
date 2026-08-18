@@ -187,7 +187,7 @@ The rule-based materiality score may remain as a clearly named observed-change s
 7. Long-term security identity, corporate actions, and historical index-membership policies still need explicit treatment.
 8. PySpark and isolated test dependencies are declared; a graph-learning framework remains intentionally undeclared until the graph/NAVIS milestone.
 9. The attempted local 50-manager build exceeded 28 GB private memory on a 15.85 GB RAM machine without finalizing. The cloud path in `docs/WealthSignal_Cloud_Execution_Plan.md` replaces further unbounded local builds.
-10. Databricks CLI is OAuth-connected and serverless Cloud 1-3 jobs have executed successfully. The bounded environment-client-4 smoke passed, but four full-volume Cloud 4 attempts failed before a first-fold checkpoint due graph schema and fixed Spark Connect model-response limits. The latest remediations are committed through `77d86c0`; the required next gate is full-volume and first-fold-only. Do not restart all nine folds unchanged. Paid classic compute remains unauthorized pending that evidence. RunPod remains owner-deferred.
+10. Databricks CLI is OAuth-connected and serverless Cloud 1-3 jobs have executed successfully. The bounded environment-client-4 smoke passed, but four full-volume Cloud 4 attempts failed before a first-fold checkpoint due graph schema and fixed Spark Connect model-response limits. The portfolio path now uses a deterministic sample across all nine folds, with isolated evidence and no full-volume performance claim. Do not restart the unchanged full-volume job. Paid classic compute remains unauthorized. RunPod remains owner-deferred.
 
 ### Required implementation order
 
@@ -196,7 +196,7 @@ Follow this dependency order from the actual stopping point:
 1. Review and checkpoint the Protocol V2 design without downloading data or reopening the consumed V1 test. Completed in commits `fe78dc7` and `0205710`.
 2. Acquire the declared development packages and materialize and checksum the training-only manager cohort. Completed in commit `ce1171e`.
 3. Complete Cloud 0/1: completed; all 30 source checksums and the cohort checksum were verified in Databricks.
-4. Complete architecture milestones A0/A1: reconcile stale status and prove one full-volume first fold using the latest Cloud 4 remediations. Resume nine folds only if one atomic fold checkpoint writes and reloads. Follow `docs/WealthSignal_AWS_Databricks_Architecture_Plan.md` for any AWS or Databricks platform expansion.
+4. Run the production-shaped, sample-scale Cloud 4 portfolio profile across all nine frozen folds. Require isolated Delta tables, MLflow lineage, graph/tabular reconciliation, and reloadable checkpoints. Treat its metrics as engineering-demo evidence only. The full-volume first-fold artifact remains available for capacity diagnosis but is not a portfolio prerequisite. Follow `docs/WealthSignal_AWS_Databricks_Architecture_Plan.md` for any AWS or Databricks platform expansion.
 5. Freeze the selected V2 candidate/model configuration before the prospective 2026 Q2 source becomes available.
 6. Create a framework-independent temporal bipartite graph bundle and prove graph persistence/EMA reconcile with tabular metrics.
 7. Complete Cloud 5/6: reproduce NAVIS on RunPod against a frozen upstream revision and compare it fairly with persistence and EMA.
@@ -1195,7 +1195,7 @@ Return manager and security identifiers, predicted weight/rank, source cutoff, t
 
 ### Milestone 3 — Current-Data Protocol V2
 
-Status: design revision 2, development packages, and ordered cohort are frozen; Cloud 1/2 passed; official Cloud 3 Gold construction and nested reconciliation passed. Validation-only candidate selection chose cap 500, producing 5,154,259 examples across 28 target quarters with zero leakage violations. The bounded client-4 smoke passed, but four later full-volume Cloud 4 attempts failed before the first checkpoint because of graph schema and Spark Connect model-response limits. Remediations are committed through `77d86c0`. The next authorized engineering milestone is a full-volume, first-fold-only gate; do not restart all nine folds unchanged.
+Status: design revision 2, development packages, and ordered cohort are frozen; Cloud 1/2 passed; official Cloud 3 Gold construction and nested reconciliation passed. Validation-only candidate selection chose cap 500, producing 5,154,259 examples across 28 target quarters with zero leakage violations. The bounded client-4 smoke passed, but four later full-volume Cloud 4 attempts failed before the first checkpoint because of graph schema and Spark Connect model-response limits. The next engineering milestone is the deterministic `portfolio-demo` sample across all nine folds; do not restart the unchanged full-volume job.
 
 ```text
 Design Protocol V2 before downloading or evaluating new data. Inventory the latest complete official SEC 13F bulk packages available at execution time, then declare a larger manager cohort, historical coverage, security-universe policy, source cutoff, validation windows, and a brand-new untouched final or prospective window.
@@ -1284,5 +1284,5 @@ Copy this into a new Codex task opened in the WealthSignal repository:
 ```text
 Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, both retained Cloud 4 gate reports, cloud4_contract.py, and its tests completely. Execute only architecture milestone A0 and the local implementation portion of A1.
 
-Reconcile stale status text, then implement and test the environment-client-4 full-volume, first-fold-only gate with isolated graph and checkpoint tables. Do not submit the gate, restart nine folds, create AWS resources, access prospective truth, or incur cost without explicit approval. Finish with local validation and the exact reviewed Databricks command for the separately approved bounded run.
+Implement and test the environment-client-4 `portfolio-demo` profile across all nine frozen folds with deterministic temporal/action sampling and isolated graph and checkpoint tables. Label all sampled metrics as engineering-demo evidence. Do not submit the job, create AWS resources, access prospective truth, or incur cost without explicit approval. Finish with local validation and the exact reviewed Databricks command for the separately approved bounded run.
 ```

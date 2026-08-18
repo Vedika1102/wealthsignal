@@ -2,7 +2,7 @@
 
 ## Purpose and authority
 
-This document is the implementation roadmap for evolving WealthSignal from a verified research repository into an industry-style, cost-controlled AWS and Databricks system. It complements the forecasting protocol and cloud compute plan; it does not change the frozen Protocol V2 cohort, data, folds, metrics, promotion gate, or prospective-test rules.
+This document is the implementation roadmap for evolving WealthSignal from a verified research repository into an industry-style, cost-controlled AWS and Databricks **portfolio demonstration**. The deployed system is production-shaped but sample-scale: it proves the service boundaries, security, infrastructure as code, lakehouse stages, lineage, orchestration, and cleanup without claiming production operations or full-volume model performance. It complements the forecasting protocol and cloud compute plan; it does not change the frozen Protocol V2 cohort, data, folds, metrics, promotion gate, or prospective-test rules.
 
 Use one milestone at a time. Codex must verify prerequisites from code and measured artifacts, implement only the selected milestone, run its checks, and commit it before continuing. No milestone authorizes paid resources, account creation, deployment, prospective-data access, or external publication unless the project owner explicitly grants that authority.
 
@@ -12,8 +12,16 @@ Use one milestone at a time. Codex must verify prerequisites from code and measu
 - The accepted Gold table contains 5,154,259 examples across 28 target quarters with zero recorded leakage or nested-cap reconciliation violations.
 - The 20,000-row Databricks Free Edition environment-client-4 Spark ML smoke passed in run `818005580828490`.
 - Four full-volume Cloud 4 attempts failed before the first fold checkpoint. The current evidence is `docs/ai-governance/cloud4-free-edition-nine-fold-gate.json`.
-- The latest failure was a fixed Spark Connect model-response ceiling, not a fair-use quota or out-of-memory signal. Do not restart all nine folds until a full-volume, first-fold-only gate passes.
+- The full-volume Free Edition path is retained as capacity evidence; it is no longer a prerequisite for the sample-scale portfolio demonstration.
 - Prospective 2026 Q2 truth remains unopened. No paid AWS, paid Databricks, RunPod, or other billable resource is authorized.
+
+## Portfolio execution profile
+
+The default demonstration profile is `portfolio-demo`. It deterministically ranks rows within `(manager, target quarter, action class)`, retains at most 50 rows per stratum, preserves every frozen validation fold, and runs the same graph, preprocessing, baseline, diagnostic, Delta checkpoint, reconciliation, and MLflow paths as Cloud 4. Its tables and reports are isolated with a `portfolio_demo` suffix.
+
+This sample is suitable for demonstrating engineering execution, lineage, temporal validation, and restartability. It is not suitable for selecting or promoting a financial model, reporting full-volume performance, or claiming production scale. The accepted 5.15-million-row Gold manifest remains the scale and data-quality evidence; sampled Cloud 4 metrics are demonstration evidence only.
+
+Cost boundary for the complete portfolio exercise: target USD 25-50 and stop at USD 75. Use job-scoped or serverless compute, a two-hour job timeout, immediate shutdown after completion, and no NAT Gateway, always-on database, streaming service, or idle interactive cluster.
 
 ## Architecture decisions
 
@@ -63,13 +71,13 @@ flowchart LR
 
 ## Environment strategy
 
-Start with `local` and `dev`. Add `prod` only after Cloud 4 acceptance and a real serving requirement.
+Use only `local` and an ephemeral `demo` environment. A real `prod` environment is an architectural extension, not part of this portfolio implementation.
 
 | Environment | Purpose | Data | Compute |
 |---|---|---|---|
 | Local | Unit tests, Docker Compose, fixtures, API development | Synthetic or small ignored files | Developer machine |
-| Dev | Reproducible cloud integration and non-prospective research | Immutable V2 development artifacts | Databricks plus bounded AWS services |
-| Prod | Approved forecast serving only | Promoted artifacts and operational records | Explicitly approved managed services |
+| Demo | One reproducible, non-prospective integration run | Deterministic sample plus immutable manifests | Ephemeral Databricks and bounded AWS services |
+| Production design only | Documented scale-up path, not deployed | Full governed datasets | Requires a real serving requirement and separate approval |
 
 Never copy production secrets into local files. Never use prospective truth to validate infrastructure.
 
@@ -233,23 +241,23 @@ Acceptance: documents agree with measured Cloud 4 evidence; no resource was crea
 
 Local checkpoint (2026-08-17): the responsibility and status documents are reconciled, and ADRs for storage, orchestration, compute escalation, and serving are recorded under `docs/architecture/`. Read-only account evidence is recorded in `docs/architecture/dev-platform-baseline.md`. AWS account use, final dev region, budget ceiling, and alert recipients still require owner confirmation before A3; no resource was created.
 
-### A1 - Prove the Cloud 4 full-volume first-fold gate
+### A1 - Execute the sample-scale Cloud 4 portfolio gate
 
-Scope: Databricks Free Edition engineering evidence only.
+Scope: Databricks engineering evidence only, using the deterministic portfolio sample.
 
-1. Add a first-fold-only submission using environment client 4 and commit `77d86c0` or a reviewed descendant.
-2. Use the complete permitted training volume and exactly the first validation fold.
-3. Exercise graph preparation, preprocessing, required baseline fits, action diagnostics, metrics, and one atomic restart checkpoint.
-4. Record all model-response sizes, runtime, table/checkpoint identities, and the exact failure or success point.
-5. Do not select final hyperparameters or access prospective truth.
+1. Submit `databricks/cloud4-portfolio-demo-submit.json` from a reviewed remote commit.
+2. Use the deterministic per-manager, per-quarter, per-action sample and all nine frozen validation folds.
+3. Exercise graph preparation, preprocessing, required baseline fits, action diagnostics, metrics, reconciliation, and atomic restart checkpoints.
+4. Record runtime, sampled row counts, MLflow run ID, table/checkpoint identities, and the exact failure or success point.
+5. Do not promote a model, present sampled metrics as full-volume research results, or access prospective truth.
 
-Acceptance: one complete full-volume fold reloads from its checkpoint with complete lineage. If a required estimator still exceeds the Spark Connect ceiling, mark Free Edition blocked and prepare a paid-compute decision; do not retry the nine-fold job unchanged.
+Acceptance: all nine sampled folds reload from their checkpoints with complete lineage and graph/tabular reconciliation. If the sample cannot complete on Free Edition, prepare one bounded paid-compute decision; do not return to the unchanged full-volume job.
 
-Local checkpoint (2026-08-17): `databricks/cloud4-first-fold-submit.json` invokes the full runner with `--first-fold-gate`, environment client 4, the complete permitted training history, exactly the first frozen validation fold, isolated graph/checkpoint tables, estimator-fit evidence, and checkpoint reload validation. Cloud submission remains separately approval-gated.
+Local checkpoint (2026-08-17): `databricks/cloud4-portfolio-demo-submit.json` invokes the shared runner with `--sample-profile portfolio-demo`, environment client 4, all frozen validation folds, deterministic temporal/action strata, isolated graph/checkpoint tables, MLflow evidence, and checkpoint reload behavior. Cloud submission remains separately approval-gated. The earlier full-volume first-fold artifact is retained for capacity diagnosis.
 
 ### A2 - Choose the compute path
 
-If A1 passes, resume the restartable nine-fold job on Free Edition. If A1 proves a fixed serverless limitation, compare:
+If A1 passes, preserve its evidence and proceed to the AWS/S3 integration demonstration; a full-volume rerun is optional and outside the portfolio scope. If A1 exposes a serverless limitation, compare:
 
 - a serverless-compatible algorithmic rewrite that preserves the frozen model contract;
 - a bounded AWS-connected Databricks trial;
@@ -339,9 +347,9 @@ For every architecture milestone, Codex must:
 ## Exact prompt for the next milestone
 
 ```text
-Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, docs/ai-governance/cloud4-free-edition-nine-fold-gate.json, cloud4_contract.py, and their tests completely. Execute only milestones A0 and the local implementation portion of A1.
+Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, docs/ai-governance/cloud4-free-edition-nine-fold-gate.json, cloud4_contract.py, and their tests completely. Continue only the portfolio-scale A1 milestone.
 
-First reconcile every authoritative status document with the four retained full-volume Cloud 4 failures. Then implement a committed environment-client-4 full-volume, first-fold-only gate that exercises graph preparation, preprocessing, required model fits, action diagnostics, metrics, and one atomic restart checkpoint. Add focused tests and a submission file, but do not submit any cloud job, create AWS resources, access prospective truth, restart all nine folds, or incur cost without explicit approval. Finish with validation evidence and the exact reviewed command that would run the bounded gate after approval.
+Verify the deterministic `portfolio-demo` profile, all-nine-fold selection, isolated Delta tables, MLflow evidence, graph/tabular reconciliation, and restart checkpoints. Validate the submission JSON and full local test suite. Do not submit a cloud job, create AWS resources, access prospective truth, or incur cost without explicit approval. Finish with the exact reviewed command for the separately approved sample-scale run and its USD 75 stop limit.
 ```
 
 ## Definition of an industry-standard result

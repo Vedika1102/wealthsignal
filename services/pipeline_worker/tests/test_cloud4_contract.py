@@ -7,11 +7,14 @@ from wealthsignal_pipeline.cloud4_contract import (
     validate_upstream_report,
     checkpoint_tables_ready,
     execution_checkpoint_tables,
+    execution_suffix,
     select_execution_folds,
     FOLD_ACTION_TABLE,
     FOLD_CHECKPOINT_TABLE,
     FOLD_METRICS_TABLE,
     FOLD_TRIAL_TABLE,
+    PORTFOLIO_DEMO_PROFILE,
+    PORTFOLIO_DEMO_SUFFIX,
 )
 
 
@@ -93,6 +96,9 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     assert '"prospective_q2_2026_truth_accessed": False' in source
     assert "cloud4-model-fit-failure.json" in source
     assert "checkpoint_reload_counts" in source
+    assert '"engineering_demonstration_only": bool(sample_profile)' in source
+    assert '"model_performance_claim_authorized": not bool(sample_profile)' in source
+    assert '"sample_statistics": sample_statistics' in source
 
 
 def test_cloud4_submissions_use_environment_client_four() -> None:
@@ -136,3 +142,33 @@ def test_restart_requires_the_complete_checkpoint_set() -> None:
     tables = {FOLD_METRICS_TABLE, FOLD_ACTION_TABLE, FOLD_TRIAL_TABLE, FOLD_CHECKPOINT_TABLE}
     assert checkpoint_tables_ready(tables)
     assert not checkpoint_tables_ready(tables - {FOLD_ACTION_TABLE})
+
+
+def test_portfolio_demo_uses_isolated_tables_and_all_folds() -> None:
+    official = execution_checkpoint_tables()
+    demo = execution_checkpoint_tables(sample_profile=PORTFOLIO_DEMO_PROFILE)
+    assert set(official.values()).isdisjoint(set(demo.values()))
+    assert all(name.endswith(PORTFOLIO_DEMO_SUFFIX) for name in demo.values())
+    assert checkpoint_tables_ready(set(demo.values()), sample_profile=PORTFOLIO_DEMO_PROFILE)
+    folds = [{"fold_id": f"fold-{index}"} for index in range(1, 10)]
+    assert select_execution_folds(folds, first_fold_gate=False) == folds
+
+
+def test_cloud4_execution_profiles_are_validated_and_mutually_exclusive() -> None:
+    assert execution_suffix(sample_profile=PORTFOLIO_DEMO_PROFILE) == PORTFOLIO_DEMO_SUFFIX
+    with pytest.raises(ValueError, match="cannot be combined"):
+        execution_suffix(first_fold_gate=True, sample_profile=PORTFOLIO_DEMO_PROFILE)
+    with pytest.raises(ValueError, match="Unknown Cloud 4 sample profile"):
+        execution_suffix(sample_profile="random-sample")
+
+
+def test_portfolio_demo_submission_runs_all_folds_on_sample_profile() -> None:
+    import json
+    from pathlib import Path
+
+    payload = json.loads(Path("databricks/cloud4-portfolio-demo-submit.json").read_text(encoding="utf-8"))
+    task = payload["tasks"][0]["spark_python_task"]
+    assert task["python_file"].endswith("cloud4_contract.py")
+    assert task["parameters"] == ["--sample-profile", "portfolio-demo"]
+    assert payload["timeout_seconds"] == 7200
+    assert payload["environments"][0]["spec"]["client"] == "4"

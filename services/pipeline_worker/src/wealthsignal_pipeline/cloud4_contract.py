@@ -39,6 +39,9 @@ FOLD_ACTION_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_action_diagnostics_50_cap_500"
 FOLD_TRIAL_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_hyperparameter_trials_50_cap_500"
 FOLD_CHECKPOINT_TABLE = f"{OUTPUT_SCHEMA}.cloud4_fold_checkpoints_50_cap_500"
 FIRST_FOLD_GATE_SUFFIX = "_first_fold_gate"
+PORTFOLIO_DEMO_PROFILE = "portfolio-demo"
+PORTFOLIO_DEMO_SUFFIX = "_portfolio_demo"
+PORTFOLIO_DEMO_ROWS_PER_STRATUM = 50
 SPARK_CONNECT_MODEL_LIMIT_BYTES = 268_435_456
 
 
@@ -84,8 +87,20 @@ def binary_metrics(true_positive: int, false_positive: int, false_negative: int)
     return {"precision": precision, "recall": recall, "f1": f1}
 
 
-def execution_checkpoint_tables(first_fold_gate: bool = False) -> dict[str, str]:
-    suffix = FIRST_FOLD_GATE_SUFFIX if first_fold_gate else ""
+def execution_suffix(*, first_fold_gate: bool = False, sample_profile: str | None = None) -> str:
+    if first_fold_gate and sample_profile:
+        raise ValueError("A first-fold gate and sample profile cannot be combined")
+    if sample_profile not in (None, PORTFOLIO_DEMO_PROFILE):
+        raise ValueError(f"Unknown Cloud 4 sample profile: {sample_profile}")
+    if first_fold_gate:
+        return FIRST_FOLD_GATE_SUFFIX
+    return PORTFOLIO_DEMO_SUFFIX if sample_profile == PORTFOLIO_DEMO_PROFILE else ""
+
+
+def execution_checkpoint_tables(
+    first_fold_gate: bool = False, *, sample_profile: str | None = None,
+) -> dict[str, str]:
+    suffix = execution_suffix(first_fold_gate=first_fold_gate, sample_profile=sample_profile)
     return {
         "metrics": f"{FOLD_METRICS_TABLE}{suffix}",
         "actions": f"{FOLD_ACTION_TABLE}{suffix}",
@@ -94,8 +109,10 @@ def execution_checkpoint_tables(first_fold_gate: bool = False) -> dict[str, str]
     }
 
 
-def checkpoint_tables_ready(table_names: set[str], *, first_fold_gate: bool = False) -> bool:
-    required = set(execution_checkpoint_tables(first_fold_gate).values())
+def checkpoint_tables_ready(
+    table_names: set[str], *, first_fold_gate: bool = False, sample_profile: str | None = None,
+) -> bool:
+    required = set(execution_checkpoint_tables(first_fold_gate, sample_profile=sample_profile).values())
     return required.issubset(table_names)
 
 
@@ -103,6 +120,21 @@ def select_execution_folds(folds: list[dict[str, Any]], *, first_fold_gate: bool
     if not folds:
         raise ValueError("Cloud 4 requires at least one validation fold")
     return folds[:1] if first_fold_gate else folds
+
+
+def apply_sample_profile(frame: Any, *, sample_profile: str | None, F: Any, Window: Any) -> Any:
+    """Apply a deterministic, temporally stratified engineering-demo sample."""
+    if sample_profile is None:
+        return frame
+    execution_suffix(sample_profile=sample_profile)  # validate before building a Spark plan
+    stratum = Window.partitionBy("cik", "target_report_period", "target_action").orderBy(
+        F.xxhash64("example_id"), F.asc("example_id")
+    )
+    return (
+        frame.withColumn("_portfolio_demo_rank", F.row_number().over(stratum))
+        .filter(F.col("_portfolio_demo_rank") <= PORTFOLIO_DEMO_ROWS_PER_STRATUM)
+        .drop("_portfolio_demo_rank")
+    )
 
 
 def _metric_rows(frame, score_column: str, model_name: str, fold_id: str, F, Window):
@@ -159,7 +191,7 @@ def _table_fingerprint(frame, columns: list[str], F) -> dict[str, Any]:
     return {"row_count": int(row["row_count"]), "distributed_xxhash64_sum": str(row["hash_sum"])}
 
 
-def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
+def run_cloud4(*, first_fold_gate: bool = False, sample_profile: str | None = None) -> dict[str, Any]:
     import mlflow
     from pyspark.ml.classification import LogisticRegression
     from pyspark.ml.feature import VectorAssembler
@@ -167,19 +199,34 @@ def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
     from pyspark.ml.regression import GBTRegressor, LinearRegression
     from pyspark.sql import SparkSession, functions as F, Window
 
+    suffix = execution_suffix(first_fold_gate=first_fold_gate, sample_profile=sample_profile)
     started = time.monotonic()
     application_name = (
         "wealthsignal-cloud4-full-volume-first-fold-gate"
-        if first_fold_gate else "wealthsignal-cloud4-contract"
+        if first_fold_gate else (
+            "wealthsignal-cloud4-portfolio-demo" if sample_profile else "wealthsignal-cloud4-contract"
+        )
     )
     spark = SparkSession.builder.appName(application_name).getOrCreate()
     upstream_path = Path("/Volumes/workspace/gold/cloud3_reports/cloud3-gold-50-manager.json")
     upstream = json.loads(upstream_path.read_text(encoding="utf-8"))
     blockers = validate_upstream_report(upstream)
-    gold = spark.table(GOLD_TABLE)
+    source_gold = spark.table(GOLD_TABLE)
+    gold = apply_sample_profile(source_gold, sample_profile=sample_profile, F=F, Window=Window)
     prospective_rows = gold.filter(F.col("target_report_period") >= F.lit(PROSPECTIVE_QUARTER).cast("date")).count()
     if prospective_rows:
         blockers.append("prospective_rows_present")
+    sample_statistics = None
+    if sample_profile:
+        sample_row = gold.agg(
+            F.count("*").alias("sampled_rows"),
+            F.countDistinct("cik").alias("sampled_managers"),
+            F.countDistinct("target_report_period").alias("sampled_target_quarters"),
+            F.countDistinct("cik", "target_report_period", "target_action").alias("sampled_strata"),
+        ).first().asDict()
+        sample_statistics = {name: int(value) for name, value in sample_row.items()}
+        if sample_statistics["sampled_rows"] <= 0:
+            blockers.append("portfolio_demo_sample_empty")
     if blockers:
         raise ValueError(f"Cloud 4 prerequisite gate failed: {blockers}")
 
@@ -189,7 +236,9 @@ def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
     mlflow.set_registry_uri("databricks")
     mlflow.set_experiment("/Shared/wealthsignal-protocol-v2-cloud4")
     mlflow_run = mlflow.start_run(run_name=(
-        "cloud4-full-volume-first-fold-gate" if first_fold_gate else "cloud4-50-manager-cap-500"
+        "cloud4-full-volume-first-fold-gate" if first_fold_gate else (
+            "cloud4-portfolio-demo" if sample_profile else "cloud4-50-manager-cap-500"
+        )
     ))
     mlflow.log_params({
         "candidate_cap": 500,
@@ -201,6 +250,10 @@ def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
         "action_threshold_grid": json.dumps(ACTION_THRESHOLDS),
         "action_class_weight_modes": json.dumps(ACTION_CLASS_WEIGHT_MODES),
         "first_fold_gate": first_fold_gate,
+        "sample_profile": sample_profile or "full-volume",
+        "sample_rows_per_manager_quarter_action": (
+            PORTFOLIO_DEMO_ROWS_PER_STRATUM if sample_profile else 0
+        ),
         "spark_connect_model_limit_bytes": SPARK_CONNECT_MODEL_LIMIT_BYTES,
     })
 
@@ -243,8 +296,7 @@ def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
     table_names: dict[str, str] = {}
     fingerprints: dict[str, Any] = {}
     for name, frame in tables.items():
-        gate_suffix = FIRST_FOLD_GATE_SUFFIX if first_fold_gate else ""
-        table_name = f"{OUTPUT_SCHEMA}.graph_50_cap_500_{name}{gate_suffix}"
+        table_name = f"{OUTPUT_SCHEMA}.graph_50_cap_500_{name}{suffix}"
         writer = frame.write.format("delta").mode("overwrite").option("overwriteSchema", "true")
         if name in {"chronological_edges", "forecast_examples"}:
             partition_column = "report_period" if name == "chronological_edges" else "target_report_period"
@@ -275,11 +327,13 @@ def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
     action_trials: list[dict[str, Any]] = []
     all_folds = upstream["split_manifest"]["folds"]
     folds = select_execution_folds(all_folds, first_fold_gate=first_fold_gate)
-    checkpoint_tables = execution_checkpoint_tables(first_fold_gate)
+    checkpoint_tables = execution_checkpoint_tables(first_fold_gate, sample_profile=sample_profile)
     checkpoint_table_names = set(checkpoint_tables.values())
     existing_tables = {name for name in checkpoint_table_names if spark.catalog.tableExists(name)}
     completed_folds: set[str] = set()
-    if checkpoint_tables_ready(existing_tables, first_fold_gate=first_fold_gate):
+    if checkpoint_tables_ready(
+        existing_tables, first_fold_gate=first_fold_gate, sample_profile=sample_profile,
+    ):
         completed_folds = {
             str(row["fold_id"])
             for row in spark.table(checkpoint_tables["checkpoints"]).select("fold_id").distinct().toLocalIterator()
@@ -302,7 +356,11 @@ def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
             }
             model_fit_evidence.append(failure)
             mlflow.log_dict(
-                {"first_fold_gate": first_fold_gate, "model_fit_evidence": model_fit_evidence},
+                {
+                    "first_fold_gate": first_fold_gate,
+                    "sample_profile": sample_profile,
+                    "model_fit_evidence": model_fit_evidence,
+                },
                 "cloud4-model-fit-failure.json",
             )
             raise
@@ -525,12 +583,12 @@ def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
             raise ValueError(f"Cloud 4 first-fold checkpoint reload failed: {blocking_reasons}")
         return gate_report
 
-    metrics_table = f"{OUTPUT_SCHEMA}.cloud4_baseline_metrics_50_cap_500"
+    metrics_table = f"{OUTPUT_SCHEMA}.cloud4_baseline_metrics_50_cap_500{suffix}"
     scored_metrics = spark.table(checkpoint_tables["metrics"])
     hyperparameter_trials = [row.asDict() for row in spark.table(checkpoint_tables["trials"]).toLocalIterator()]
     action_trials = [row.asDict() for row in spark.table(checkpoint_tables["actions"]).toLocalIterator()]
     scored_metrics.write.format("delta").mode("overwrite").saveAsTable(metrics_table)
-    action_metrics_table = f"{OUTPUT_SCHEMA}.cloud4_action_diagnostics_50_cap_500"
+    action_metrics_table = f"{OUTPUT_SCHEMA}.cloud4_action_diagnostics_50_cap_500{suffix}"
     spark.createDataFrame(action_trials).write.format("delta").mode("overwrite").saveAsTable(action_metrics_table)
 
     # Recompute persistence and every EMA from the portable examples table and
@@ -612,8 +670,20 @@ def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
             "mean_validation_f1": best_f1, "selection_metric": "mean_validation_f1",
         }
     report = {
-        "cloud_milestone": "Cloud 4 baselines and graph contract",
+        "cloud_milestone": (
+            "Cloud 4 portfolio demonstration" if sample_profile else "Cloud 4 baselines and graph contract"
+        ),
         "status": "passed",
+        "engineering_demonstration_only": bool(sample_profile),
+        "model_performance_claim_authorized": not bool(sample_profile),
+        "sample_profile": sample_profile,
+        "sampling_contract": ({
+            "method": "deterministic_stratified_hash_rank",
+            "strata": ["cik", "target_report_period", "target_action"],
+            "maximum_rows_per_stratum": PORTFOLIO_DEMO_ROWS_PER_STRATUM,
+            "preserves_all_frozen_validation_folds": True,
+        } if sample_profile else None),
+        "sample_statistics": sample_statistics,
         "source_table": GOLD_TABLE,
         "selected_candidate_cap": 500,
         "upstream_manifest_sha256": upstream["manifest_sha256"],
@@ -643,13 +713,14 @@ def run_cloud4(*, first_fold_gate: bool = False) -> dict[str, Any]:
         "completed_at": datetime.now(timezone.utc).isoformat(),
     }
     report["manifest_sha256"] = canonical_sha256(report)
-    mlflow.log_dict(report, "cloud4-50-manager-report.json")
+    report_filename = "cloud4-portfolio-demo.json" if sample_profile else "cloud4-50-manager.json"
+    mlflow.log_dict(report, report_filename)
     mlflow.log_metrics({
         "graph_reconciliation_models": float(len(reconciliation)),
         "graph_reconciliation_failures": float(sum(not value["passed"] for value in reconciliation.values())),
     })
     spark.sql("CREATE VOLUME IF NOT EXISTS workspace.gold.cloud4_reports")
-    Path(REPORT_ROOT, "cloud4-50-manager.json").write_text(
+    Path(REPORT_ROOT, report_filename).write_text(
         json.dumps(report, indent=2, sort_keys=True, default=str), encoding="utf-8"
     )
     print(json.dumps(report, sort_keys=True, default=str))
@@ -663,8 +734,12 @@ def main() -> None:
         "--first-fold-gate", action="store_true",
         help="Run exactly the first frozen validation fold with isolated checkpoint tables.",
     )
+    parser.add_argument(
+        "--sample-profile", choices=[PORTFOLIO_DEMO_PROFILE],
+        help="Run every frozen fold on an isolated deterministic engineering-demo sample.",
+    )
     args = parser.parse_args()
-    run_cloud4(first_fold_gate=args.first_fold_gate)
+    run_cloud4(first_fold_gate=args.first_fold_gate, sample_profile=args.sample_profile)
 
 
 if __name__ == "__main__":
