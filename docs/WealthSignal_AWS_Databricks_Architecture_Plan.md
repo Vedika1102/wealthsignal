@@ -13,6 +13,7 @@ Use one milestone at a time. Codex must verify prerequisites from code and measu
 - The 20,000-row Databricks Free Edition environment-client-4 Spark ML smoke passed in run `818005580828490`.
 - Four full-volume Cloud 4 attempts failed before the first fold checkpoint. The current evidence is `docs/ai-governance/cloud4-free-edition-nine-fold-gate.json`.
 - The full-volume Free Edition path is retained as capacity evidence; it is no longer a prerequisite for the sample-scale portfolio demonstration.
+- The sample-scale Cloud 4 portfolio gate passed in Free Edition run `614617193746493` at commit `f1674bd`; all nine checkpoints reloaded and persistence/EMA graph metrics reconciled across 412 groups per model.
 - Prospective 2026 Q2 truth remains unopened. No paid AWS, paid Databricks, RunPod, or other billable resource is authorized.
 
 ## Portfolio execution profile
@@ -253,11 +254,11 @@ Scope: Databricks engineering evidence only, using the deterministic portfolio s
 
 Acceptance: all nine sampled folds reload from their checkpoints with complete lineage and graph/tabular reconciliation. If the sample cannot complete on Free Edition, prepare one bounded paid-compute decision; do not return to the unchanged full-volume job.
 
-Local checkpoint (2026-08-17): `databricks/cloud4-portfolio-demo-submit.json` invokes the shared runner with `--sample-profile portfolio-demo`, environment client 4, all frozen validation folds, deterministic temporal/action strata, isolated graph/checkpoint tables, MLflow evidence, and checkpoint reload behavior. Cloud submission remains separately approval-gated. The earlier full-volume first-fold artifact is retained for capacity diagnosis.
+Measured completion (2026-08-31): Free Edition run `614617193746493` used commit `f1674bd`, sampled 279,423 examples across 50 managers and 28 target quarters, reloaded all nine frozen-fold checkpoints, and completed graph/tabular reconciliation for persistence and EMA 0.4/0.6/0.8 with zero missing groups. The maximum observed reconciliation delta was `2.220446049250313e-16`, below the frozen `1e-12` tolerance. The MLflow run ID is `0d0314ba530b48f8adcc434b5f213341`; the immutable evidence summary is `docs/ai-governance/cloud4-portfolio-demo.json`. Sampled metrics remain engineering-demo evidence only.
 
 ### A2 - Choose the compute path
 
-If A1 passes, preserve its evidence and proceed to the AWS/S3 integration demonstration; a full-volume rerun is optional and outside the portfolio scope. If A1 exposes a serverless limitation, compare:
+A1 passed on Free Edition. Preserve its evidence and proceed to the written AWS/S3 integration compute decision; a full-volume rerun is optional and outside the portfolio scope. If a future requirement exposes a serverless limitation, compare:
 
 - a serverless-compatible algorithmic rewrite that preserves the frozen model contract;
 - a bounded AWS-connected Databricks trial;
@@ -347,9 +348,9 @@ For every architecture milestone, Codex must:
 ## Exact prompt for the next milestone
 
 ```text
-Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, docs/ai-governance/cloud4-free-edition-nine-fold-gate.json, cloud4_contract.py, and their tests completely. Continue only the portfolio-scale A1 milestone.
+Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, docs/ai-governance/cloud4-free-edition-nine-fold-gate.json, and docs/ai-governance/cloud4-portfolio-demo.json completely. Continue only architecture milestone A2.
 
-Verify the deterministic `portfolio-demo` profile, all-nine-fold selection, isolated Delta tables, MLflow evidence, graph/tabular reconciliation, and restart checkpoints. Validate the submission JSON and full local test suite. Do not submit a cloud job, create AWS resources, access prospective truth, or incur cost without explicit approval. Finish with the exact reviewed command for the separately approved sample-scale run and its USD 75 stop limit.
+Reconcile the measured sample-scale pass with the retained full-volume capacity failures and write the compute-path decision. Treat Free Edition as sufficient for the portfolio demonstration, keep any full-volume rerun optional, and define the prerequisites and cost/cleanup boundary for the next integration milestone. Do not rerun Cloud 4, create AWS or RunPod resources, access prospective truth, or incur cost without explicit approval.
 ```
 
 ## Definition of an industry-standard result

@@ -2,7 +2,7 @@
 
 ## August 2026 execution checkpoint and next Codex steps
 
-Cloud 2 exact reconciliation and the Cloud 3 Gold gate are complete. The accepted 50-manager cap-500 table contains 5,154,259 examples across 28 target quarters. The nine-quarter validation window selected cap 500, and the saved gate reports zero leakage, duplicate, null-key, prospective, and nested-cap reconciliation violations. The next milestone is Cloud 4. Prospective Q2 2026 truth remains unopened, and RunPod is not authorized until graph/tabular reconciliation passes.
+Cloud 2 exact reconciliation, the Cloud 3 Gold gate, and the sample-scale Cloud 4 portfolio gate are complete. The accepted 50-manager cap-500 table contains 5,154,259 examples across 28 target quarters. Free Edition run `614617193746493` reused all nine sampled-fold checkpoints and passed persistence/EMA graph-tabular reconciliation. Prospective Q2 2026 truth remains unopened. The next task is to freeze the V2/NAVIS execution configuration; RunPod remains separately approval-gated even though the graph prerequisite now passes.
 
 Two Cloud 4 Free Edition submissions are retained as measured failures. Run `743583852242260` at commit `c2b6ac7` failed because MLflow implicitly read the serverless-restricted `spark.mlflow.modelRegistryUri`; commit `ce4c14e` now sets both Databricks MLflow URIs explicitly. Run `19355950313133` at commit `ce4c14e` then passed that point and failed when serverless environment client `2` rejected the `pyspark.ml` `VectorAssembler` constructor. This is a serverless-environment compatibility failure, not evidence of quota exhaustion, timeout, or insufficient memory.
 
@@ -10,15 +10,15 @@ The approved compute decision is **Free Edition first**. Serverless environment 
 
 The bounded environment-client-4 gate passed in Free Edition run `818005580828490` at commit `c73b98b`. It processed exactly 20,000 rows ending at 2023 Q4, trained on 16,037 rows, evaluated and reloaded 3,963 rows, observed both logistic classes, and completed MLflow, preprocessing, Ridge, logistic, and Delta write/reload checks in 53.307 pipeline seconds. Four later full-volume attempts failed before the first fold checkpoint: one graph schema conflict and three Spark Connect model-response overflows in combined preprocessing, the imputer, and the scaler. Evidence is preserved in `docs/ai-governance/cloud4-free-edition-nine-fold-gate.json`. Do not rerun the unchanged full-volume job for the portfolio demonstration.
 
-The portfolio decision is now **production-shaped, sample-scale**. Preserve the full-volume failures as honest capacity evidence; do not spend money proving that Free Edition cannot run the unchanged workload again. The next executable Cloud 4 target is the deterministic `portfolio-demo` profile across all nine frozen folds. It exercises the same Spark/Delta/MLflow/checkpoint paths in isolated tables but does not authorize model promotion or full-volume performance claims.
+The portfolio decision is **production-shaped, sample-scale and passed**. Preserve the full-volume failures as honest capacity evidence; do not spend money proving that Free Edition cannot run the unchanged workload again. The deterministic `portfolio-demo` processed 279,423 rows, produced isolated graph and MLflow artifacts, reloaded nine checkpoints, and reconciled four graph/tabular baselines. Its evidence is `docs/ai-governance/cloud4-portfolio-demo.json`; it does not authorize model promotion or full-volume performance claims.
 
 Execute the following milestones in order:
 
 1. **Prepare the Free Edition compatibility gate. Completed.** Environment client `4` passed the bounded MLflow, Spark ML, and write/reload smoke without model selection or prospective access.
 2. **Make Cloud 4 restartable and quota-aware. Completed for the official runner.** Logistic thresholds share one aggregation, fold evidence is checkpointed and reusable after late failures, and deterministic hash node IDs with collision gates replace global single-partition numbering.
-3. **Run the nine-fold portfolio demonstration.** Use `databricks/cloud4-portfolio-demo-submit.json`. Require all frozen folds, graph preparation, preprocessing, required models, diagnostics, MLflow lineage, isolated Delta tables, and reloadable checkpoints. Label all resulting metrics as engineering-demo evidence, not model-performance evidence.
-4. **Build and gate the graph contract.** Persist deterministic manager/security node maps, chronological availability-timestamped weighted edges, forecast examples, checksums, and distributed fingerprints. Require persistence and EMA to reconcile exactly with tabular metrics.
-5. **Escalate compute only if the sample fails.** Prefer the existing Free Edition serverless environment. If the sample cannot complete, propose one bounded CPU-only job-compute run with a USD 75 total project ceiling and immediate cleanup; wait for explicit approval.
+3. **Run the nine-fold portfolio demonstration. Completed.** Run `614617193746493` reloaded all nine checkpoints with MLflow lineage and isolated Delta artifacts; sampled outputs remain engineering-demo evidence.
+4. **Build and gate the graph contract. Completed for the sample profile.** Deterministic node maps, chronological edges, forecast examples, checksums, and distributed fingerprints were persisted; persistence and all frozen EMA variants reconciled within `1e-12`.
+5. **Escalate compute only for a new measured requirement.** The sample passed on Free Edition, so paid compute is not justified for this gate. Any future bounded CPU-only job-compute proposal retains the USD 75 total project ceiling and requires explicit approval.
 6. **Freeze the V2 configuration.** Save the selected candidates, preprocessing, hyperparameters, action thresholds, seeds, metrics, bootstrap settings, environment, and promotion decision before prospective access.
 7. **Begin Cloud 5 only after acceptance.** Pin and attribute NAVIS, transfer only the checksum-frozen graph bundle, run a bounded 10-manager smoke test, preserve measured failures and costs, and terminate rented compute after artifact capture.
 8. **Build AWS only through the architecture gates.** Follow `docs/WealthSignal_AWS_Databricks_Architecture_Plan.md`. S3 is the durable cross-platform storage layer under Databricks processing; AWS creation, deployment, schedules, and spending remain separately approved actions.
@@ -36,9 +36,9 @@ Cloud allocation for the remaining work:
 ### Exact prompt for the next Codex task
 
 ```text
-Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, the Protocol V2 governance files, cloud4_contract.py, its tests, and both retained Cloud 4 gate reports completely. Continue only the portfolio-scale A1 milestone.
+Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, the Protocol V2 governance files, docs/ai-governance/cloud4-free-edition-nine-fold-gate.json, and docs/ai-governance/cloud4-portfolio-demo.json completely. Continue only architecture milestone A2 and the V2/NAVIS configuration freeze.
 
-Verify the deterministic `portfolio-demo` profile, all-nine-fold selection, isolated Delta tables, MLflow evidence, graph/tabular reconciliation, and restart checkpoints. Validate the submission JSON and full local test suite. Do not submit jobs, create AWS resources, access prospective truth, or incur cost without explicit approval. Escalate compute only if the sample-scale run fails, and keep the complete portfolio exercise below the USD 75 stop limit.
+Reconcile the measured sample-scale pass with retained full-volume failures, record the no-paid-escalation compute decision, and freeze the selected candidates, preprocessing, hyperparameters, action thresholds, seeds, metrics, graph bundle, environment, and promotion policy before NAVIS work. Do not rerun Cloud 4, create AWS or RunPod resources, access prospective truth, or incur cost without explicit approval.
 ```
 
 ## Decision
@@ -49,8 +49,8 @@ This replaces the failed full in-memory local build. The local machine has 15.85
 
 ## Last verified connection state
 
-- Databricks CLI v1.10.0 and the `wealthsignal` browser/OAuth profile were used for the accepted Cloud 1–3 jobs in workspace `dbc-df5ef74b-9c89.cloud.databricks.com`; authentication and workspace identity must be reverified immediately before Cloud 4 submission.
-- Cloud 1–3 job history exists in the workspace. Do not infer current compute state or remaining Free Edition quota from the earlier checkpoint; inspect both before submitting Cloud 4.
+- Databricks CLI v1.10.0 and the `wealthsignal` browser/OAuth profile were reauthenticated for the accepted Cloud 4 run in workspace `dbc-df5ef74b-9c89.cloud.databricks.com`.
+- Cloud 1–4 job history exists in the workspace. The accepted Cloud 4 parent run is `614617193746493`, task run `81754007395759`, at commit `f1674bd`.
 - RunPod CLI and account verification are deferred by the project owner until the graph/NAVIS stages; no RunPod resource is authorized before that verification is completed.
 - `DATABRICKS_TOKEN` and `RUNPOD_API_KEY` are not configured in the project environment; the Databricks connection uses OAuth.
 - Credentials must never be committed, printed, stored in notebooks, or placed in repository files.

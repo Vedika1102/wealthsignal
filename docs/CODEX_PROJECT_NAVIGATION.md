@@ -187,7 +187,7 @@ The rule-based materiality score may remain as a clearly named observed-change s
 7. Long-term security identity, corporate actions, and historical index-membership policies still need explicit treatment.
 8. PySpark and isolated test dependencies are declared; a graph-learning framework remains intentionally undeclared until the graph/NAVIS milestone.
 9. The attempted local 50-manager build exceeded 28 GB private memory on a 15.85 GB RAM machine without finalizing. The cloud path in `docs/WealthSignal_Cloud_Execution_Plan.md` replaces further unbounded local builds.
-10. Databricks CLI is OAuth-connected and serverless Cloud 1-3 jobs have executed successfully. The bounded environment-client-4 smoke passed, but four full-volume Cloud 4 attempts failed before a first-fold checkpoint due graph schema and fixed Spark Connect model-response limits. The portfolio path now uses a deterministic sample across all nine folds, with isolated evidence and no full-volume performance claim. Do not restart the unchanged full-volume job. Paid classic compute remains unauthorized. RunPod remains owner-deferred.
+10. Databricks CLI is OAuth-connected and serverless Cloud 1-4 jobs have executed successfully. The bounded environment-client-4 smoke passed, while four full-volume Cloud 4 attempts failed before a first-fold checkpoint due graph schema and fixed Spark Connect model-response limits. The deterministic portfolio sample then passed in run `614617193746493`: 279,423 rows, all nine checkpoints reloaded, and persistence/EMA graph reconciliation within `1e-12`. Do not restart either gate without a new approved reason. Paid classic compute remains unauthorized. RunPod remains owner-deferred.
 
 ### Required implementation order
 
@@ -196,9 +196,9 @@ Follow this dependency order from the actual stopping point:
 1. Review and checkpoint the Protocol V2 design without downloading data or reopening the consumed V1 test. Completed in commits `fe78dc7` and `0205710`.
 2. Acquire the declared development packages and materialize and checksum the training-only manager cohort. Completed in commit `ce1171e`.
 3. Complete Cloud 0/1: completed; all 30 source checksums and the cohort checksum were verified in Databricks.
-4. Run the production-shaped, sample-scale Cloud 4 portfolio profile across all nine frozen folds. Require isolated Delta tables, MLflow lineage, graph/tabular reconciliation, and reloadable checkpoints. Treat its metrics as engineering-demo evidence only. The full-volume first-fold artifact remains available for capacity diagnosis but is not a portfolio prerequisite. Follow `docs/WealthSignal_AWS_Databricks_Architecture_Plan.md` for any AWS or Databricks platform expansion.
-5. Freeze the selected V2 candidate/model configuration before the prospective 2026 Q2 source becomes available.
-6. Create a framework-independent temporal bipartite graph bundle and prove graph persistence/EMA reconcile with tabular metrics.
+4. Run the production-shaped, sample-scale Cloud 4 portfolio profile across all nine frozen folds. Completed in run `614617193746493`; the measured evidence is `docs/ai-governance/cloud4-portfolio-demo.json` and remains engineering-demo evidence only.
+5. Freeze the selected V2 candidate/model configuration and the attributed NAVIS reproduction protocol before the prospective 2026 Q2 source becomes available. This is next.
+6. Preserve the completed sample-scale framework-independent graph bundle and persistence/EMA reconciliation; require its checksum-frozen export before Cloud 5.
 7. Complete Cloud 5/6: reproduce NAVIS on RunPod against a frozen upstream revision and compare it fairly with persistence and EMA.
 8. Optionally scale the same ordering to 99 managers, then implement one clearly original WealthSignal extension and ablation.
 9. Add monitoring, Excel, PowerPoint, dashboard, and verified resume metrics as measured engineering and communication layers.
@@ -1195,7 +1195,7 @@ Return manager and security identifiers, predicted weight/rank, source cutoff, t
 
 ### Milestone 3 — Current-Data Protocol V2
 
-Status: design revision 2, development packages, and ordered cohort are frozen; Cloud 1/2 passed; official Cloud 3 Gold construction and nested reconciliation passed. Validation-only candidate selection chose cap 500, producing 5,154,259 examples across 28 target quarters with zero leakage violations. The bounded client-4 smoke passed, but four later full-volume Cloud 4 attempts failed before the first checkpoint because of graph schema and Spark Connect model-response limits. The next engineering milestone is the deterministic `portfolio-demo` sample across all nine folds; do not restart the unchanged full-volume job.
+Status: design revision 2, development packages, and ordered cohort are frozen; Cloud 1/2 passed; official Cloud 3 Gold construction and nested reconciliation passed. Validation-only candidate selection chose cap 500, producing 5,154,259 examples across 28 target quarters with zero leakage violations. The bounded client-4 smoke and deterministic nine-fold `portfolio-demo` passed. The portfolio run reused all nine checkpoints and reconciled persistence/EMA graph metrics; do not restart the sample or unchanged full-volume job without a new approved reason.
 
 ```text
 Design Protocol V2 before downloading or evaluating new data. Inventory the latest complete official SEC 13F bulk packages available at execution time, then declare a larger manager cohort, historical coverage, security-universe policy, source cutoff, validation windows, and a brand-new untouched final or prospective window.
@@ -1204,6 +1204,8 @@ Create new immutable dataset and split IDs; never mutate V1 artifacts or reuse V
 ```
 
 ### Milestone 4 — Graph Adapter and Baseline Reconciliation
+
+Status: completed for the deterministic sample-scale portfolio profile in run `614617193746493`; full-volume performance evidence was not produced or claimed.
 
 ```text
 Implement a framework-independent temporal bipartite graph adapter from the immutable manager-security-quarter data. Managers and securities are nodes; a dated weighted edge represents an observed portfolio weight. Preserve manager CIK, security_key/CUSIP, report quarter, availability cutoff, and dataset lineage.
@@ -1282,7 +1284,7 @@ WealthSignal is portfolio-ready only when:
 Copy this into a new Codex task opened in the WealthSignal repository:
 
 ```text
-Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, both retained Cloud 4 gate reports, cloud4_contract.py, and its tests completely. Execute only architecture milestone A0 and the local implementation portion of A1.
+Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, docs/ai-governance/cloud4-free-edition-nine-fold-gate.json, and docs/ai-governance/cloud4-portfolio-demo.json completely. Execute only architecture milestone A2 and the V2/NAVIS configuration freeze.
 
-Implement and test the environment-client-4 `portfolio-demo` profile across all nine frozen folds with deterministic temporal/action sampling and isolated graph and checkpoint tables. Label all sampled metrics as engineering-demo evidence. Do not submit the job, create AWS resources, access prospective truth, or incur cost without explicit approval. Finish with local validation and the exact reviewed Databricks command for the separately approved bounded run.
+Reconcile the sample-scale pass with the retained full-volume failures, record the no-paid-escalation compute decision, and freeze the candidates, preprocessing, hyperparameters, action thresholds, seeds, metrics, graph artifact contract, environment, and promotion policy needed before NAVIS. Do not rerun Cloud 4, create AWS or RunPod resources, access prospective truth, or incur cost without explicit approval.
 ```

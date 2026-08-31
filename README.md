@@ -2,7 +2,7 @@
 
 WealthSignal is evolving into an auditable temporal ML platform that ingests public SEC `13F-HR` filings, forecasts next-quarter institutional holdings, detects unusual observed changes, and explains their relevance to synthetic client portfolios.
 
-The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository implements the historical bulk-data, objective temporal-target, leakage-audit, Protocol V1 evaluation, forecast persistence, and forecast API paths. Protocol V2 Cloud 1, the exact 10/25/50-manager Cloud 2 checkpoints, and the official 50-manager Cloud 3 Gold dataset are complete; Cloud 4 baselines/graph contract and the attributed NAVIS research lane remain in progress. The legacy observed-change and weak-label workflow remains separate.
+The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository implements the historical bulk-data, objective temporal-target, leakage-audit, Protocol V1 evaluation, forecast persistence, and forecast API paths. Protocol V2 Cloud 1, the exact 10/25/50-manager Cloud 2 checkpoints, the official 50-manager Cloud 3 Gold dataset, and the sample-scale Cloud 4 portfolio gate are complete. The successful Cloud 4 run reused all nine frozen-fold checkpoints and passed graph/tabular reconciliation on 279,423 deterministic examples; its metrics are engineering-demo evidence only. The next bounded step is the architecture A2 compute-path decision and attributed NAVIS protocol freeze. The legacy observed-change and weak-label workflow remains separate.
 
 The historical bulk-data workflow and its amendment, checksum, and output contracts are documented in [docs/SEC_13F_Bulk_Dataset.md](docs/SEC_13F_Bulk_Dataset.md).
 
@@ -122,12 +122,62 @@ Implemented:
 - lineage-aware SQLite/PostgreSQL forecast persistence and idempotent persistence-reference materialization
 - typed, paginated forecast-run and manager-forecast API endpoints with provenance and limitations
 - checksum-frozen Protocol V2 design with a new prospective evaluation window
+- accepted 50-manager, cap-500 Protocol V2 Gold table with 5,154,259 examples across 28 target quarters
+- Cloud 4 temporal graph, baseline, lineage, reconciliation, and restart-checkpoint contract
+- successful 20,000-row Databricks Free Edition compatibility smoke covering MLflow, Spark ML, and Delta reload
+- successful deterministic sample-scale `portfolio-demo` across all nine frozen validation folds with isolated tables, MLflow lineage, checkpoint reload, and graph/tabular reconciliation
 - unit tests for parser, SEC utilities, historical/temporal datasets, baselines, persistence, and decisioning
 
 Next:
 
 - use persistence as the V1 reference forecast without presenting it as a learned-model breakthrough
-- run only the approved full-volume, first-fold Cloud 4 gate on the frozen cap-500 Gold table; resume nine folds and graph reconciliation only after its isolated checkpoint reload passes
+- preserve the Cloud 4 pass as engineering-demo evidence rather than full-volume model-performance evidence
+- complete architecture milestone A2 using the measured Free Edition result; do not rerun the full-volume or sample-scale gate without a new approved reason
+- freeze the attributed NAVIS reproduction protocol before any RunPod work
+- keep prospective 2026 Q2 truth closed and require separate approval for AWS, RunPod, deployment, or spending
+
+### Current Cloud 4 boundary
+
+The bounded 20,000-row environment-client-4 smoke passed. Four later full-volume attempts failed before the first fold checkpoint because of a graph-table schema conflict and Spark Connect model-response size limits. Those failures are retained in [the Cloud 4 capacity-gate report](docs/ai-governance/cloud4-free-edition-nine-fold-gate.json). Do not rerun the unchanged full-volume job.
+
+The production-shaped, sample-scale target passed in Databricks Free Edition run `614617193746493` at commit `f1674bd`. It selected 279,423 rows across 50 managers and 28 target quarters, reused all nine isolated fold checkpoints, and reconciled persistence plus three EMA variants across 412 manager-quarter groups per model with no missing groups and a maximum absolute delta of `2.220446049250313e-16`. The measured evidence is preserved in [the Cloud 4 portfolio-demo report](docs/ai-governance/cloud4-portfolio-demo.json). This pass does not authorize model promotion, full-volume performance claims, AWS resources, RunPod resources, spending, or prospective evaluation.
+
+### Next Codex milestone
+
+Give Codex one bounded milestone at a time. For the current milestone, use:
+
+```text
+Read README.md, docs/WealthSignal_AWS_Databricks_Architecture_Plan.md,
+docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md,
+docs/ai-governance/cloud4-free-edition-nine-fold-gate.json,
+docs/ai-governance/cloud4-free-edition-smoke.json, and
+docs/ai-governance/cloud4-portfolio-demo.json completely.
+
+Continue only architecture milestone A2. Inspect Git status and preserve unrelated
+changes. Reconcile the measured Cloud 4 sample-scale pass with the retained full-volume
+capacity failures, then write the bounded compute-path decision. Treat Free Edition as
+sufficient for the portfolio demonstration, keep a full-volume rerun optional and out
+of scope, and define the exact prerequisites for freezing the attributed NAVIS
+reproduction protocol.
+
+Do not rerun Cloud 4, create AWS or RunPod resources, access prospective 2026 Q2 truth,
+promote a model, or incur cost without explicit approval. Treat every sampled metric as
+engineering-demo evidence, not full-volume research evidence. Finish with the measured
+evidence, remaining risks, and the exact next separately approved milestone.
+```
+
+Local validation does not require cloud authorization:
+
+```powershell
+$env:PYTHONPATH="services/pipeline_worker/src"
+python -m py_compile services/pipeline_worker/src/wealthsignal_pipeline/cloud4_contract.py
+python -m pytest -q
+python -m json.tool databricks/cloud4-portfolio-demo-submit.json
+git diff --check
+git status --short
+```
+
+The A1 submission has completed successfully. Its historical reviewed command is recorded in the governance report; do not rerun it without a new approved reason.
 
 ### Legacy materiality path
 
