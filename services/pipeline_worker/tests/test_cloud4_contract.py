@@ -1,9 +1,10 @@
+from pathlib import Path
+
 import pytest
 
 from wealthsignal_pipeline.cloud4_contract import (
     binary_metrics,
     canonical_sha256,
-    protocol_sha256,
     select_smallest_best,
     validate_upstream_report,
     checkpoint_tables_ready,
@@ -16,7 +17,7 @@ from wealthsignal_pipeline.cloud4_contract import (
     FOLD_TRIAL_TABLE,
     PORTFOLIO_DEMO_PROFILE,
     PORTFOLIO_DEMO_SUFFIX,
-    PROTOCOL_PATH,
+    PROTOCOL_SHA256,
 )
 
 
@@ -52,12 +53,10 @@ def test_manifest_hash_is_order_independent() -> None:
     assert canonical_sha256({"a": 1, "b": 2}) == canonical_sha256({"b": 2, "a": 1})
 
 
-def test_protocol_hash_is_independent_of_process_working_directory(
-    tmp_path, monkeypatch,
-) -> None:
-    expected = canonical_sha256(PROTOCOL_PATH.read_text(encoding="utf-8"))
-    monkeypatch.chdir(tmp_path)
-    assert protocol_sha256() == expected
+def test_frozen_protocol_hash_matches_committed_protocol() -> None:
+    repository_root = Path(__file__).resolve().parents[3]
+    protocol_path = repository_root / "docs" / "ai-governance" / "forecast-comparison-protocol-v2.md"
+    assert PROTOCOL_SHA256 == canonical_sha256(protocol_path.read_text(encoding="utf-8"))
 
 
 def test_binary_metrics_handles_normal_and_empty_predictions() -> None:
@@ -72,6 +71,7 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     from wealthsignal_pipeline import cloud4_contract
 
     source = open(cloud4_contract.__file__, encoding="utf-8").read()
+    assert "__file__" not in source
     assert "torch" not in source.lower()
     assert "tensorflow" not in source.lower()
     assert "2026-06-30" in source
@@ -82,6 +82,7 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     assert 'mlflow.set_tracking_uri("databricks")' in source
     assert 'mlflow.set_registry_uri("databricks")' in source
     assert '"split_manifest_sha256"' in source
+    assert '"protocol_sha256": PROTOCOL_SHA256' in source
     assert '"graph_statistics"' in source
     assert '"manager_concentration_hhi"' in source
     assert '"nonzero_target_mae"' in source
@@ -109,6 +110,15 @@ def test_cloud4_source_has_no_graph_framework_or_prospective_read() -> None:
     assert '"engineering_demonstration_only": bool(sample_profile)' in source
     assert '"model_performance_claim_authorized": not bool(sample_profile)' in source
     assert '"sample_statistics": sample_statistics' in source
+
+
+def test_cloud4_source_executes_without_file_global_like_databricks() -> None:
+    from wealthsignal_pipeline import cloud4_contract
+
+    source_path = Path(cloud4_contract.__file__)
+    namespace = {"__name__": "databricks_task"}
+    exec(compile(source_path.read_bytes(), str(source_path), "exec"), namespace)
+    assert namespace["PROTOCOL_SHA256"] == PROTOCOL_SHA256
 
 
 def test_cloud4_submissions_use_environment_client_four() -> None:
