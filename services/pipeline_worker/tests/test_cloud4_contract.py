@@ -3,6 +3,7 @@ import pytest
 from wealthsignal_pipeline.cloud4_contract import (
     binary_metrics,
     canonical_sha256,
+    protocol_sha256,
     select_smallest_best,
     validate_upstream_report,
     checkpoint_tables_ready,
@@ -15,6 +16,7 @@ from wealthsignal_pipeline.cloud4_contract import (
     FOLD_TRIAL_TABLE,
     PORTFOLIO_DEMO_PROFILE,
     PORTFOLIO_DEMO_SUFFIX,
+    PROTOCOL_PATH,
 )
 
 
@@ -48,6 +50,14 @@ def test_grid_selection_is_deterministic_and_prefers_smaller_ties() -> None:
 
 def test_manifest_hash_is_order_independent() -> None:
     assert canonical_sha256({"a": 1, "b": 2}) == canonical_sha256({"b": 2, "a": 1})
+
+
+def test_protocol_hash_is_independent_of_process_working_directory(
+    tmp_path, monkeypatch,
+) -> None:
+    expected = canonical_sha256(PROTOCOL_PATH.read_text(encoding="utf-8"))
+    monkeypatch.chdir(tmp_path)
+    assert protocol_sha256() == expected
 
 
 def test_binary_metrics_handles_normal_and_empty_predictions() -> None:

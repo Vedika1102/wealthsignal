@@ -43,11 +43,18 @@ PORTFOLIO_DEMO_PROFILE = "portfolio-demo"
 PORTFOLIO_DEMO_SUFFIX = "_portfolio_demo"
 PORTFOLIO_DEMO_ROWS_PER_STRATUM = 50
 SPARK_CONNECT_MODEL_LIMIT_BYTES = 268_435_456
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+PROTOCOL_PATH = REPOSITORY_ROOT / "docs" / "ai-governance" / "forecast-comparison-protocol-v2.md"
 
 
 def canonical_sha256(value: Any) -> str:
     payload = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def protocol_sha256(path: Path = PROTOCOL_PATH) -> str:
+    """Hash the frozen protocol independently of the process working directory."""
+    return canonical_sha256(path.read_text(encoding="utf-8"))
 
 
 def validate_upstream_report(report: dict[str, Any]) -> list[str]:
@@ -689,7 +696,7 @@ def run_cloud4(*, first_fold_gate: bool = False, sample_profile: str | None = No
         "upstream_manifest_sha256": upstream["manifest_sha256"],
         "upstream_partition_manifest_sha256": upstream["cap_reports"]["500"]["partition_manifest_sha256"],
         "split_manifest_sha256": canonical_sha256(upstream["split_manifest"]),
-        "protocol_sha256": canonical_sha256(Path("docs/ai-governance/forecast-comparison-protocol-v2.md").read_text(encoding="utf-8")),
+        "protocol_sha256": protocol_sha256(),
         "graph_schema_version": 1,
         "graph_tables": table_names,
         "graph_fingerprints": fingerprints,
