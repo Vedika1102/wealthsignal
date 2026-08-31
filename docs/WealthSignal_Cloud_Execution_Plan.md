@@ -2,7 +2,7 @@
 
 ## August 2026 execution checkpoint and next Codex steps
 
-Cloud 2 exact reconciliation, the Cloud 3 Gold gate, and the sample-scale Cloud 4 portfolio gate are complete. The accepted 50-manager cap-500 table contains 5,154,259 examples across 28 target quarters. Free Edition run `614617193746493` reused all nine sampled-fold checkpoints and passed persistence/EMA graph-tabular reconciliation. Prospective Q2 2026 truth remains unopened. The next task is to freeze the V2/NAVIS execution configuration; RunPod remains separately approval-gated even though the graph prerequisite now passes.
+Cloud 2 exact reconciliation, the Cloud 3 Gold gate, the sample-scale Cloud 4 portfolio gate, architecture A2, and the Protocol V2/NAVIS execution freeze are complete. The accepted 50-manager cap-500 table contains 5,154,259 examples across 28 target quarters. Free Edition run `614617193746493` reused all nine sampled-fold checkpoints and passed persistence/EMA graph-tabular reconciliation. The model freeze pins the attributed paper/repository revision, adaptations, candidates, preprocessing, tabular selections, NAVIS hyperparameters, seeds, uncertainty, environment, graph export contract, and promotion rule. Prospective Q2 2026 truth remains unopened. Cloud 5 is next only after explicit RunPod resource and cost approval.
 
 Two Cloud 4 Free Edition submissions are retained as measured failures. Run `743583852242260` at commit `c2b6ac7` failed because MLflow implicitly read the serverless-restricted `spark.mlflow.modelRegistryUri`; commit `ce4c14e` now sets both Databricks MLflow URIs explicitly. Run `19355950313133` at commit `ce4c14e` then passed that point and failed when serverless environment client `2` rejected the `pyspark.ml` `VectorAssembler` constructor. This is a serverless-environment compatibility failure, not evidence of quota exhaustion, timeout, or insufficient memory.
 
@@ -18,8 +18,8 @@ Execute the following milestones in order:
 2. **Make Cloud 4 restartable and quota-aware. Completed for the official runner.** Logistic thresholds share one aggregation, fold evidence is checkpointed and reusable after late failures, and deterministic hash node IDs with collision gates replace global single-partition numbering.
 3. **Run the nine-fold portfolio demonstration. Completed.** Run `614617193746493` reloaded all nine checkpoints with MLflow lineage and isolated Delta artifacts; sampled outputs remain engineering-demo evidence.
 4. **Build and gate the graph contract. Completed for the sample profile.** Deterministic node maps, chronological edges, forecast examples, checksums, and distributed fingerprints were persisted; persistence and all frozen EMA variants reconciled within `1e-12`.
-5. **Escalate compute only for a new measured requirement.** The sample passed on Free Edition, so paid compute is not justified for this gate. Any future bounded CPU-only job-compute proposal retains the USD 75 total project ceiling and requires explicit approval.
-6. **Freeze the V2 configuration.** Save the selected candidates, preprocessing, hyperparameters, action thresholds, seeds, metrics, bootstrap settings, environment, and promotion decision before prospective access.
+5. **Escalate compute only for a new measured requirement. Completed as architecture A2.** ADR 0003 records that paid compute is not justified for Cloud 4. Any future bounded CPU-only proposal retains the USD 75 total project ceiling and requires explicit approval.
+6. **Freeze the V2 configuration. Completed.** `docs/ai-governance/forecast-protocol-v2-model-freeze.json` and `navis-reproduction-protocol-v1.md` freeze the selected candidates, preprocessing, hyperparameters, action thresholds, seeds, metrics, bootstrap settings, environment, graph export contract, and promotion decision rule before prospective access.
 7. **Begin Cloud 5 only after acceptance.** Pin and attribute NAVIS, transfer only the checksum-frozen graph bundle, run a bounded 10-manager smoke test, preserve measured failures and costs, and terminate rented compute after artifact capture.
 8. **Build AWS only through the architecture gates.** Follow `docs/WealthSignal_AWS_Databricks_Architecture_Plan.md`. S3 is the durable cross-platform storage layer under Databricks processing; AWS creation, deployment, schedules, and spending remain separately approved actions.
 
@@ -33,12 +33,12 @@ Cloud allocation for the remaining work:
 | Local laptop | Git, small unit tests, documentation, API development | Avoid large-data materialization and model training |
 | AWS | Optional S3/container/API/MLOps demonstration | Useful portfolio signal only when bounded by budgets and cleanup controls |
 
-### Exact prompt for the next Codex task
+### Exact prompt for the next separately approved Codex task
 
 ```text
-Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, the Protocol V2 governance files, docs/ai-governance/cloud4-free-edition-nine-fold-gate.json, and docs/ai-governance/cloud4-portfolio-demo.json completely. Continue only architecture milestone A2 and the V2/NAVIS configuration freeze.
+Read docs/WealthSignal_Cloud_Execution_Plan.md, docs/ai-governance/forecast-protocol-v2-model-freeze.json, docs/ai-governance/navis-reproduction-protocol-v1.md, docs/ai-governance/cloud4-portfolio-demo.json, and the graph-contract implementation completely. Execute Cloud 5 only after the owner explicitly approves a bounded RunPod volume/pod and maximum cost.
 
-Reconcile the measured sample-scale pass with retained full-volume failures, record the no-paid-escalation compute decision, and freeze the selected candidates, preprocessing, hyperparameters, action thresholds, seeds, metrics, graph bundle, environment, and promotion policy before NAVIS work. Do not rerun Cloud 4, create AWS or RunPod resources, access prospective truth, or incur cost without explicit approval.
+First produce and verify the immutable 10-manager graph export and hash-locked NAVIS container locally or on already-authorized no-cost infrastructure. Then create only the approved RunPod resources, transfer only that bundle, run the seed-2 featureless two-epoch smoke, reload its checkpoint, capture runtime/VRAM/RAM/cost and failure evidence, and terminate compute immediately. Do not run the 25/50-manager profiles, tune the frozen configuration, create AWS resources, or access prospective Q2 2026 truth.
 ```
 
 ## Decision
@@ -212,9 +212,9 @@ Reconcile the 10-manager subset with the Python reference, measure 25-manager sc
 ### RunPod NAVIS prompt
 
 ```text
-Read docs/WealthSignal_Cloud_Execution_Plan.md and execute Cloud 5 only after Cloud 4 graph reconciliation passes. Pin and attribute the official NAVIS implementation, reproduce its environment, transfer only the checksum-frozen graph bundle, and verify it on RunPod.
+Read docs/WealthSignal_Cloud_Execution_Plan.md, docs/ai-governance/forecast-protocol-v2-model-freeze.json, and docs/ai-governance/navis-reproduction-protocol-v1.md completely. Execute Cloud 5 only after the owner explicitly approves the bounded RunPod resource and maximum cost. Use the already-frozen NAVIS pin and adaptations; do not move the revision or tune the configuration.
 
-Request approval before creating any billable Pod or volume. Begin with the 10-manager smoke test, record hardware/software lineage, peak VRAM/RAM, epoch time, checkpoint reload, metrics, and cost, then terminate compute immediately. Do not run 25/50 managers, tune against a holdout, or access prospective Q2 2026 truth in this task. Return the measured capacity recommendation and exact Cloud 6 prompt.
+Produce and verify the immutable graph-bundle export and hash-locked container before transfer. Run only the first-10-manager, first-fold, featureless, seed-2, two-epoch smoke. Record hardware/software lineage, peak VRAM/RAM, epoch time, checkpoint reload, metrics, and cost, then terminate compute immediately. Do not run 25/50 managers, tune against a holdout, or access prospective Q2 2026 truth in this task. Return the measured capacity recommendation and exact Cloud 6 approval boundary.
 ```
 
 ## Cost and security rules

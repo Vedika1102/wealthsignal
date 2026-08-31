@@ -1,0 +1,586 @@
+{
+  "schema_version": 1,
+  "status": "execution_configuration_frozen_validation_and_promotion_pending",
+  "frozen_at": "2026-08-31",
+  "protocol_version": "v2-design-2",
+  "scope": "Protocol V2 tabular selections, graph bundle contract, and attributed NAVIS execution configuration",
+  "evidence_classification": "pre-prospective configuration; no NAVIS reproduction or promotion result",
+  "hash_policy": {
+    "local_artifact_algorithm": "sha256 of Git-normalized LF bytes",
+    "canonical_json_algorithm": "sha256 of UTF-8 json.dumps(value, sort_keys=True, separators=(',', ':'), default=str)",
+    "upstream_source_algorithm": "sha256 of bytes returned by git show <commit>:<path>"
+  },
+  "protocol_hashes": {
+    "path": "docs/ai-governance/forecast-comparison-protocol-v2.md",
+    "git_normalized_file_sha256": "d68689d84a0cf9c769ab73abfe96c69ecb6caf6b4bee720d998fcf10b5a09b7d",
+    "cloud4_canonical_json_string_sha256": "d27b18bb2194aef6da73971c98d51e29cc35ec50cba8146beaa9ccfeefba3fef",
+    "interpretation": "Both values identify the same protocol text. The design-freeze hash is over Git-normalized file bytes; Cloud 4 passed the text string through canonical_sha256, which JSON-encoded the string before hashing."
+  },
+  "local_artifacts": [
+    {
+      "path": "docs/ai-governance/forecast-comparison-protocol-v2.md",
+      "sha256": "d68689d84a0cf9c769ab73abfe96c69ecb6caf6b4bee720d998fcf10b5a09b7d"
+    },
+    {
+      "path": "docs/ai-governance/forecast-protocol-v2-config.json",
+      "sha256": "88e4bcd14dd4bfc5bf152600c7636b9a12b449d3a39c79244d5fd6c9c5f591e6"
+    },
+    {
+      "path": "docs/ai-governance/forecast-protocol-v2-manager-cohort.json",
+      "sha256": "2f7e1d1d07cbade409cc277f08812d6ef67a403ed18739929d2468158a85ee86"
+    },
+    {
+      "path": "docs/ai-governance/forecast-protocol-v2-development-sources.json",
+      "sha256": "e48f074a9d49a4d94fd09782172d1d6dcaeb6fd3b4c23edb0ea16ab33366e4d5"
+    },
+    {
+      "path": "docs/ai-governance/cloud3-gold-report.json",
+      "sha256": "d3a179f1901d05c988486f36efdb3ef0e31046f604344f94ad14ab537f538068"
+    },
+    {
+      "path": "docs/ai-governance/cloud3-gold-50-manager.json",
+      "sha256": "8f6b8c0f4b963833998d768c282093767d64f84e216738f9df644dd111e21e13"
+    },
+    {
+      "path": "docs/ai-governance/cloud4-free-edition-nine-fold-gate.json",
+      "sha256": "965f53268d746c84b5d25dba6efe3d73544aa852cc0e6ace274c66794350600b"
+    },
+    {
+      "path": "docs/ai-governance/cloud4-portfolio-demo.json",
+      "sha256": "1ce445407cbd6129d62b5cef0bad7e633608a9ceb2f12787ddd1088d34f96135"
+    },
+    {
+      "path": "docs/architecture/adr-0003-compute-escalation.md",
+      "sha256": "139699acfeb1c1ec1c4cecdc2e08753be1fba44fff2c14e10787cf0ee7386668"
+    },
+    {
+      "path": "docs/ai-governance/navis-reproduction-protocol-v1.md",
+      "sha256": "8f138d6a59370871974b9cea0d37f60dc5e19fb5a018f6b7779d5dba0e88ccde"
+    },
+    {
+      "path": "third_party/patches/pytorchltr-0.2.1-lambda-ndcg-exponent-clamp.patch",
+      "sha256": "4bfaf38bc93ca691431633199b4335c36364453c82ea0d40d0dd316c386c32d1"
+    }
+  ],
+  "data_freeze": {
+    "main_manager_count": 50,
+    "engineering_subset_counts": [
+      10,
+      25
+    ],
+    "optional_scale_count": 99,
+    "main_ordered_ciks_sha256": "23617b83308e9b073212f9eb493e57921877eacc887f2fcdd923cf3b9ebfc3ff",
+    "security_identity": "normalized CUSIP plus LONG/PUT/CALL instrument side",
+    "source_table": "workspace.gold.temporal_examples_50_cap_500",
+    "source_rows": 5154259,
+    "source_target_quarters": 28,
+    "selected_candidate_cap": 500,
+    "candidate_selection_basis": {
+      "evidence_classification": "full-volume Cloud 3 validation coverage",
+      "rule": "smallest cap within 0.0025 of the best mean validation target-weight-mass coverage",
+      "cap_500_mean_validation_coverage": 0.9811443310456817,
+      "cap_250_shortfall_from_best": 0.0026525758911422
+    },
+    "target_windows": {
+      "selection_and_initial_training": [
+        "2019-03-31",
+        "2023-12-31"
+      ],
+      "validation": [
+        "2024-03-31",
+        "2026-03-31"
+      ],
+      "validation_fold_count": 9,
+      "prospective_test": "2026-06-30"
+    },
+    "split_manifest_sha256": "c234175bfaf65bb9add8381b9364b8e7ec7ecc4b415623982d8ffabb47e48cc6",
+    "gold_manifest_sha256": "e0b1a03124257374a75530ef626a694dfa960856f39658ae1f4081eee855c3dc",
+    "cap_500_partition_manifest_sha256": "3293861c5483d22b96ec8d707e5c69eaf48e5384ffe967ee06ea4306ff81f8c7"
+  },
+  "tabular_preprocessing": {
+    "feature_columns": [
+      "current_weight",
+      "previous_weight",
+      "lag2_weight",
+      "current_rank",
+      "previous_rank",
+      "weight_momentum",
+      "rank_momentum",
+      "manager_turnover",
+      "manager_concentration_hhi",
+      "peer_owner_count",
+      "peer_aggregate_weight",
+      "holding_history_quarters",
+      "quarters_since_last_held"
+    ],
+    "fit_scope": "inside each expanding training fold only",
+    "missing_value_rule": "training-fold percentile_approx median",
+    "percentile_approx_accuracy": 10000,
+    "scaling": "training-fold sample mean and sample standard deviation",
+    "zero_variance_output": 0.0,
+    "nonfinite_policy": "hard failure after declared imputation",
+    "prediction_tie_breaker": "security_key ascending"
+  },
+  "frozen_tabular_models": {
+    "persistence": {
+      "score": "current_weight",
+      "required_baseline": true
+    },
+    "ema": {
+      "selected_alpha": 0.8,
+      "validation_grid": [
+        0.4,
+        0.6,
+        0.8
+      ],
+      "selection_metric": "mean validation manager-macro MAE",
+      "formula": "alpha*current_weight + (1-alpha)*alpha*previous_weight + (1-alpha)^2*lag2_weight",
+      "selection_evidence": "sample-scale Cloud 4 engineering demonstration"
+    },
+    "popularity": {
+      "score": "peer_aggregate_weight with null mapped to zero",
+      "required_baseline": true
+    },
+    "ridge": {
+      "selected_alpha": 0.1,
+      "validation_grid": [
+        0.1,
+        1.0,
+        10.0
+      ],
+      "elastic_net_param": 0.0,
+      "max_iterations": 50,
+      "prediction_floor": 0.0,
+      "selection_metric": "mean validation manager-macro MAE",
+      "selection_evidence": "sample-scale Cloud 4 engineering demonstration"
+    },
+    "spark_gbt_diagnostic": {
+      "max_depth": 5,
+      "max_iterations": 40,
+      "seed": 20260802,
+      "selection_status": "fixed diagnostic; not promoted"
+    },
+    "action_diagnostics": {
+      "regularization": {
+        "reg_param": 1.0,
+        "elastic_net_param": 0.0,
+        "max_iterations": 50,
+        "standardization": false
+      },
+      "class_weight_formula": "negative_count / positive_count for the positive class; 1.0 for the negative class",
+      "selection_metric": "mean validation F1",
+      "selection_evidence": "sample-scale Cloud 4 engineering demonstration",
+      "new_position": {
+        "class_weight_mode": "balanced",
+        "threshold": 0.5,
+        "mean_validation_f1": 0.4547888988688153
+      },
+      "exit": {
+        "class_weight_mode": "balanced",
+        "threshold": 0.5,
+        "mean_validation_f1": 0.37632943542893016
+      },
+      "serving_or_alert_authorized": false
+    },
+    "selection_caveat": "EMA, Ridge, and action selections are frozen from the deterministic Cloud 4 sample for the bounded NAVIS execution protocol. They are not full-volume model-performance evidence and do not authorize promotion."
+  },
+  "navis_upstream": {
+    "paper": {
+      "title": "Institutional Equity Holdings Prediction Using Node Affinities of Dynamic Graphs",
+      "authors": [
+        "Emad Izadifar",
+        "Zahed Rahmati"
+      ],
+      "arxiv_id": "2607.12067",
+      "version": "v1",
+      "submitted_at": "2026-07-13T18:40:05Z",
+      "url": "https://arxiv.org/abs/2607.12067"
+    },
+    "repository": {
+      "url": "https://github.com/e-izdfr/portfolio-holdings-prediction",
+      "commit": "4bf8ad0b6c2f1bed27b8c469d8f8a5d527c7e9f8",
+      "tree": "b0456fbcb878f920d846c8deba5bbab5ae105e35",
+      "branch_at_freeze": "main",
+      "tag": null,
+      "license": "MIT",
+      "license_sha256": "649ac48e60f4956486bf2f7f96611935b9ccc85d20f800a4257e74da5aae98a0",
+      "source_files": {
+        "featureless_navis": {
+          "path": "models/node_affinity_prediction/dynamic_grl_models/navis/NAVIS/navis.py",
+          "sha256": "84b16edb0f6df22aafaa5273f9fdb93cae06aeb2bf9126b66e86f2066b9f2585"
+        },
+        "featureless_regularization": {
+          "path": "models/node_affinity_prediction/dynamic_grl_models/navis/NAVIS/regularization.py",
+          "sha256": "fab81f8fdb0d154d71bbd56a2ea444328e31cfb26a2ca353915212de887356ec"
+        },
+        "feature_enabled_navis": {
+          "path": "models/node_affinity_prediction/dynamic_grl_models/navis_with_features/NAVIS/navis.py",
+          "sha256": "9c2140648a6cf3d5230f63f4650defb9c373ce79b5976aae93ac8335eda7f7a1"
+        },
+        "feature_enabled_regularization": {
+          "path": "models/node_affinity_prediction/dynamic_grl_models/navis_with_features/NAVIS/regularization.py",
+          "sha256": "fab81f8fdb0d154d71bbd56a2ea444328e31cfb26a2ca353915212de887356ec"
+        },
+        "instructions": {
+          "path": "models/node_affinity_prediction/dynamic_grl_models/navis/NAVIS/instructions.MD",
+          "sha256": "43e7d1c70bc86bc3ba4809a4e34bf4d9baa147861bcd680af8d4b89095f4b22b"
+        }
+      }
+    },
+    "known_reproducibility_gaps": [
+      "No NAVIS environment or dependency lock is committed.",
+      "The parsed seed argument is overwritten by seed 2.",
+      "Both scripts set 500 epochs while the paper reports 50 epochs for featureless NAVIS.",
+      "The upstream loop evaluates its test loader every epoch.",
+      "The pytorchltr stability edit is described without a package revision or patch checksum.",
+      "The feature script does not document a complete positional mapping from its constants to the paper's 23 listed features."
+    ]
+  },
+  "navis_execution": {
+    "implementation_boundary": "isolated WealthSignal adapter derived from the pinned source; no direct coupling to the decision API",
+    "variants": {
+      "featureless": {
+        "role": "primary attributed reproduction",
+        "maximum_epochs": 50
+      },
+      "availability_safe_features": {
+        "role": "declared ablation; not an exact paper feature replication",
+        "maximum_epochs": 500,
+        "feature_dimension": 23,
+        "sector_embedding_enabled": false,
+        "unavailable_inputs_fixed_zero": [
+          "manager_aum",
+          "manager_sector_exposures_11",
+          "security_total_shares",
+          "security_sector"
+        ]
+      }
+    },
+    "batch_size_events": 200,
+    "float_dtype": "float32",
+    "is_multi": false,
+    "optimizer": {
+      "name": "Adam",
+      "learning_rate": 0.0001,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "epsilon": 1e-08,
+      "weight_decay": 0.0,
+      "amsgrad": false
+    },
+    "loss": {
+      "primary": "pytorchltr.loss.pairwise_lambda.LambdaNDCGLoss2",
+      "regularizer": "HindgeRegularization",
+      "regularizer_weight": 1.0,
+      "top_k": 20,
+      "delta": 0.001,
+      "candidate_mask_required": true,
+      "pytorchltr_version": "0.2.1",
+      "pytorchltr_source_archive_sha256": "58d60f1da45ab73d29f9594922b9ee601a7f65b42759585baba799f83b0fc945",
+      "stability_patch_path": "third_party/patches/pytorchltr-0.2.1-lambda-ndcg-exponent-clamp.patch",
+      "stability_patch_effect": "clamp LambdaNDCGLoss2 exponent to [0, 30]"
+    },
+    "disabled_training_options": [
+      "dropout",
+      "gradient_clipping",
+      "mixed_precision",
+      "learning_rate_scheduler",
+      "early_stopping"
+    ],
+    "score_postprocessing": {
+      "ranking_metrics": "raw finite score on the frozen candidate mask",
+      "weight_metrics": "clip at zero then L1 normalize on the frozen candidate mask",
+      "all_zero_fallback": "uniform across that row's candidates",
+      "uses_target_values": false
+    },
+    "ordering": [
+      "report_period ascending",
+      "feature_available_at ascending",
+      "CIK ascending",
+      "security_key ascending"
+    ],
+    "determinism": {
+      "seed_python": true,
+      "seed_numpy": true,
+      "seed_torch_cpu": true,
+      "seed_torch_cuda_all": true,
+      "torch_deterministic_algorithms": true,
+      "cudnn_benchmark": false
+    },
+    "seeds": {
+      "smoke": [
+        2
+      ],
+      "scaling_diagnostic": [
+        2
+      ],
+      "official_validation": [
+        1,
+        2,
+        3
+      ]
+    },
+    "stage_profiles": {
+      "cloud5_smoke": {
+        "manager_count": 10,
+        "fold_count": 1,
+        "variant": "featureless",
+        "maximum_epochs": 2,
+        "evidence_classification": "engineering smoke only"
+      },
+      "cloud6_scaling_diagnostic": {
+        "manager_count": 25,
+        "fold_count": 1,
+        "variant": "featureless",
+        "maximum_epochs": 1,
+        "evidence_classification": "memory/runtime diagnostic only"
+      },
+      "cloud6_official_validation": {
+        "manager_count": 50,
+        "fold_count": 9,
+        "variants": [
+          "featureless",
+          "availability_safe_features"
+        ],
+        "fresh_state_per_fold_and_seed": true
+      }
+    },
+    "epoch_selection": {
+      "metric": "seed-averaged manager-macro NDCG@10 across all nine validation folds",
+      "tie_breaker": "earlier epoch"
+    },
+    "variant_selection": {
+      "metric": "validation manager-macro NDCG@10",
+      "tie_breaker": "featureless"
+    },
+    "prospective_loader_permitted_during_training_or_selection": false
+  },
+  "feature_ablation_layout": [
+    {
+      "indices": [0],
+      "node_type": "manager",
+      "value": "log1p current holding count"
+    },
+    {
+      "indices": [1],
+      "node_type": "manager",
+      "value": "unavailable AUM fixed zero"
+    },
+    {
+      "indices": [2],
+      "node_type": "manager",
+      "value": "current portfolio HHI"
+    },
+    {
+      "indices": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      "node_type": "manager",
+      "value": "unavailable point-in-time sector exposures fixed zero"
+    },
+    {
+      "indices": [14],
+      "node_type": "manager",
+      "value": "half-L1 turnover from exact previous quarter"
+    },
+    {
+      "indices": [15],
+      "node_type": "manager",
+      "value": "current versus exact-previous-quarter cosine similarity, else zero"
+    },
+    {
+      "indices": [16],
+      "node_type": "manager",
+      "value": "negative sum w*log(w) over current top-ten portfolio weights without top-ten renormalization"
+    },
+    {
+      "indices": [17],
+      "node_type": "security",
+      "value": "current owner count within frozen cohort"
+    },
+    {
+      "indices": [18],
+      "node_type": "security",
+      "value": "current aggregate manager weight"
+    },
+    {
+      "indices": [19],
+      "node_type": "security",
+      "value": "unavailable total shares fixed zero"
+    },
+    {
+      "indices": [20],
+      "node_type": "security",
+      "value": "mean current weight across owning managers"
+    },
+    {
+      "indices": [21],
+      "node_type": "security",
+      "value": "population standard deviation of current weights across owning managers"
+    },
+    {
+      "indices": [22],
+      "node_type": "security",
+      "value": "unavailable point-in-time sector fixed zero"
+    }
+  ],
+  "metrics_and_uncertainty": {
+    "primary_metrics": [
+      "manager_macro_ndcg_at_10",
+      "manager_macro_ndcg_at_20",
+      "manager_macro_recall_at_10",
+      "manager_macro_weight_mae",
+      "manager_macro_weight_rmse"
+    ],
+    "required_context": [
+      "nonzero_target_mae_rmse",
+      "target_weight_mass_coverage",
+      "rank_correlation",
+      "new_exit_precision_recall",
+      "per_quarter_results",
+      "per_manager_results",
+      "seed_variability",
+      "runtime",
+      "parameter_count",
+      "peak_vram_ram",
+      "candidate_counts",
+      "measured_cost"
+    ],
+    "bootstrap": {
+      "method": "paired manager-block percentile bootstrap",
+      "resamples": 2000,
+      "seed": 20260831,
+      "confidence_level": 0.95,
+      "two_sided": true,
+      "manager_block_retains_all_quarters": true,
+      "average_navis_seeds_before_resampling": true
+    }
+  },
+  "promotion_policy": {
+    "comparison_baselines": [
+      "persistence",
+      "ema_0.8"
+    ],
+    "required_mean_ndcg10_improvement_over_persistence": true,
+    "required_quarter_wins_out_of_nine": 6,
+    "recall10_may_decrease": false,
+    "maximum_mae_ratio_to_persistence": 1.05,
+    "quality_leakage_reload_determinism_and_lineage_gates_required": true,
+    "training_completion_is_promotion": false,
+    "reviewer_approval_required_for_serving": true,
+    "prospective_evaluation_count": 1,
+    "retuning_after_prospective_evaluation_allowed": false,
+    "current_promotion_decision": "pending Cloud 6 official validation"
+  },
+  "graph_bundle_contract": {
+    "schema_name": "wealthsignal-graph-bundle-v2",
+    "current_materialization_status": "contract frozen; immutable file export not yet created",
+    "required_files": [
+      "manager_nodes.parquet",
+      "security_nodes.parquet",
+      "chronological_edges/",
+      "forecast_examples/",
+      "split-manifest.json",
+      "bundle-manifest.json",
+      "protocol/",
+      "licenses/NAVIS-LICENSE"
+    ],
+    "optional_files": [
+      "node_features/"
+    ],
+    "partitioning": {
+      "chronological_edges": "report_period",
+      "forecast_examples": "target_report_period",
+      "node_features": "report_period"
+    },
+    "manifest_requirements": [
+      "source table and partition identities",
+      "column schemas",
+      "row counts",
+      "per-file SHA-256",
+      "canonical manifest SHA-256",
+      "Git revision",
+      "protocol, config, cohort, and split checksums",
+      "distributed graph fingerprints"
+    ],
+    "reconciliation_tolerance": 1e-12,
+    "forbidden_target_report_periods": [
+      "2026-06-30"
+    ],
+    "sample_graph_evidence": {
+      "evidence_classification": "Cloud 4 portfolio-demo engineering sample",
+      "manager_nodes": {
+        "row_count": 50,
+        "distributed_xxhash64_sum": "42800733637899253481"
+      },
+      "security_nodes": {
+        "row_count": 24630,
+        "distributed_xxhash64_sum": "1090629975680525195789"
+      },
+      "chronological_edges": {
+        "row_count": 185589,
+        "distributed_xxhash64_sum": "-2596520474082697680984"
+      },
+      "forecast_examples": {
+        "row_count": 279423,
+        "distributed_xxhash64_sum": "-5826953465071190770194"
+      },
+      "full_report_manifest_sha256": "b7e396da4e9d90ce476152a8ab55891c2251d9cfeab4d44e88d9c05e490d0c36"
+    },
+    "transfer_rule": "only a checksum-complete immutable export may be transferred to RunPod"
+  },
+  "environment_freeze": {
+    "operating_system": "Linux x86_64",
+    "python": "3.11.9",
+    "cuda_wheel_channel": "cu126",
+    "cuda_runtime": "12.6",
+    "direct_dependencies": {
+      "torch": "2.12.1",
+      "torch-geometric": "2.8.0",
+      "py-tgb": "2.2.0",
+      "pytorchltr": "0.2.1",
+      "numpy": "2.5.0",
+      "matplotlib": "3.11.0",
+      "tqdm": "4.68.3",
+      "wandb": "0.28.0"
+    },
+    "wandb_mode": "offline",
+    "network_logging_allowed": false,
+    "container_and_transitive_lock_status": "must be hash-locked and assigned an immutable base-image digest during the local Cloud 5 preflight before any pod starts",
+    "floating_latest_versions_allowed": false,
+    "dependency_change_requires_reviewed_freeze_amendment": true
+  },
+  "compute_and_approval_gates": {
+    "architecture_a2_decision": "no paid escalation; Free Edition sample is sufficient for the portfolio demonstration",
+    "full_volume_cloud4_rerun_in_scope": false,
+    "cloud5_requires_separate_owner_approval": true,
+    "cloud6_requires_new_approval_after_cloud5_acceptance": true,
+    "initial_cloud5_gpu_memory_gb_range": [
+      16,
+      24
+    ],
+    "initial_cloud6_gpu": "RTX 4090 24 GB",
+    "cloud6_host_ram_gb_range": [
+      48,
+      64
+    ],
+    "cloud6_vcpu_range": [
+      8,
+      16
+    ],
+    "project_cost_stop_usd": 75,
+    "shutdown_rule": "terminate rented compute immediately after verified artifact capture"
+  },
+  "guards": {
+    "prospective_q2_2026_truth_accessed": false,
+    "prospective_source_downloaded": false,
+    "navis_run_completed": false,
+    "model_promoted": false,
+    "model_serving_authorized": false,
+    "cloud4_rerun_started": false,
+    "aws_resources_created": false,
+    "runpod_resources_created": false,
+    "paid_databricks_resources_created": false,
+    "cost_incurred_by_this_milestone_usd": 0
+  }
+}

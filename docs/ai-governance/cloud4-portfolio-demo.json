@@ -85,7 +85,14 @@
   "artifacts": {
     "full_report_path": "/Volumes/workspace/gold/cloud4_reports/cloud4-portfolio-demo.json",
     "full_report_manifest_sha256": "b7e396da4e9d90ce476152a8ab55891c2251d9cfeab4d44e88d9c05e490d0c36",
-    "protocol_sha256": "d27b18bb2194aef6da73971c98d51e29cc35ec50cba8146beaa9ccfeefba3fef"
+    "protocol_sha256": "d27b18bb2194aef6da73971c98d51e29cc35ec50cba8146beaa9ccfeefba3fef",
+    "protocol_hash_interpretation": {
+      "cloud4_algorithm": "sha256 of the canonical JSON encoding of the UTF-8 protocol text string",
+      "cloud4_value": "d27b18bb2194aef6da73971c98d51e29cc35ec50cba8146beaa9ccfeefba3fef",
+      "git_normalized_file_algorithm": "sha256 of Git-normalized LF file bytes",
+      "git_normalized_file_value": "d68689d84a0cf9c769ab73abfe96c69ecb6caf6b4bee720d998fcf10b5a09b7d",
+      "same_protocol_text": true
+    }
   },
   "retained_failures": [
     {

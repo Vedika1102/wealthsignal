@@ -185,7 +185,7 @@ The rule-based materiality score may remain as a clearly named observed-change s
 5. The failed action classifiers remain diagnostic and must not be introduced into alerts, portfolio impact, or the forecast API.
 6. Ten managers and six target quarters demonstrate the method but do not reproduce the research paper's scale or establish broad external validity.
 7. Long-term security identity, corporate actions, and historical index-membership policies still need explicit treatment.
-8. PySpark and isolated test dependencies are declared; a graph-learning framework remains intentionally undeclared until the graph/NAVIS milestone.
+8. PySpark and isolated test dependencies are declared. The NAVIS freeze now pins the direct graph-learning environment, but its Linux container digest and transitive hash lock remain a Cloud 5 preflight deliverable; those packages are intentionally not installed into the API/pipeline environment.
 9. The attempted local 50-manager build exceeded 28 GB private memory on a 15.85 GB RAM machine without finalizing. The cloud path in `docs/WealthSignal_Cloud_Execution_Plan.md` replaces further unbounded local builds.
 10. Databricks CLI is OAuth-connected and serverless Cloud 1-4 jobs have executed successfully. The bounded environment-client-4 smoke passed, while four full-volume Cloud 4 attempts failed before a first-fold checkpoint due graph schema and fixed Spark Connect model-response limits. The deterministic portfolio sample then passed in run `614617193746493`: 279,423 rows, all nine checkpoints reloaded, and persistence/EMA graph reconciliation within `1e-12`. Do not restart either gate without a new approved reason. Paid classic compute remains unauthorized. RunPod remains owner-deferred.
 
@@ -197,9 +197,9 @@ Follow this dependency order from the actual stopping point:
 2. Acquire the declared development packages and materialize and checksum the training-only manager cohort. Completed in commit `ce1171e`.
 3. Complete Cloud 0/1: completed; all 30 source checksums and the cohort checksum were verified in Databricks.
 4. Run the production-shaped, sample-scale Cloud 4 portfolio profile across all nine frozen folds. Completed in run `614617193746493`; the measured evidence is `docs/ai-governance/cloud4-portfolio-demo.json` and remains engineering-demo evidence only.
-5. Freeze the selected V2 candidate/model configuration and the attributed NAVIS reproduction protocol before the prospective 2026 Q2 source becomes available. This is next.
-6. Preserve the completed sample-scale framework-independent graph bundle and persistence/EMA reconciliation; require its checksum-frozen export before Cloud 5.
-7. Complete Cloud 5/6: reproduce NAVIS on RunPod against a frozen upstream revision and compare it fairly with persistence and EMA.
+5. Freeze the selected V2 candidate/model configuration and the attributed NAVIS reproduction protocol before the prospective 2026 Q2 source becomes available. Completed on 2026-08-31 in `forecast-protocol-v2-model-freeze.json` and `navis-reproduction-protocol-v1.md`; validation and promotion remain pending.
+6. Preserve the completed sample-scale framework-independent graph tables and persistence/EMA reconciliation; produce their checksum-complete immutable file export before any Cloud 5 transfer. The export does not exist yet.
+7. Complete Cloud 5/6 only through separate resource/cost approvals: reproduce NAVIS on RunPod against the frozen upstream revision and compare it fairly with persistence and EMA.
 8. Optionally scale the same ordering to 99 managers, then implement one clearly original WealthSignal extension and ablation.
 9. Add monitoring, Excel, PowerPoint, dashboard, and verified resume metrics as measured engineering and communication layers.
 
@@ -1284,7 +1284,7 @@ WealthSignal is portfolio-ready only when:
 Copy this into a new Codex task opened in the WealthSignal repository:
 
 ```text
-Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, docs/ai-governance/cloud4-free-edition-nine-fold-gate.json, and docs/ai-governance/cloud4-portfolio-demo.json completely. Execute only architecture milestone A2 and the V2/NAVIS configuration freeze.
+Read docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, docs/ai-governance/forecast-protocol-v2-model-freeze.json, docs/ai-governance/navis-reproduction-protocol-v1.md, and docs/ai-governance/cloud4-portfolio-demo.json completely. Execute Cloud 5 only after the owner explicitly approves a bounded RunPod volume/pod and maximum cost.
 
-Reconcile the sample-scale pass with the retained full-volume failures, record the no-paid-escalation compute decision, and freeze the candidates, preprocessing, hyperparameters, action thresholds, seeds, metrics, graph artifact contract, environment, and promotion policy needed before NAVIS. Do not rerun Cloud 4, create AWS or RunPod resources, access prospective truth, or incur cost without explicit approval.
+Produce and verify the immutable first-10-manager graph export and hash-locked container before transfer. Then run only the frozen featureless seed-2, first-fold, two-epoch smoke; verify deterministic forward pass and checkpoint reload, record hardware/runtime/memory/cost, and terminate compute immediately. Do not run 25/50 managers, tune the freeze, create AWS resources, or access prospective Q2 2026 truth.
 ```

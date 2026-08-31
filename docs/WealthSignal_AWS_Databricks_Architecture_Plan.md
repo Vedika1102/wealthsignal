@@ -268,6 +268,8 @@ Produce expected runtime, compatibility, migration work, maximum cost, and clean
 
 Acceptance: a written decision backed by measured A1 evidence; no prospective access.
 
+Measured completion (2026-08-31): ADR 0003 accepts the no-paid-escalation path. Free Edition remains the completed sample-scale portfolio environment; the unchanged full-volume job will not be rerun. A future AWS-owned S3 integration, if separately approved, uses an IAM-role-backed Unity Catalog storage credential and external location in an AWS-linked Databricks workspace, starting with serverless CPU compute. Any classic compute fallback requires a new measured serverless blocker, a two-hour hard timeout, a maximum USD 25 request, and immediate cleanup. No AWS, paid Databricks, or RunPod resource was created, no cost was incurred, and prospective truth remained closed.
+
 ### A3 - Bootstrap AWS safely
 
 Scope: lowest-cost foundation only after approval.
@@ -345,12 +347,12 @@ For every architecture milestone, Codex must:
 8. Update measured reports and documentation without rewriting failed history.
 9. Report files, commands, tests, artifacts, costs, limitations, rollback, and exact next milestone.
 
-## Exact prompt for the next milestone
+## Exact prompt for the next separately approved architecture milestone
 
 ```text
-Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/WealthSignal_Cloud_Execution_Plan.md, docs/CODEX_PROJECT_NAVIGATION.md, docs/ai-governance/cloud4-free-edition-nine-fold-gate.json, and docs/ai-governance/cloud4-portfolio-demo.json completely. Continue only architecture milestone A2.
+Read docs/WealthSignal_AWS_Databricks_Architecture_Plan.md, docs/architecture/adr-0001-storage-ownership.md, docs/architecture/adr-0002-orchestration-boundary.md, docs/architecture/adr-0003-compute-escalation.md, docs/architecture/dev-platform-baseline.md, and the Protocol V2 model-freeze manifest completely. Continue to A3 only after the owner explicitly confirms the AWS account, region, budget/alert recipients, and permission to prepare the foundation.
 
-Reconcile the measured sample-scale pass with the retained full-volume capacity failures and write the compute-path decision. Treat Free Edition as sufficient for the portfolio demonstration, keep any full-volume rerun optional, and define the prerequisites and cost/cleanup boundary for the next integration milestone. Do not rerun Cloud 4, create AWS or RunPod resources, access prospective truth, or incur cost without explicit approval.
+Prepare the least-cost Terraform foundation and produce a reviewed plan only. Do not apply it, create a bucket, KMS key, IAM role, budget, Unity Catalog credential, external location, compute resource, or other billable resource without a second explicit approval. Preserve the USD 75 project stop limit and prospective-data guard.
 ```
 
 ## Definition of an industry-standard result
