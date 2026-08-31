@@ -1,0 +1,91 @@
+{
+  "cloud_milestone": "Cloud 3",
+  "stage": "official 50-manager Gold temporal validation dataset",
+  "status": "passed",
+  "decision": "go_for_cloud4_baselines_and_graph_contract",
+  "gold_build_commit": "66d9c8aa125de83876de112a6971ff1eeb20d081",
+  "reconciliation_commit": "08ccb8770af280f3b7ce63386b22ca8db1eb6dc2",
+  "successful_runs": {
+    "gold_parent_run_id": 7603449850560,
+    "gold_task_run_id": 72450509824290,
+    "reconciliation_parent_run_id": 466124170719543,
+    "reconciliation_task_run_id": 783371927913078
+  },
+  "runtime": {
+    "gold_setup_seconds": 7,
+    "gold_execution_seconds": 179,
+    "gold_pipeline_elapsed_seconds": 158.425,
+    "reconciliation_setup_seconds": 7,
+    "reconciliation_execution_seconds": 52
+  },
+  "candidate_cap_study": {
+    "validation_window": ["2024-03-31", "2026-03-31"],
+    "validation_folds": 9,
+    "validation_manager_quarters": 412,
+    "selection_tolerance": 0.0025,
+    "validation_mean_target_weight_mass_coverage": {
+      "100": 0.9767666375258991,
+      "250": 0.9784917551545395,
+      "500": 0.9811443310456817
+    },
+    "selected_candidate_cap": 500,
+    "selection_reason": "Cap 250 is 0.0026525758911422 below cap 500, outside the frozen 0.0025 tolerance."
+  },
+  "outputs": {
+    "selected_table": "workspace.gold.temporal_examples_50_cap_500",
+    "selected_rows": 5154259,
+    "selected_size_bytes": 393132013,
+    "selected_delta_files": 28,
+    "partition_columns": ["target_year", "target_quarter"],
+    "target_quarters": 28,
+    "manager_quarters": 1311,
+    "cap_100_rows": 4631059,
+    "cap_250_rows": 4827259,
+    "cap_500_rows": 5154259
+  },
+  "selected_cap_quality": {
+    "all_period_mean_target_weight_mass_coverage": 0.9822735015726749,
+    "target_candidate_coverage": 0.9152218994803689,
+    "new_position_coverage": 0.20124124997679038,
+    "zero_target_share": 0.6300971681865424,
+    "duplicate_examples": 0,
+    "null_required_rows": 0,
+    "prospective_rows": 0,
+    "invalid_target_horizon": 0,
+    "target_available_too_early": 0,
+    "future_candidates": 0
+  },
+  "reconciliation": {
+    "passed": true,
+    "selected_reload_row_count": 5154259,
+    "cap_100_missing_or_unexpected_rows": 0,
+    "cap_250_missing_or_unexpected_rows": 0
+  },
+  "checksums": {
+    "gold_manifest_sha256": "e0b1a03124257374a75530ef626a694dfa960856f39658ae1f4081eee855c3dc",
+    "cap_100_partition_manifest_sha256": "1d947dabdcd35946b1dc99d011c51db7de03e93966de4444a98f362f3a04a0bb",
+    "cap_250_partition_manifest_sha256": "319070b054fd6bf0f68ba12fdf1f2ae1c73a06ffa32b47f845bebc76f9c5a39e",
+    "cap_500_partition_manifest_sha256": "3293861c5483d22b96ec8d707e5c69eaf48e5384ffe967ee06ea4306ff81f8c7"
+  },
+  "retained_failures": [
+    {"parent_run_id": 737858399108488, "reason": "Serverless compute rejected DataFrame.persist()."},
+    {"parent_run_id": 661123078743987, "reason": "The leakage gate rejected 44 cross-ordered first-seen lineage rows before any Gold write."},
+    {"parent_run_id": 306229100428059, "reason": "Gold tables passed and wrote, but report hashing rejected Python date values."},
+    {"parent_run_id": 979616460065220, "reason": "Gold tables passed and wrote, but the Unity Catalog report volume did not yet exist."},
+    {"parent_run_id": 112410370747674, "reason": "The reconciliation entrypoint used a package-relative import under standalone execution."}
+  ],
+  "capacity_and_cost": {
+    "observed_peak_memory_bytes": null,
+    "memory_note": "Databricks serverless Jobs API did not expose peak driver or executor memory.",
+    "projected_incremental_usd_if_free_edition_quota_suffices": 0.0,
+    "paid_mode_cost_usd": null
+  },
+  "guards": {
+    "prospective_q2_2026_truth_accessed": false,
+    "graph_artifacts_created": false,
+    "models_trained": false,
+    "runpod_started": false,
+    "aws_resources_created": false
+  },
+  "blocking_reasons": []
+}

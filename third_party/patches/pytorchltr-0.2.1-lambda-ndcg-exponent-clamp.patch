@@ -1,0 +1,10 @@
+diff --git a/pytorchltr/loss/pairwise_lambda.py b/pytorchltr/loss/pairwise_lambda.py
+--- a/pytorchltr/loss/pairwise_lambda.py
++++ b/pytorchltr/loss/pairwise_lambda.py
+@@ -212,5 +212,6 @@ class LambdaNDCGLoss2(LambdaLoss):
+         # Compute final loss
+         exponent = delta[None, :, :] * _torch.abs(gain_diffs)
++        exponent = exponent.clamp(0, 30)
+         sigmoid = (1.0 / (1.0 + _torch.exp(-self.sigma * score_diffs)))
+         loss = _torch.log2(sigmoid ** exponent)
+         loss[rel_diffs <= 0] = 0.0

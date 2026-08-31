@@ -2,7 +2,7 @@
 
 WealthSignal is evolving into an auditable temporal ML platform that ingests public SEC `13F-HR` filings, forecasts next-quarter institutional holdings, detects unusual observed changes, and explains their relevance to synthetic client portfolios.
 
-The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository implements the historical bulk-data, objective temporal-target, leakage-audit, Protocol V1 evaluation, forecast persistence, and forecast API paths. Protocol V2 Cloud 1 and the exact 10-, 25-, and official 50-manager Cloud 2 Bronze-to-Silver checkpoints are complete; Cloud 3 Gold data and the attributed NAVIS research lane remain in progress. The legacy observed-change and weak-label workflow remains separate.
+The authoritative product and ML definition is [docs/WealthSignal_Forecasting_Spec.md](docs/WealthSignal_Forecasting_Spec.md). The repository implements the historical bulk-data, objective temporal-target, leakage-audit, Protocol V1 evaluation, forecast persistence, and forecast API paths. Protocol V2 Cloud 1, the exact 10/25/50-manager Cloud 2 checkpoints, the official 50-manager Cloud 3 Gold dataset, the sample-scale Cloud 4 portfolio gate, architecture A2, and the attributed NAVIS execution freeze are complete. The successful Cloud 4 run reused all nine frozen-fold checkpoints and passed graph/tabular reconciliation on 279,423 deterministic examples; its metrics are engineering-demo evidence only. The next milestone is a separately approved Cloud 5 immutable graph export, environment preflight, and bounded 10-manager NAVIS smoke. The legacy observed-change and weak-label workflow remains separate.
 
 The historical bulk-data workflow and its amendment, checksum, and output contracts are documented in [docs/SEC_13F_Bulk_Dataset.md](docs/SEC_13F_Bulk_Dataset.md).
 
@@ -23,6 +23,8 @@ The [candidate-universe sensitivity study](docs/WealthSignal_Candidate_Universe_
 [Protocol V2 Design](docs/WealthSignal_Protocol_V2_Design.md) declares a 50-manager main current-data study, nested 10/25-manager engineering subsets, an optional 99-manager scale study, point-in-time identity and missingness rules, 2024 Q1–2026 Q1 validation, and an unavailable-at-freeze 2026 Q2 prospective holdout before any new download or evaluation.
 
 [Cloud Execution Plan](docs/WealthSignal_Cloud_Execution_Plan.md) moves Protocol V2 PySpark/Delta construction to Databricks and reserves RunPod for checksum-frozen NAVIS GPU experiments after graph reconciliation.
+
+[AWS and Databricks Architecture Execution Plan](docs/WealthSignal_AWS_Databricks_Architecture_Plan.md) defines the target S3, Unity Catalog, Databricks, ECS, RDS, Step Functions, security, CI/CD, observability, cost, and phased implementation contracts. It does not authorize deployment or spending.
 
 This repository starts with the `13F ingestion foundation`, because a credible platform depends on:
 
@@ -120,12 +122,69 @@ Implemented:
 - lineage-aware SQLite/PostgreSQL forecast persistence and idempotent persistence-reference materialization
 - typed, paginated forecast-run and manager-forecast API endpoints with provenance and limitations
 - checksum-frozen Protocol V2 design with a new prospective evaluation window
+- accepted 50-manager, cap-500 Protocol V2 Gold table with 5,154,259 examples across 28 target quarters
+- Cloud 4 temporal graph, baseline, lineage, reconciliation, and restart-checkpoint contract
+- successful 20,000-row Databricks Free Edition compatibility smoke covering MLflow, Spark ML, and Delta reload
+- successful deterministic sample-scale `portfolio-demo` across all nine frozen validation folds with isolated tables, MLflow lineage, checkpoint reload, and graph/tabular reconciliation
+- accepted no-paid-escalation architecture A2 decision backed by the measured Cloud 4 result
+- attributed NAVIS paper/repository pin, MIT license record, frozen adaptations, direct environment, model settings, seeds, bootstrap, graph export contract, and promotion policy
+- offline integrity validation for the complete Protocol V2/NAVIS execution freeze
 - unit tests for parser, SEC utilities, historical/temporal datasets, baselines, persistence, and decisioning
 
 Next:
 
 - use persistence as the V1 reference forecast without presenting it as a learned-model breakthrough
-- construct leakage-audited Cloud 3 Gold partitions from the accepted official 50-manager Cloud 2 tables, preserving the prospective Q2 2026 guard
+- preserve the Cloud 4 pass as engineering-demo evidence rather than full-volume model-performance evidence
+- preserve A2 and the model freeze; do not rerun the full-volume or sample-scale Cloud 4 gate without a new approved reason
+- obtain explicit owner approval before any RunPod volume, pod, transfer, or cost
+- after approval, export and checksum the frozen first-10-manager graph bundle, build the hash-locked NAVIS container, and run only the two-epoch seed-2 smoke
+- keep prospective 2026 Q2 truth closed and require separate approval for AWS, RunPod, deployment, or spending
+
+### Current Cloud 4 boundary
+
+The bounded 20,000-row environment-client-4 smoke passed. Four later full-volume attempts failed before the first fold checkpoint because of a graph-table schema conflict and Spark Connect model-response size limits. Those failures are retained in [the Cloud 4 capacity-gate report](docs/ai-governance/cloud4-free-edition-nine-fold-gate.json). Do not rerun the unchanged full-volume job.
+
+The production-shaped, sample-scale target passed in Databricks Free Edition run `614617193746493` at commit `f1674bd`. It selected 279,423 rows across 50 managers and 28 target quarters, reused all nine isolated fold checkpoints, and reconciled persistence plus three EMA variants across 412 manager-quarter groups per model with no missing groups and a maximum absolute delta of `2.220446049250313e-16`. The measured evidence is preserved in [the Cloud 4 portfolio-demo report](docs/ai-governance/cloud4-portfolio-demo.json). This pass does not authorize model promotion, full-volume performance claims, AWS resources, RunPod resources, spending, or prospective evaluation.
+
+Architecture A2 now records that paid compute is not justified for this gate. [The Protocol V2 model freeze](docs/ai-governance/forecast-protocol-v2-model-freeze.json) and [NAVIS reproduction protocol](docs/ai-governance/navis-reproduction-protocol-v1.md) pin the upstream paper/repository, disclose its seed/epoch/environment gaps, and freeze WealthSignal's adaptations before prospective access. No NAVIS run or immutable graph-file export exists yet, so no reproduction claim is authorized.
+
+### Next Codex milestone
+
+Give Codex one bounded milestone at a time. For the current milestone, use:
+
+```text
+Read README.md, docs/WealthSignal_Cloud_Execution_Plan.md,
+docs/CODEX_PROJECT_NAVIGATION.md,
+docs/ai-governance/forecast-protocol-v2-model-freeze.json,
+docs/ai-governance/navis-reproduction-protocol-v1.md, and
+docs/ai-governance/cloud4-portfolio-demo.json completely.
+
+Execute Cloud 5 only after the owner explicitly approves a bounded RunPod volume/pod
+and maximum cost. Preserve the frozen upstream revision and configuration. Produce and
+verify the immutable first-10-manager graph export and hash-locked Linux container
+before transfer, then run only the featureless seed-2, first-fold, two-epoch smoke.
+
+Record deterministic inference, checkpoint reload, environment and hardware lineage,
+peak VRAM/RAM, epoch time, metrics, failures, and exact cost. Terminate compute
+immediately after artifact capture. Do not run 25/50 managers, tune the frozen choices,
+rerun Cloud 4, create AWS resources, promote a model, or access prospective 2026 Q2
+truth in this task.
+```
+
+Local validation does not require cloud authorization:
+
+```powershell
+$env:PYTHONPATH="services/pipeline_worker/src"
+python -m py_compile services/pipeline_worker/src/wealthsignal_pipeline/cloud4_contract.py
+python -m wealthsignal_pipeline.v2_model_freeze
+python -m pytest -q
+python -m json.tool databricks/cloud4-portfolio-demo-submit.json
+python -m json.tool docs/ai-governance/forecast-protocol-v2-model-freeze.json
+git diff --check
+git status --short
+```
+
+The A1 submission has completed successfully. Its historical reviewed command is recorded in the governance report; do not rerun it without a new approved reason.
 
 ### Legacy materiality path
 

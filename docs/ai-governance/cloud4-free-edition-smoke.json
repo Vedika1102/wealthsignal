@@ -1,0 +1,70 @@
+{
+  "cloud_milestone": "Cloud 4 Free Edition compatibility and efficiency gate",
+  "status": "passed",
+  "decision": "free_edition_environment4_viable_for_bounded_spark_ml",
+  "implementation_commit": "c73b98bbfe35332604e329c1fdea3beba417c472",
+  "successful_run": {
+    "parent_run_id": 818005580828490,
+    "task_run_id": 712244543454816,
+    "environment_client": 4,
+    "setup_duration_seconds": 9,
+    "execution_duration_seconds": 71,
+    "smoke_elapsed_seconds": 53.307,
+    "mlflow_run_id": "332dbb6198ed4aeb8c44fbc326feeb8a"
+  },
+  "bounded_input": {
+    "source_table": "workspace.gold.temporal_examples_50_cap_500",
+    "history_end": "2023-12-31",
+    "maximum_rows": 20000,
+    "source_rows": 20000,
+    "train_rows": 16037,
+    "evaluation_rows": 3963,
+    "logistic_label_classes": 2
+  },
+  "compatibility_checks": {
+    "mlflow_tracking": "passed",
+    "vector_assembler": "passed",
+    "imputer_and_standard_scaler": "passed",
+    "ridge_fit_and_transform": "passed",
+    "logistic_fit_and_transform": "passed",
+    "delta_write_reload": "passed",
+    "reload_rows": 3963,
+    "blocking_reasons": []
+  },
+  "efficiency_and_restartability_changes": {
+    "logistic_thresholds_combined_per_prediction_frame": true,
+    "fold_level_metric_action_trial_and_completion_checkpoints": true,
+    "completed_folds_reused_on_restart": true,
+    "global_node_numbering_window_removed": true,
+    "deterministic_hash_node_ids_with_collision_gate": true
+  },
+  "retained_failures": [
+    {
+      "parent_run_id": 743583852242260,
+      "commit": "c2b6ac7710a0e9a7e76ee422bdcd28d57080f322",
+      "environment_client": 2,
+      "reason": "MLflow implicitly read serverless-restricted spark.mlflow.modelRegistryUri."
+    },
+    {
+      "parent_run_id": 19355950313133,
+      "commit": "ce4c14e9e05502c8f5448a257e11adb751f76264",
+      "environment_client": 2,
+      "reason": "Serverless client 2 rejected the pyspark.ml VectorAssembler constructor."
+    }
+  ],
+  "viability": {
+    "free_edition_environment4_compatibility": "passed_for_bounded_smoke",
+    "complete_nine_fold_capacity": "not_yet_measured",
+    "paid_classic_compute_justified": false,
+    "official_cloud4_run_authorized": false
+  },
+  "guards": {
+    "engineering_smoke_only": true,
+    "model_selection_performed": false,
+    "prospective_q2_2026_truth_accessed": false,
+    "complete_nine_fold_run_started": false,
+    "paid_compute_created": false,
+    "runpod_resources_created": false,
+    "aws_resources_created": false
+  }
+}

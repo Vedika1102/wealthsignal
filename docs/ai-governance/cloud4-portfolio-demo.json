@@ -1,0 +1,125 @@
+{
+  "cloud_milestone": "Cloud 4 portfolio demonstration",
+  "status": "passed",
+  "measured_at": "2026-08-31T22:16:03.478869+00:00",
+  "evidence_classification": "sample-scale engineering demonstration only",
+  "submission_command": "databricks jobs submit --json @databricks/cloud4-portfolio-demo-submit.json",
+  "source_table": "workspace.gold.temporal_examples_50_cap_500",
+  "selected_candidate_cap": 500,
+  "successful_run": {
+    "parent_run_id": 614617193746493,
+    "task_run_id": 81754007395759,
+    "commit": "f1674bd9321a750cf6d4e1f660ae582e87505b89",
+    "environment_client": 4,
+    "setup_duration_seconds": 6,
+    "execution_duration_seconds": 94,
+    "cleanup_duration_seconds": 1,
+    "parent_run_duration_seconds": 101.561,
+    "pipeline_elapsed_seconds": 65.141,
+    "mlflow_run_id": "0d0314ba530b48f8adcc434b5f213341"
+  },
+  "sample_profile": {
+    "name": "portfolio-demo",
+    "method": "deterministic_stratified_hash_rank",
+    "strata": [
+      "cik",
+      "target_report_period",
+      "target_action"
+    ],
+    "maximum_rows_per_stratum": 50,
+    "sampled_rows": 279423,
+    "sampled_managers": 50,
+    "sampled_target_quarters": 28,
+    "sampled_strata": 6422
+  },
+  "restartability": {
+    "completed_fold_count": 9,
+    "reused_fold_count": 9,
+    "fold_checkpoint_table": "workspace.gold.cloud4_fold_checkpoints_50_cap_500_portfolio_demo"
+  },
+  "graph_statistics": {
+    "manager_nodes": 50,
+    "security_nodes": 24630,
+    "chronological_edges": 185589,
+    "forecast_examples": 279423,
+    "first_report_period": "2019-03-31",
+    "last_report_period": "2025-12-31",
+    "first_available_at": "2019-04-11",
+    "last_available_at": "2026-03-25"
+  },
+  "graph_tables": {
+    "manager_nodes": "workspace.gold.graph_50_cap_500_manager_nodes_portfolio_demo",
+    "security_nodes": "workspace.gold.graph_50_cap_500_security_nodes_portfolio_demo",
+    "chronological_edges": "workspace.gold.graph_50_cap_500_chronological_edges_portfolio_demo",
+    "forecast_examples": "workspace.gold.graph_50_cap_500_forecast_examples_portfolio_demo"
+  },
+  "graph_tabular_reconciliation": {
+    "models": [
+      "persistence",
+      "ema_0.4",
+      "ema_0.6",
+      "ema_0.8"
+    ],
+    "groups_per_model": 412,
+    "missing_tabular_groups": 0,
+    "missing_graph_groups": 0,
+    "largest_non_rank_metric_absolute_delta": 0.0,
+    "largest_rank_correlation_absolute_delta": 2.220446049250313e-16,
+    "tolerance": 1e-12,
+    "failures": 0
+  },
+  "selected_validation_diagnostics": {
+    "ema_alpha": 0.8,
+    "ridge_alpha": 0.1,
+    "new_position": {
+      "class_weight_mode": "balanced",
+      "threshold": 0.5,
+      "mean_validation_f1": 0.4547888988688153
+    },
+    "exit": {
+      "class_weight_mode": "balanced",
+      "threshold": 0.5,
+      "mean_validation_f1": 0.37632943542893016
+    }
+  },
+  "artifacts": {
+    "full_report_path": "/Volumes/workspace/gold/cloud4_reports/cloud4-portfolio-demo.json",
+    "full_report_manifest_sha256": "b7e396da4e9d90ce476152a8ab55891c2251d9cfeab4d44e88d9c05e490d0c36",
+    "protocol_sha256": "d27b18bb2194aef6da73971c98d51e29cc35ec50cba8146beaa9ccfeefba3fef",
+    "protocol_hash_interpretation": {
+      "cloud4_algorithm": "sha256 of the canonical JSON encoding of the UTF-8 protocol text string",
+      "cloud4_value": "d27b18bb2194aef6da73971c98d51e29cc35ec50cba8146beaa9ccfeefba3fef",
+      "git_normalized_file_algorithm": "sha256 of Git-normalized LF file bytes",
+      "git_normalized_file_value": "d68689d84a0cf9c769ab73abfe96c69ecb6caf6b4bee720d998fcf10b5a09b7d",
+      "same_protocol_text": true
+    }
+  },
+  "retained_failures": [
+    {
+      "parent_run_id": 1030543294491708,
+      "commit": "298047b3c7470f427f67fa611da6af8d6c10ea14",
+      "result": "failed_after_nine_fold_checkpoint_work",
+      "reason": "The final report read the frozen protocol through a task-working-directory-relative path that was absent in the Databricks Git task."
+    },
+    {
+      "parent_run_id": 172441414460911,
+      "commit": "298047b3c7470f427f67fa611da6af8d6c10ea14",
+      "result": "first_attempt_failed_then_retry_cancelled",
+      "reason": "The first attempt reproduced the known relative protocol-path failure; the automatic retry was cancelled to avoid repeating it."
+    },
+    {
+      "parent_run_id": 772752013744428,
+      "commit": "e2f2eb4aa5cf09f07f6659f9469c102b4ba834ac",
+      "result": "failed",
+      "reason": "The first path remediation relied on __file__, which Databricks spark_python_task compile/exec execution does not define."
+    }
+  ],
+  "guards": {
+    "engineering_demonstration_only": true,
+    "model_performance_claim_authorized": false,
+    "prospective_q2_2026_truth_accessed": false,
+    "paid_compute_created": false,
+    "runpod_resources_created": false,
+    "aws_resources_created": false
+  }
+}

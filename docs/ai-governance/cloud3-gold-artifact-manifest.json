@@ -1,0 +1,11 @@
+{
+  "cloud_milestone": "Cloud 3 official 50-manager Gold dataset",
+  "gold_build_commit": "66d9c8aa125de83876de112a6971ff1eeb20d081",
+  "reconciliation_commit": "08ccb8770af280f3b7ce63386b22ca8db1eb6dc2",
+  "committed_artifact_sha256": {
+    "databricks/cloud3-gold-submit.json": "beb16ec6ce477d19d1dbd10cda11f0b497440bf0c60845d33111595e2dd2b0ef",
+    "databricks/cloud3-gate-submit.json": "4147ad1ebbe5c14ccaa708518091ed1b9faf4b77e9216b3c9acf2c79b4ada05b",
+    "docs/ai-governance/cloud3-gold-50-manager.json": "8f6b8c0f4b963833998d768c282093767d64f84e216738f9df644dd111e21e13",
+    "docs/ai-governance/cloud3-gold-50-manager-reconciliation.json": "5d9ea4d74c7630d0843a59b186f7645a09e60bd239a1f416f738a21cd7b20ed1"
+  }
+}
